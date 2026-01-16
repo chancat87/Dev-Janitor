@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### AI Assistant (NEW!)
+- Local rule-based intelligent analysis (no API key required)
+- Automatic detection of outdated tool versions
+- PATH duplicate and conflict detection
+- Port conflict identification
+- Missing essential tools recommendations
+- Optimization suggestions with executable commands
+- Optional OpenAI integration for deeper insights
+- Environment health assessment
+- Personalized recommendations
+- Multi-language support (English/Chinese)
+
+#### Enhanced Tool Detection
+- Added support for Java, Go, Rust, Ruby, .NET detection
+- Added support for Yarn, pnpm, Cargo, RubyGems package managers
+- Added support for Git, Docker, Kubernetes CLI, Terraform
+- Improved Windows Python detection (py command support)
+- Improved Windows pip detection (py -m pip support)
+- Total 19+ tools now supported
+
 #### Tool Detection
 - Automatic detection of installed development tools on system startup
 - Support for detecting Node.js, npm, Python, pip, PHP, and Composer

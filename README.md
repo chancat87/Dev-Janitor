@@ -35,9 +35,23 @@ Dev Janitor is a powerful desktop application designed to help developers detect
 
 ### 🔍 Tool Detection
 - **Automatic Detection**: Automatically scans and detects installed development tools
-- **Supported Tools**: Node.js, Python, PHP, npm, pip, Composer, and more
+- **Supported Tools**: Node.js, Python, PHP, Java, Go, Rust, Ruby, .NET, npm, pip, Composer, Yarn, pnpm, Cargo, RubyGems, Git, Docker, Kubernetes CLI, Terraform, and more
 - **Version Information**: Displays version numbers and installation paths
 - **Installation Status**: Clear visual indicators for installed vs unavailable tools
+- **Windows Compatibility**: Special handling for Windows Python Launcher (`py` command)
+
+### 🤖 AI Assistant (NEW!)
+- **Local Analysis**: Free, offline intelligent analysis without API key
+  - Detects outdated tool versions
+  - Finds PATH duplicates and conflicts
+  - Identifies port conflicts
+  - Suggests missing essential tools
+- **AI-Powered Insights**: Optional OpenAI integration for deeper analysis
+  - Environment health assessment
+  - Personalized optimization recommendations
+  - Best practices suggestions
+- **Smart Suggestions**: Actionable recommendations with commands
+- **Multi-language**: Full support in English and Chinese
 
 ### 📦 Package Management
 - **NPM Packages**: View and manage globally installed npm packages
@@ -144,6 +158,26 @@ Download the latest release for your platform from the [Releases](https://github
    ```
 
 ## Usage
+
+## Usage
+
+### AI Assistant
+
+The AI Assistant helps you intelligently analyze and optimize your development environment:
+
+1. **Open AI Assistant**: Click the robot icon in the bottom-right corner
+2. **Start Analysis**: Click the "Analyze Environment" button
+3. **View Results**:
+   - **Environment Overview**: Overall health status
+   - **Issues Found**: Categorized list of problems by severity
+   - **Optimization Suggestions**: Actionable improvement recommendations
+   - **AI Deep Analysis**: (Requires API Key) More detailed insights
+4. **Execute Suggestions**: Copy provided commands to your terminal
+
+**Configure AI Enhancement** (Optional):
+1. Go to Settings page
+2. Configure OpenAI API Key
+3. Enable AI features for smarter analysis
 
 ### Tools View
 
