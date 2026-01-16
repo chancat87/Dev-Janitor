@@ -67,3 +67,35 @@ export type SupportedLanguage = 'zh-CN' | 'en-US'
 
 // View Types
 export type ViewType = 'tools' | 'packages' | 'services' | 'environment' | 'settings'
+
+// AI Assistant Types
+export interface AnalysisResult {
+  summary: string
+  issues: Issue[]
+  suggestions: Suggestion[]
+  insights: string[]
+}
+
+export interface Issue {
+  severity: 'critical' | 'warning' | 'info'
+  category: 'version' | 'conflict' | 'security' | 'performance' | 'configuration'
+  title: string
+  description: string
+  affectedTools?: string[]
+  solution?: string
+}
+
+export interface Suggestion {
+  type: 'install' | 'update' | 'remove' | 'configure' | 'optimize'
+  title: string
+  description: string
+  command?: string
+  priority: 'high' | 'medium' | 'low'
+}
+
+export interface AIConfig {
+  provider: 'openai' | 'anthropic' | 'local'
+  apiKey?: string
+  model?: string
+  enabled: boolean
+}

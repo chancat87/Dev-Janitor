@@ -259,5 +259,26 @@
     "collapse": "Collapse",
     "viewDetails": "View details",
     "openExternal": "Open in external application"
+  },
+  "ai": {
+    "title": "AI Assistant",
+    "analyze": "Analyze Environment",
+    "analyzing": "Analyzing your development environment...",
+    "summary": "Environment Overview",
+    "issues": "Issues Found",
+    "suggestions": "Optimization Suggestions",
+    "insights": "AI Deep Analysis",
+    "solution": "Solution",
+    "affectedTools": "Affected Tools",
+    "command": "Command",
+    "insightDetail": "Analysis Details",
+    "allGood": "Environment is Healthy",
+    "allGoodDesc": "No obvious issues found. Your development environment is well configured!",
+    "helpTitle": "What can AI Assistant do?",
+    "help1": "Detect outdated or incompatible tools",
+    "help2": "Find environment configuration issues",
+    "help3": "Provide optimization suggestions",
+    "help4": "Recommend common tools to install",
+    "helpNote": "Click 'Analyze Environment' button to start intelligent analysis"
   }
 }

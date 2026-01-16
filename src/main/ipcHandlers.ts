@@ -17,7 +17,8 @@ import { detectionEngine } from './detectionEngine'
 import { packageManager } from './packageManager'
 import { serviceMonitor } from './serviceMonitor'
 import { environmentScanner } from './environmentScanner'
-import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable } from '../shared/types'
+import { aiAssistant } from './aiAssistant'
+import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable, AnalysisResult, AIConfig } from '../shared/types'
 
 // Store for language preference
 let currentLanguage = 'en-US'
@@ -214,6 +215,47 @@ function registerSettingsHandlers(): void {
 }
 
 /**
+ * Register all IPC handlers for AI assistant
+ */
+function registerAIHandlers(): void {
+  // Analyze environment
+  ipcMain.handle('ai:analyze', async (): Promise<AnalysisResult> => {
+    try {
+      // Gather all data
+      const tools = await detectionEngine.detectAllTools()
+      const npmPackages = await packageManager.listNpmPackages()
+      const pipPackages = await packageManager.listPipPackages()
+      const composerPackages = await packageManager.listComposerPackages()
+      const packages = [...npmPackages, ...pipPackages, ...composerPackages]
+      const services = await serviceMonitor.listRunningServices()
+      const environment = environmentScanner.getAllEnvironmentVariables()
+      
+      // Perform analysis
+      const result = await aiAssistant.analyze(tools, packages, environment, services)
+      return result
+    } catch (error) {
+      console.error('Error analyzing environment:', error)
+      return {
+        summary: '分析失败',
+        issues: [],
+        suggestions: [],
+        insights: [`错误: ${error instanceof Error ? error.message : 'Unknown error'}`]
+      }
+    }
+  })
+
+  // Update AI configuration
+  ipcMain.handle('ai:update-config', async (_event, config: AIConfig): Promise<void> => {
+    try {
+      aiAssistant.updateConfig(config)
+    } catch (error) {
+      console.error('Error updating AI config:', error)
+      sendToAllWindows('error', `Failed to update AI config: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  })
+}
+
+/**
  * Start service monitoring and send updates to renderer
  * 
  * Validates: Requirement 11.6 (refresh every 5 seconds)
@@ -261,6 +303,7 @@ export function registerAllIPCHandlers(): void {
   registerServicesHandlers()
   registerEnvironmentHandlers()
   registerSettingsHandlers()
+  registerAIHandlers()
   
   // Start service monitoring
   startServiceMonitoring()
@@ -288,6 +331,8 @@ export function cleanupIPCHandlers(): void {
   ipcMain.removeHandler('env:get-path')
   ipcMain.removeHandler('settings:get-language')
   ipcMain.removeHandler('settings:set-language')
+  ipcMain.removeHandler('ai:analyze')
+  ipcMain.removeHandler('ai:update-config')
   
   console.log('All IPC handlers cleaned up')
 }

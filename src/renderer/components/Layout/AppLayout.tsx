@@ -10,7 +10,8 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { Layout, message } from 'antd'
+import { Layout, message, FloatButton } from 'antd'
+import { RobotOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store'
 import Header from './Header'
@@ -20,6 +21,7 @@ import PackagesView from '../Packages/PackagesView'
 import ServicesView from '../Services/ServicesView'
 import EnvironmentView from '../Environment/EnvironmentView'
 import { SettingsView } from '../Settings'
+import { AIAssistantDrawer } from '../AI'
 
 const { Content } = Layout
 
@@ -36,6 +38,7 @@ const AppLayout: React.FC = () => {
   } = useAppStore()
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [aiDrawerOpen, setAiDrawerOpen] = useState(false)
 
   // Initialize language on mount
   useEffect(() => {
@@ -90,6 +93,21 @@ const AppLayout: React.FC = () => {
           {renderContent()}
         </Content>
       </Layout>
+
+      {/* AI Assistant Floating Button */}
+      <FloatButton
+        icon={<RobotOutlined />}
+        type="primary"
+        style={{ right: 24, bottom: 24 }}
+        onClick={() => setAiDrawerOpen(true)}
+        tooltip={t('ai.title', 'AI 助手')}
+      />
+
+      {/* AI Assistant Drawer */}
+      <AIAssistantDrawer
+        open={aiDrawerOpen}
+        onClose={() => setAiDrawerOpen(false)}
+      />
     </Layout>
   )
 }

@@ -259,5 +259,26 @@
     "collapse": "收起",
     "viewDetails": "查看详情",
     "openExternal": "在外部应用中打开"
+  },
+  "ai": {
+    "title": "AI 助手",
+    "analyze": "分析环境",
+    "analyzing": "正在分析您的开发环境...",
+    "summary": "环境概览",
+    "issues": "发现的问题",
+    "suggestions": "优化建议",
+    "insights": "AI 深度分析",
+    "solution": "解决方案",
+    "affectedTools": "影响的工具",
+    "command": "执行命令",
+    "insightDetail": "分析详情",
+    "allGood": "环境状态良好",
+    "allGoodDesc": "未发现明显问题，您的开发环境配置良好！",
+    "helpTitle": "AI 助手能做什么？",
+    "help1": "检测版本过旧或不兼容的工具",
+    "help2": "发现环境配置问题",
+    "help3": "提供优化建议",
+    "help4": "推荐安装常用工具",
+    "helpNote": "点击"分析环境"按钮开始智能分析"
   }
 }

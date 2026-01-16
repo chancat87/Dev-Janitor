@@ -11,7 +11,7 @@
  */
 
 import { ipcRenderer, contextBridge } from 'electron'
-import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable } from '../shared/types'
+import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable, AnalysisResult, AIConfig } from '../shared/types'
 
 /**
  * Type-safe IPC API exposed to renderer
@@ -52,6 +52,12 @@ interface ElectronAPI {
     getLanguage: () => Promise<string>
     setLanguage: (lang: string) => Promise<void>
     onLanguageChanged: (callback: (lang: string) => void) => () => void
+  }
+
+  // AI Assistant API
+  ai: {
+    analyze: () => Promise<AnalysisResult>
+    updateConfig: (config: AIConfig) => Promise<void>
   }
 
   // Events API
@@ -130,6 +136,12 @@ const electronAPI: ElectronAPI = {
         ipcRenderer.removeListener('settings:language-changed', handler)
       }
     },
+  },
+
+  // AI Assistant API
+  ai: {
+    analyze: () => ipcRenderer.invoke('ai:analyze'),
+    updateConfig: (config: AIConfig) => ipcRenderer.invoke('ai:update-config', config),
   },
 
   // Events API
