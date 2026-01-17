@@ -112,42 +112,8 @@ export function parseLsofLine(line: string): { port: number; pid: number; name: 
   return { port, pid, name }
 }
 
-/**
- * Get process name by PID on Windows using tasklist
- * 
- * @param pid Process ID
- * @returns Promise resolving to process name or null
- */
-async function getWindowsProcessName(pid: number): Promise<string | null> {
-  const result = await executeSafe(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`)
-  
-  if (!result.success || !result.stdout) {
-    return null
-  }
-  
-  // Format: "process.exe","12345","Console","1","12,345 K"
-  const match = result.stdout.match(/"([^"]+)"/)
-  return match ? match[1] : null
-}
-
-/**
- * Get process command line by PID on Windows
- * 
- * @param pid Process ID
- * @returns Promise resolving to command line or empty string
- */
-async function getWindowsProcessCommand(pid: number): Promise<string> {
-  const result = await executeSafe(
-    `wmic process where ProcessId=${pid} get CommandLine /format:list`
-  )
-  
-  if (!result.success || !result.stdout) {
-    return ''
-  }
-  
-  const match = result.stdout.match(/CommandLine=(.+)/i)
-  return match ? match[1].trim() : ''
-}
+// Cache for process info to avoid repeated calls
+const processInfoCache = new Map<number, { name: string; command: string; timestamp: number }>()
 
 /**
  * Get process information by PID on Unix using ps
@@ -176,12 +142,14 @@ async function getUnixProcessInfo(pid: number): Promise<{ name: string; command:
 /**
  * List running services on Windows
  * Uses netstat -ano to find listening ports and tasklist for process names
+ * Optimized: batch process info queries to reduce system calls
  * 
  * @returns Promise resolving to array of RunningService
  */
 async function listWindowsServices(): Promise<RunningService[]> {
   const services: RunningService[] = []
   const seenPids = new Set<number>()
+  const pidPortMap = new Map<number, number>()
   
   // Get listening ports with PIDs
   const netstatResult = await executeSafe('netstat -ano -p TCP')
@@ -192,6 +160,7 @@ async function listWindowsServices(): Promise<RunningService[]> {
   
   const lines = netstatResult.stdout.split('\n')
   
+  // First pass: collect all PIDs and their ports
   for (const line of lines) {
     const parsed = parseNetstatLine(line)
     
@@ -205,17 +174,48 @@ async function listWindowsServices(): Promise<RunningService[]> {
     }
     
     seenPids.add(parsed.pid)
-    
-    // Get process name and command
-    const name = await getWindowsProcessName(parsed.pid)
-    const command = await getWindowsProcessCommand(parsed.pid)
-    
+    pidPortMap.set(parsed.pid, parsed.port)
+  }
+  
+  // Batch get all process names in one call
+  const pids = Array.from(pidPortMap.keys())
+  if (pids.length === 0) return services
+  
+  // Get all process names at once using tasklist (much faster than individual calls)
+  const tasklistResult = await executeSafe('tasklist /FO CSV /NH')
+  const processNameMap = new Map<number, string>()
+  
+  if (tasklistResult.success && tasklistResult.stdout) {
+    const taskLines = tasklistResult.stdout.split('\n')
+    for (const taskLine of taskLines) {
+      // Format: "process.exe","12345","Console","1","12,345 K"
+      const match = taskLine.match(/"([^"]+)","(\d+)"/)
+      if (match) {
+        const name = match[1]
+        const pid = parseInt(match[2], 10)
+        if (pids.includes(pid)) {
+          processNameMap.set(pid, name)
+        }
+      }
+    }
+  }
+  
+  // Build services list (skip wmic calls for better performance)
+  for (const [pid, port] of pidPortMap) {
+    const name = processNameMap.get(pid)
     if (name) {
-      services.push({
-        pid: parsed.pid,
+      // Update cache
+      processInfoCache.set(pid, {
         name,
-        port: parsed.port,
-        command: command || name,
+        command: name, // Use name as command to avoid wmic calls
+        timestamp: Date.now()
+      })
+      
+      services.push({
+        pid,
+        name,
+        port,
+        command: name,
       })
     }
   }

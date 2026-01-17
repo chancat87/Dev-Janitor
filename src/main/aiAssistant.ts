@@ -567,25 +567,34 @@ Please respond in English with clear formatting. Each suggestion should include 
     if (onToken && response.body) {
       let fullContent = ''
       const decoder = new TextDecoder('utf-8')
-      for await (const chunk of response.body) {
-        const text = decoder.decode(chunk as Uint8Array, { stream: true })
-        const lines = text.split('\n')
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed || trimmed === 'data: [DONE]') continue
-          if (trimmed.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(trimmed.slice(6))
-              const content = data.choices?.[0]?.delta?.content || ''
-              if (content) {
-                fullContent += content
-                onToken(content)
+      const reader = response.body.getReader()
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          
+          const text = decoder.decode(value, { stream: true })
+          const lines = text.split('\n')
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed || trimmed === 'data: [DONE]') continue
+            if (trimmed.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(trimmed.slice(6))
+                const content = data.choices?.[0]?.delta?.content || ''
+                if (content) {
+                  fullContent += content
+                  onToken(content)
+                }
+              } catch {
+                // ignore partial json
               }
-            } catch {
-              // ignore partial json
             }
           }
         }
+      } finally {
+        reader.releaseLock()
       }
       return fullContent
     }
@@ -665,27 +674,34 @@ Please respond in English with clear formatting. Each suggestion should include 
     if (onToken && response.body) {
       let fullContent = ''
       const decoder = new TextDecoder('utf-8')
+      const reader = response.body.getReader()
       
-      // Node.js fetch response body is async iterable
-      for await (const chunk of response.body) {
-        const text = decoder.decode(chunk as Uint8Array, { stream: true })
-        const lines = text.split('\n')
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed || trimmed === 'data: [DONE]') continue
-          if (trimmed.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(trimmed.slice(6))
-              const content = data.choices?.[0]?.delta?.content || ''
-              if (content) {
-                fullContent += content
-                onToken(content)
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          
+          const text = decoder.decode(value, { stream: true })
+          const lines = text.split('\n')
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed || trimmed === 'data: [DONE]') continue
+            if (trimmed.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(trimmed.slice(6))
+                const content = data.choices?.[0]?.delta?.content || ''
+                if (content) {
+                  fullContent += content
+                  onToken(content)
+                }
+              } catch {
+                // ignore partial json
               }
-            } catch {
-              // ignore partial json
             }
           }
         }
+      } finally {
+        reader.releaseLock()
       }
       return fullContent
     }

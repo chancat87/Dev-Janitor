@@ -89,7 +89,7 @@ const AIInsightContent: React.FC<{ content: string }> = ({ content }) => {
         <ReactMarkdown 
           remarkPlugins={[remarkGfm]}
           components={{
-            pre: ({ children }) => (
+            pre: ({ children }: { children?: React.ReactNode }) => (
               <div style={{ 
                 background: '#f6f8fa', 
                 padding: '12px', 
@@ -100,7 +100,7 @@ const AIInsightContent: React.FC<{ content: string }> = ({ content }) => {
                 <pre style={{ margin: 0 }}>{children}</pre>
               </div>
             ),
-            code: ({ children, className }) => {
+            code: ({ children, className }: { children?: React.ReactNode; className?: string }) => {
               const inline = !className
               return inline ? (
                 <code style={{ 
@@ -113,21 +113,21 @@ const AIInsightContent: React.FC<{ content: string }> = ({ content }) => {
                 <code className={className}>{children}</code>
               )
             },
-            table: ({ children }) => (
+            table: ({ children }: { children?: React.ReactNode }) => (
               <div style={{ overflowX: 'auto', margin: '12px 0' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%' }}>{children}</table>
               </div>
             ),
-            tr: ({ children }) => <tr style={{ borderBottom: '1px solid #f0f0f0' }}>{children}</tr>,
-            th: ({ children }) => <th style={{ padding: '8px', background: '#fafafa', textAlign: 'left' }}>{children}</th>,
-            td: ({ children }) => <td style={{ padding: '8px' }}>{children}</td>,
-            ul: ({ children }) => <ul style={{ paddingLeft: '20px', margin: '8px 0' }}>{children}</ul>,
-            ol: ({ children }) => <ol style={{ paddingLeft: '20px', margin: '8px 0' }}>{children}</ol>,
-            li: ({ children }) => <li style={{ marginBottom: '4px' }}>{children}</li>,
-            p: ({ children }) => <p style={{ marginBottom: '12px' }}>{children}</p>,
-            h1: ({ children }) => <h1 style={{ fontSize: '1.5em', fontWeight: 'bold', margin: '16px 0 8px' }}>{children}</h1>,
-            h2: ({ children }) => <h2 style={{ fontSize: '1.3em', fontWeight: 'bold', margin: '14px 0 8px' }}>{children}</h2>,
-            h3: ({ children }) => <h3 style={{ fontSize: '1.1em', fontWeight: 'bold', margin: '12px 0 8px' }}>{children}</h3>,
+            tr: ({ children }: { children?: React.ReactNode }) => <tr style={{ borderBottom: '1px solid #f0f0f0' }}>{children}</tr>,
+            th: ({ children }: { children?: React.ReactNode }) => <th style={{ padding: '8px', background: '#fafafa', textAlign: 'left' }}>{children}</th>,
+            td: ({ children }: { children?: React.ReactNode }) => <td style={{ padding: '8px' }}>{children}</td>,
+            ul: ({ children }: { children?: React.ReactNode }) => <ul style={{ paddingLeft: '20px', margin: '8px 0' }}>{children}</ul>,
+            ol: ({ children }: { children?: React.ReactNode }) => <ol style={{ paddingLeft: '20px', margin: '8px 0' }}>{children}</ol>,
+            li: ({ children }: { children?: React.ReactNode }) => <li style={{ marginBottom: '4px' }}>{children}</li>,
+            p: ({ children }: { children?: React.ReactNode }) => <p style={{ marginBottom: '12px' }}>{children}</p>,
+            h1: ({ children }: { children?: React.ReactNode }) => <h1 style={{ fontSize: '1.5em', fontWeight: 'bold', margin: '16px 0 8px' }}>{children}</h1>,
+            h2: ({ children }: { children?: React.ReactNode }) => <h2 style={{ fontSize: '1.3em', fontWeight: 'bold', margin: '14px 0 8px' }}>{children}</h2>,
+            h3: ({ children }: { children?: React.ReactNode }) => <h3 style={{ fontSize: '1.1em', fontWeight: 'bold', margin: '12px 0 8px' }}>{children}</h3>,
             a: (props: { href?: string; children?: React.ReactNode }) => (
               <a 
                 href={props.href} 

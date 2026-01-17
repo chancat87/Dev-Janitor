@@ -459,7 +459,7 @@ export class DetectionEngine {
   }
   
   /**
-   * Detect all supported tools in parallel
+   * Detect all supported tools with controlled concurrency
    * 
    * Property 11: Partial Failure Resilience
    * Validates: Requirement 1.8 (retrieve version and path)
@@ -467,38 +467,49 @@ export class DetectionEngine {
    * @returns Promise resolving to array of ToolInfo
    */
   async detectAllTools(): Promise<ToolInfo[]> {
-    // Run all detections in parallel for better performance
-    const results = await Promise.all([
+    const results: ToolInfo[] = []
+    
+    // Define all tools to detect
+    const toolDetectors = [
       // Runtimes
-      this.detectNodeJS(),
-      this.detectPython(),
-      this.detectPHP(),
-      this.detectCustomTool('java', 'Java', '-version'),
-      this.detectCustomTool('go', 'Go', 'version'),
-      this.detectCustomTool('rust', 'Rust', '--version').catch(() => 
-        this.detectCustomTool('rustc', 'Rust', '--version')
-      ),
-      this.detectCustomTool('ruby', 'Ruby', '--version'),
-      this.detectCustomTool('dotnet', '.NET', '--version'),
+      () => this.detectNodeJS(),
+      () => this.detectPython(),
+      () => this.detectPHP(),
+      () => this.detectCustomTool('java', 'Java', '-version'),
+      () => this.detectCustomTool('go', 'Go', 'version'),
+      () => this.detectCustomTool('rustc', 'Rust', '--version'),
+      () => this.detectCustomTool('ruby', 'Ruby', '--version'),
+      () => this.detectCustomTool('dotnet', '.NET', '--version'),
       
       // Package Managers
-      this.detectNpm(),
-      this.detectPip(),
-      this.detectComposer(),
-      this.detectCustomTool('yarn', 'Yarn', '--version'),
-      this.detectCustomTool('pnpm', 'pnpm', '--version'),
-      this.detectCustomTool('cargo', 'Cargo', '--version'),
-      this.detectCustomTool('gem', 'RubyGems', '--version'),
+      () => this.detectNpm(),
+      () => this.detectPip(),
+      () => this.detectComposer(),
+      () => this.detectCustomTool('yarn', 'Yarn', '--version'),
+      () => this.detectCustomTool('pnpm', 'pnpm', '--version'),
+      () => this.detectCustomTool('cargo', 'Cargo', '--version'),
+      () => this.detectCustomTool('gem', 'RubyGems', '--version'),
       
       // Version Control & Tools
-      this.detectCustomTool('git', 'Git', '--version'),
-      this.detectCustomTool('docker', 'Docker', '--version'),
-      this.detectCustomTool('kubectl', 'Kubernetes CLI', 'version --client'),
-      this.detectCustomTool('terraform', 'Terraform', '--version'),
-    ])
+      () => this.detectCustomTool('git', 'Git', '--version'),
+      () => this.detectCustomTool('docker', 'Docker', '--version'),
+      () => this.detectCustomTool('kubectl', 'Kubernetes CLI', 'version --client'),
+      () => this.detectCustomTool('terraform', 'Terraform', '--version'),
+    ]
     
-    // Filter out failed detections and return only installed tools
-    return results.filter(tool => tool !== null)
+    // Run with controlled concurrency (3 at a time) to avoid system overload
+    const concurrency = 3
+    for (let i = 0; i < toolDetectors.length; i += concurrency) {
+      const batch = toolDetectors.slice(i, i + concurrency)
+      const batchResults = await Promise.all(batch.map(fn => fn().catch(() => null)))
+      for (const result of batchResults) {
+        if (result !== null) {
+          results.push(result)
+        }
+      }
+    }
+    
+    return results
   }
 }
 
