@@ -201,15 +201,14 @@ export class MarkdownErrorBoundary extends Component<
                 <Text strong style={{ fontSize: '12px' }}>Error Details:</Text>
                 <Paragraph
                   code
-                  style={{ 
-                    fontSize: '11px', 
-                    maxHeight: '100px', 
-                    overflow: 'auto',
-                    margin: '4px 0 0 0',
-                    padding: '8px',
-                    background: '#f5f5f5',
-                    borderRadius: '4px'
-                  }}
+	                  style={{ 
+	                    fontSize: '11px', 
+	                    maxHeight: '100px', 
+	                    overflow: 'auto',
+	                    margin: '4px 0 0 0',
+	                    padding: '8px',
+	                    borderRadius: '4px'
+	                  }}
                 >
                   {error.message}
                   {errorInfo?.componentStack && (

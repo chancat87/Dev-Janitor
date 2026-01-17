@@ -140,7 +140,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         imageStyle={{ height: currentSize.iconSize }}
         description={
           <Space direction="vertical" size="small">
-            <Title level={size === 'small' ? 5 : 4} className="!mb-0 !text-gray-600">
+            <Title level={size === 'small' ? 5 : 4} className="!mb-0">
               {displayTitle}
             </Title>
             {displayDescription && (

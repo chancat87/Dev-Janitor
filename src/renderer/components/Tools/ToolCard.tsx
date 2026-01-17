@@ -177,7 +177,8 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool, onRefresh, onViewDetails }) =
           </Text>
           <Tooltip title={tool.path || t('common.unknown')}>
             <Paragraph
-              className="text-xs font-mono bg-gray-50 px-2 py-1 rounded m-0"
+              code
+              className="text-xs font-mono m-0"
               ellipsis={{ rows: 1 }}
               copyable={tool.path ? { text: tool.path } : false}
             >

@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { Typography, Row, Col, Skeleton, Empty, Segmented, Progress, Alert } from 'antd'
+import { Typography, Row, Col, Skeleton, Empty, Segmented, Progress, Alert, Button } from 'antd'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store'
 import ToolCard from './ToolCard'
@@ -121,12 +121,9 @@ const ToolsView: React.FC = () => {
           type="error"
           showIcon
           action={
-            <button
-              onClick={loadTools}
-              className="text-blue-500 hover:text-blue-700"
-            >
+            <Button type="link" size="small" onClick={loadTools}>
               {t('common.retry')}
-            </button>
+            </Button>
           }
         />
       </div>

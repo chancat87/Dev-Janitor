@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Typography, Switch, Space, Alert, Empty, Button, message, Badge } from 'antd'
+import { Typography, Switch, Space, Alert, Empty, Button, message, Badge, theme } from 'antd'
 import { SyncOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store'
@@ -25,6 +25,7 @@ const AUTO_REFRESH_INTERVAL = 5000
 
 const ServicesView: React.FC = () => {
   const { t } = useTranslation()
+  const { token } = theme.useToken()
   const {
     runningServices,
     servicesLoading,
@@ -86,12 +87,9 @@ const ServicesView: React.FC = () => {
           type="error"
           showIcon
           action={
-            <button
-              onClick={handleRefresh}
-              className="text-blue-500 hover:text-blue-700"
-            >
+            <Button type="link" size="small" onClick={handleRefresh}>
               {t('common.retry')}
-            </button>
+            </Button>
           }
         />
       </div>
@@ -114,7 +112,9 @@ const ServicesView: React.FC = () => {
             <Badge
               count={runningServices.length}
               showZero
-              style={{ backgroundColor: runningServices.length > 0 ? '#52c41a' : '#d9d9d9' }}
+              style={{
+                backgroundColor: runningServices.length > 0 ? token.colorSuccess : token.colorFillTertiary,
+              }}
             >
               <Text type="secondary" className="pr-2">
                 {t('services.title')}

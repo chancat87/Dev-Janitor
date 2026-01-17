@@ -143,7 +143,7 @@ Timestamp: ${new Date().toISOString()}
 
       // Default error UI - Validates: Requirement 8.2
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="min-h-screen flex items-center justify-center p-4">
           <Card className="max-w-2xl w-full shadow-lg">
             <Result
               status="error"
@@ -177,7 +177,7 @@ Timestamp: ${new Date().toISOString()}
                   {showErrorDetails && error && (
                     <Card
                       size="small"
-                      className="bg-gray-100 text-left"
+                      className="text-left"
                       extra={
                         <Button
                           type="text"
@@ -279,7 +279,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       }
     >
       {showDetails && error instanceof Error && error.stack && (
-        <Card size="small" className="bg-gray-100 mt-4">
+        <Card size="small" className="mt-4">
           <Paragraph code className="text-xs max-h-40 overflow-auto m-0">
             {error.stack}
           </Paragraph>

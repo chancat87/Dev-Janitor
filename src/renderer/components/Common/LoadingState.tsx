@@ -10,7 +10,7 @@
  */
 
 import React from 'react'
-import { Skeleton, Spin, Card, Space, Row, Col } from 'antd'
+import { Skeleton, Spin, Card, Space, Row, Col, theme } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 
@@ -83,10 +83,17 @@ const TableSkeleton: React.FC<{ rows?: number }> = ({ rows = 5 }) => (
 /**
  * List Skeleton - for list items
  */
-const ListSkeleton: React.FC<{ rows?: number }> = ({ rows = 5 }) => (
+const ListSkeleton: React.FC<{ rows?: number; itemStyle?: React.CSSProperties }> = ({
+  rows = 5,
+  itemStyle,
+}) => (
   <div className="space-y-4">
     {Array.from({ length: rows }).map((_, index) => (
-      <div key={index} className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm">
+      <div
+        key={index}
+        className="flex items-center gap-4 p-4 rounded-lg shadow-sm"
+        style={itemStyle}
+      >
         <Skeleton.Avatar active size="large" />
         <div className="flex-1">
           <Skeleton active paragraph={{ rows: 1 }} />
@@ -135,12 +142,16 @@ const InlineSkeleton: React.FC = () => (
  */
 const FullscreenLoading: React.FC<{ tip?: string }> = ({ tip }) => {
   const { t } = useTranslation()
+  const { token } = theme.useToken()
   
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-90 z-50">
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50"
+      style={{ background: token.colorBgMask }}
+    >
       <div className="text-center">
         <Spin indicator={loadingIcon} size="large" />
-        <div className="mt-4 text-gray-600">
+        <div className="mt-4" style={{ color: token.colorTextSecondary }}>
           {tip || t('loading.general')}
         </div>
       </div>
@@ -169,6 +180,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   className = '',
 }) => {
   const { t } = useTranslation()
+  const { token } = theme.useToken()
 
   if (!loading) {
     return <>{children}</>
@@ -181,7 +193,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
       case 'table':
         return <TableSkeleton rows={rows} />
       case 'list':
-        return <ListSkeleton rows={rows} />
+        return <ListSkeleton rows={rows} itemStyle={{ background: token.colorBgContainer }} />
       case 'detail':
         return <DetailSkeleton />
       case 'inline':
@@ -200,7 +212,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   return (
     <div className={`loading-state ${className}`}>
       {tip && (
-        <div className="text-center text-gray-500 mb-4">
+        <div className="text-center mb-4" style={{ color: token.colorTextSecondary }}>
           <Spin indicator={loadingIcon} size={size} />
           <span className="ml-2">{tip}</span>
         </div>

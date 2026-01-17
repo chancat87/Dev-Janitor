@@ -20,7 +20,7 @@
  */
 
 import React from 'react'
-import { Card, Typography, Space, Divider, Tag, Button, Descriptions, Alert } from 'antd'
+import { Card, Typography, Space, Divider, Tag, Button, Descriptions, Alert, theme } from 'antd'
 import {
   InfoCircleOutlined,
   GithubOutlined,
@@ -75,6 +75,7 @@ interface AboutSectionProps {
 
 export const AboutSection: React.FC<AboutSectionProps> = ({ className = '' }) => {
   const { t, i18n } = useTranslation()
+  const { token } = theme.useToken()
   const currentLang = i18n.language as 'en-US' | 'zh-CN'
 
   const handleOpenRepository = () => {
@@ -90,8 +91,11 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ className = '' }) =>
       <Card>
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <ToolOutlined className="text-3xl text-blue-500" />
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
+            style={{ background: token.colorPrimaryBg }}
+          >
+            <ToolOutlined style={{ fontSize: 30, color: token.colorPrimary }} />
           </div>
           <Title level={3} className="!mb-1">
             {APP_INFO.name}
@@ -103,7 +107,7 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ className = '' }) =>
         </div>
 
         {/* Description */}
-        <Paragraph className="text-center text-gray-600 mb-6">
+        <Paragraph className="text-center mb-6" style={{ color: token.colorTextSecondary }}>
           {APP_INFO.description[currentLang] || APP_INFO.description['en-US']}
         </Paragraph>
 
@@ -209,7 +213,7 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ className = '' }) =>
       </Card>
 
       {/* Copyright */}
-      <div className="text-center mt-6 text-gray-400 text-sm">
+      <div className="text-center mt-6 text-sm">
         <Text type="secondary">
           © {new Date().getFullYear()} {APP_INFO.author}. All rights reserved.
         </Text>

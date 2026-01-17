@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { Layout, message, FloatButton } from 'antd'
+import { Layout, message, FloatButton, theme } from 'antd'
 import { RobotOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store'
@@ -27,6 +27,7 @@ const { Content } = Layout
 
 const AppLayout: React.FC = () => {
   const { t } = useTranslation()
+  const { token } = theme.useToken()
   const {
     currentView,
     toolsLoading,
@@ -77,11 +78,11 @@ const AppLayout: React.FC = () => {
   }
 
   return (
-    <Layout className="min-h-screen">
+    <Layout className="min-h-screen" style={{ background: token.colorBgLayout }}>
       {/* Header - Validates: Requirement 5.1 */}
       <Header onRefresh={handleRefresh} loading={isLoading} />
       
-      <Layout>
+      <Layout style={{ background: token.colorBgLayout }}>
         {/* Sidebar - Validates: Requirement 5.1 */}
         <Sidebar
           collapsed={sidebarCollapsed}
@@ -89,7 +90,7 @@ const AppLayout: React.FC = () => {
         />
         
         {/* Content - Validates: Requirement 5.4 (responsive) */}
-        <Content className="bg-gray-50 overflow-auto">
+        <Content className="overflow-auto" style={{ background: token.colorBgLayout }}>
           {renderContent()}
         </Content>
       </Layout>

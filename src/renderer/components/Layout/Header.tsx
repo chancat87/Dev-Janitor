@@ -10,7 +10,7 @@
  */
 
 import React from 'react'
-import { Layout, Button, Space, Tooltip, Dropdown } from 'antd'
+import { Layout, Button, Space, Tooltip, Dropdown, theme } from 'antd'
 import { ReloadOutlined, GlobalOutlined, ToolOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store'
@@ -26,6 +26,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onRefresh, loading = false }) => {
   const { t, i18n } = useTranslation()
   const { language, setLanguage } = useAppStore()
+  const { token } = theme.useToken()
 
   const handleLanguageChange = (lang: SupportedLanguage) => {
     setLanguage(lang)
@@ -46,17 +47,26 @@ const Header: React.FC<HeaderProps> = ({ onRefresh, loading = false }) => {
   ]
 
   return (
-    <AntHeader className="flex items-center justify-between px-6 bg-white border-b border-gray-200 h-16">
+    <AntHeader
+      className="flex items-center justify-between px-6 h-16"
+      style={{
+        background: token.colorBgContainer,
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+      }}
+    >
       {/* Logo and Title */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-10 h-10 bg-blue-500 rounded-lg">
-          <ToolOutlined className="text-white text-xl" />
+        <div
+          className="flex items-center justify-center w-10 h-10 rounded-lg"
+          style={{ background: token.colorPrimary }}
+        >
+          <ToolOutlined style={{ color: token.colorTextLightSolid, fontSize: 20 }} />
         </div>
         <div>
-          <h1 className="text-lg font-semibold text-gray-800 m-0 leading-tight">
+          <h1 className="text-lg font-semibold m-0 leading-tight" style={{ color: token.colorText }}>
             {t('header.title')}
           </h1>
-          <p className="text-xs text-gray-500 m-0 leading-tight">
+          <p className="text-xs m-0 leading-tight" style={{ color: token.colorTextSecondary }}>
             {t('app.description').substring(0, 50)}...
           </p>
         </div>

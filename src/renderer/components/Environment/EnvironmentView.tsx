@@ -221,12 +221,9 @@ const EnvironmentView: React.FC = () => {
           type="error"
           showIcon
           action={
-            <button
-              onClick={loadEnvironment}
-              className="text-blue-500 hover:text-blue-700"
-            >
+            <Button type="link" size="small" onClick={loadEnvironment}>
               {t('common.retry')}
-            </button>
+            </Button>
           }
         />
       </div>

@@ -18,7 +18,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Drawer, Button, Spin, Alert, Card, Tag, Space, Divider, Typography, Collapse, message, Tooltip } from 'antd'
+import { Drawer, Button, Spin, Alert, Card, Tag, Space, Divider, Typography, Collapse, message, Tooltip, theme } from 'antd'
 import { 
   RobotOutlined, 
   BulbOutlined, 
@@ -44,6 +44,7 @@ const { Panel } = Collapse
  */
 const AIInsightContent: React.FC<{ content: string }> = ({ content }) => {
   const { t } = useTranslation()
+  const { token } = theme.useToken()
   
   // Robustly extract thinking content (supports streaming/unclosed tags)
   let thinking: string | null = null
@@ -69,18 +70,18 @@ const AIInsightContent: React.FC<{ content: string }> = ({ content }) => {
         <Collapse 
           ghost 
           defaultActiveKey={[]} // Default collapsed
-          style={{ marginBottom: 16, background: 'rgba(0, 0, 0, 0.02)', borderRadius: 8 }}
+          style={{ marginBottom: 16, background: token.colorFillQuaternary, borderRadius: 8 }}
         >
           <Panel 
             header={
               <Space>
-                <BulbOutlined style={{ color: '#faad14' }} />
+                <BulbOutlined style={{ color: token.colorWarning }} />
                 <Text type="secondary">{t('ai.thinking', 'Thinking Process...')}</Text>
               </Space>
             } 
             key="thinking"
           >
-            <div style={{ color: '#8c8c8c', fontStyle: 'italic', fontSize: '0.9em', whiteSpace: 'pre-wrap' }}>
+            <div style={{ color: token.colorTextSecondary, fontStyle: 'italic', fontSize: '0.9em', whiteSpace: 'pre-wrap' }}>
               {thinking}
             </div>
           </Panel>
@@ -98,7 +99,7 @@ const AIInsightContent: React.FC<{ content: string }> = ({ content }) => {
             components={{
               pre: ({ children }: { children?: React.ReactNode }) => (
                 <div style={{ 
-                  background: '#f6f8fa', 
+                  background: token.colorFillTertiary, 
                   padding: '12px', 
                   borderRadius: '8px', 
                   overflow: 'auto',
@@ -111,7 +112,7 @@ const AIInsightContent: React.FC<{ content: string }> = ({ content }) => {
                 const inline = !className
                 return inline ? (
                   <code style={{ 
-                    background: 'rgba(0, 0, 0, 0.06)', 
+                    background: token.colorFillSecondary, 
                     padding: '2px 4px', 
                     borderRadius: '4px',
                     fontSize: '0.9em'
@@ -125,8 +126,8 @@ const AIInsightContent: React.FC<{ content: string }> = ({ content }) => {
                   <table style={{ borderCollapse: 'collapse', width: '100%' }}>{children}</table>
                 </div>
               ),
-              tr: ({ children }: { children?: React.ReactNode }) => <tr style={{ borderBottom: '1px solid #f0f0f0' }}>{children}</tr>,
-              th: ({ children }: { children?: React.ReactNode }) => <th style={{ padding: '8px', background: '#fafafa', textAlign: 'left' }}>{children}</th>,
+              tr: ({ children }: { children?: React.ReactNode }) => <tr style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}>{children}</tr>,
+              th: ({ children }: { children?: React.ReactNode }) => <th style={{ padding: '8px', background: token.colorFillQuaternary, textAlign: 'left' }}>{children}</th>,
               td: ({ children }: { children?: React.ReactNode }) => <td style={{ padding: '8px' }}>{children}</td>,
               ul: ({ children }: { children?: React.ReactNode }) => <ul style={{ paddingLeft: '20px', margin: '8px 0' }}>{children}</ul>,
               ol: ({ children }: { children?: React.ReactNode }) => <ol style={{ paddingLeft: '20px', margin: '8px 0' }}>{children}</ol>,
@@ -163,6 +164,7 @@ interface AIAssistantDrawerProps {
 
 export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({ open, onClose }) => {
   const { t, i18n } = useTranslation()
+  const { token } = theme.useToken()
   const [loading, setLoading] = useState(false)
   const [refreshingAI, setRefreshingAI] = useState(false)
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
@@ -281,11 +283,11 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({ open, onCl
   const getSeverityIcon = (severity: Issue['severity']) => {
     switch (severity) {
       case 'critical':
-        return <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
+        return <CloseCircleOutlined style={{ color: token.colorError }} />
       case 'warning':
-        return <WarningOutlined style={{ color: '#faad14' }} />
+        return <WarningOutlined style={{ color: token.colorWarning }} />
       case 'info':
-        return <InfoCircleOutlined style={{ color: '#1890ff' }} />
+        return <InfoCircleOutlined style={{ color: token.colorInfo }} />
     }
   }
 
@@ -467,7 +469,7 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({ open, onCl
                             description={
                               <div>
                                 <code style={{ 
-                                  background: '#f5f5f5', 
+                                  background: token.colorFillTertiary, 
                                   padding: '4px 8px', 
                                   borderRadius: 4,
                                   display: 'block',

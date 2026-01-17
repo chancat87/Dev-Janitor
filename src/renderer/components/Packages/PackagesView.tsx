@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { Typography, Tabs, Input, Alert, Empty, Badge, message } from 'antd'
+import { Typography, Tabs, Input, Alert, Empty, Badge, message, Button } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store'
@@ -157,12 +157,9 @@ const PackagesView: React.FC = () => {
           type="error"
           showIcon
           action={
-            <button
-              onClick={handleRefresh}
-              className="text-blue-500 hover:text-blue-700"
-            >
+            <Button type="link" size="small" onClick={handleRefresh}>
               {t('common.retry')}
-            </button>
+            </Button>
           }
         />
       )

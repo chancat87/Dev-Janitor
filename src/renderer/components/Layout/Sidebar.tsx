@@ -12,13 +12,15 @@
  */
 
 import React from 'react'
-import { Layout, Menu } from 'antd'
+import { Layout, Menu, theme } from 'antd'
 import {
   ToolOutlined,
   AppstoreOutlined,
   CloudServerOutlined,
   SettingOutlined,
   CodeOutlined,
+  LeftOutlined,
+  RightOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store'
@@ -33,7 +35,15 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
   const { t } = useTranslation()
-  const { currentView, setCurrentView } = useAppStore()
+  const { currentView, setCurrentView, themeMode } = useAppStore()
+  const { token } = theme.useToken()
+
+  const systemPrefersDark =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : false
+
+  const isDarkMode: boolean = themeMode === 'dark' || (themeMode === 'system' && systemPrefersDark)
 
   const menuItems = [
     {
@@ -67,16 +77,35 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
     setCurrentView(key as ViewType)
   }
 
+  const trigger = (
+    <div
+      className="flex items-center justify-center"
+      style={{
+        width: '100%',
+        height: '100%',
+        background: token.colorBgContainer,
+        borderTop: `1px solid ${token.colorBorderSecondary}`,
+        color: token.colorTextSecondary,
+      }}
+    >
+      {collapsed ? <RightOutlined /> : <LeftOutlined />}
+    </div>
+  )
+
   return (
     <Sider
       width={200}
       collapsible
       collapsed={collapsed}
       onCollapse={onCollapse}
-      className="bg-white border-r border-gray-200"
-      theme="light"
+      theme={isDarkMode ? 'dark' : 'light'}
       breakpoint="lg"
       collapsedWidth={80}
+      trigger={trigger}
+      style={{
+        background: token.colorBgContainer,
+        borderRight: `1px solid ${token.colorBorderSecondary}`,
+      }}
     >
       <Menu
         mode="inline"
@@ -84,7 +113,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
         onClick={handleMenuClick}
         items={menuItems}
         className="h-full border-r-0 pt-4"
-        style={{ height: '100%' }}
+        style={{ height: '100%', background: 'transparent' }}
+        theme={isDarkMode ? 'dark' : 'light'}
       />
     </Sider>
   )

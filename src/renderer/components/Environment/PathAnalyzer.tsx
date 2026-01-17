@@ -10,7 +10,7 @@
  */
 
 import React, { useMemo } from 'react'
-import { Card, List, Typography, Tag, Alert, Empty, Tooltip, Button, message } from 'antd'
+import { Card, List, Typography, Tag, Alert, Empty, Tooltip, Button, message, theme } from 'antd'
 import {
   WarningOutlined,
   CheckCircleOutlined,
@@ -34,6 +34,7 @@ interface PathEntryInfo {
 
 const PathAnalyzer: React.FC<PathAnalyzerProps> = ({ pathEntries }) => {
   const { t } = useTranslation()
+  const { token } = theme.useToken()
 
   // Analyze PATH entries for duplicates - Validates: Property 18
   const analyzedEntries = useMemo((): PathEntryInfo[] => {
@@ -155,7 +156,7 @@ const PathAnalyzer: React.FC<PathAnalyzerProps> = ({ pathEntries }) => {
         dataSource={analyzedEntries}
         renderItem={(entry) => (
           <List.Item
-            className={entry.isDuplicate ? 'bg-yellow-50' : ''}
+            style={entry.isDuplicate ? { background: token.colorWarningBg } : undefined}
             actions={[
               <Tooltip key="copy" title={t('common.copy')}>
                 <Button
