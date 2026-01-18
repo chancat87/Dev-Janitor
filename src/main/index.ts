@@ -61,6 +61,15 @@ let win: BrowserWindow | null
 function createWindow() {
   const publicPath = process.env.VITE_PUBLIC || path.join(process.env.APP_ROOT || '', 'public')
   
+  // Determine preload script path - handle both dev and production
+  const preloadPath = isDev
+    ? path.join(__dirname, 'preload.mjs')
+    : path.join(__dirname, 'preload.mjs')
+  
+  console.log('[Main] Creating window with preload:', preloadPath)
+  console.log('[Main] isDev:', isDev)
+  console.log('[Main] __dirname:', __dirname)
+  
   win = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -68,11 +77,20 @@ function createWindow() {
     minHeight: 600,
     icon: path.join(publicPath, 'icon.png'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      preload: preloadPath,
       nodeIntegration: false,
       contextIsolation: true,
+      // Enable sandbox for better security on Mac
+      sandbox: false, // Set to false to allow preload script to work properly
     },
     title: 'Dev Tools Manager',
+    // Mac-specific: show window when ready to prevent white flash
+    show: false,
+  })
+
+  // Show window when ready to render (prevents white screen flash on Mac)
+  win.once('ready-to-show', () => {
+    win?.show()
   })
 
   // Apply Content Security Policy (Requirement 3.1)

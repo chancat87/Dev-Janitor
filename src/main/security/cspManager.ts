@@ -64,21 +64,22 @@ export type CSPDirective =
   | 'frame-ancestors';
 
 /**
- * CSP 策略模板 (Strict CSP - 2025/2026 推荐)
+ * CSP 策略模板 (Balanced CSP - 2025/2026)
  *
  * 注意:
- * - 不使用 'unsafe-inline' 用于 script-src，使用 nonce 代替
+ * - script-src 需要 'unsafe-eval' 因为 Vite 打包的代码可能需要
  * - style-src 允许 'unsafe-inline' 因为 Ant Design 需要内联样式
+ * - connect-src 需要允许 OpenAI API 连接
  * - object-src 设为 'none' 禁止插件
  * - frame-ancestors 设为 'none' 防止点击劫持
  */
 export const CSP_POLICY: Record<CSPDirective, string[]> = {
   'default-src': ["'self'"],
-  'script-src': ["'self'"], // 不使用 'unsafe-inline'，使用 nonce 代替
+  'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Vite 打包需要
   'style-src': ["'self'", "'unsafe-inline'"], // Ant Design 需要内联样式
   'img-src': ["'self'", 'data:', 'https:'],
-  'connect-src': ["'self'"], // 开发模式会添加 localhost
-  'font-src': ["'self'"],
+  'connect-src': ["'self'", 'https://api.openai.com', 'https://*.openai.com'], // AI API
+  'font-src': ["'self'", 'data:'],
   'object-src': ["'none'"], // 禁止插件
   'base-uri': ["'self'"],
   'form-action': ["'self'"],

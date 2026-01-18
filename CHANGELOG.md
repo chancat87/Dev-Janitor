@@ -5,6 +5,19 @@ All notable changes to Dev Janitor will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-01-18
+
+### Fixed
+
+#### Mac White Screen Issue
+- **CSP Policy Relaxed**: Added `'unsafe-inline'` and `'unsafe-eval'` to script-src for Vite compatibility
+- **Renderer Init Protection**: Added retry mechanism to wait for electronAPI before rendering
+- **App.tsx Safety Check**: Added null check before calling electronAPI methods
+- **Window Show Optimization**: Use `show: false` + `ready-to-show` event to prevent white flash on Mac
+- **OpenAI API CSP**: Added OpenAI domains to connect-src in production CSP
+
+---
+
 ## [1.5.0] - 2026-01-18
 
 ### Added
@@ -241,6 +254,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.5.1]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.1
 [1.5.0]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.0
 [1.4.0]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.4.0
 [1.3.0]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.3.0

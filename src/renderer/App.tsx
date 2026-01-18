@@ -56,6 +56,12 @@ function App() {
    * Validates: Requirements 14.1, 14.2, 14.3, 14.4
    */
   const loadAIConfig = useCallback(async (isRetry: boolean = false): Promise<void> => {
+    // Safety check: ensure electronAPI is available (Mac white screen fix)
+    if (!window.electronAPI?.ai?.updateConfig) {
+      console.warn('electronAPI not available yet, skipping AI config load')
+      return
+    }
+
     const savedConfig = localStorage.getItem('aiConfig')
     
     // If no saved config, use defaults silently
