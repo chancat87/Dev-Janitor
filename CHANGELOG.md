@@ -5,6 +5,28 @@ All notable changes to Dev Janitor will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.5] - 2026-01-18
+
+### Fixed
+
+#### Critical: White Screen Bug Fix
+- **Preload Script Loading Failure**: Fixed preload script failing to load in production builds
+  - Root cause: ESM/CommonJS module format conflict with `"type": "module"` in package.json
+  - Solution: Changed preload output to `.cjs` extension to force CommonJS format
+- **Missing IPC Handlers**: Fixed `app:version` and update-related handlers not being registered
+  - Added default app handlers in `ipcHandlers.ts` that are always available
+  - Auto-updater now properly overrides these handlers when enabled
+- **ESM Import Fixes**: Replaced `require()` calls with proper ESM imports in:
+  - `ipcHandlers.ts` - Added `app` to electron imports
+  - `environmentScanner.ts` - Added `fs` import from `node:fs`
+- **Enhanced Debugging**: Added console logging for renderer process errors and load failures
+
+### Changed
+- Updated `vite.config.ts` to output preload script as `.cjs` format
+- Updated preload path in `index.ts` to use `.cjs` extension
+
+---
+
 ## [1.5.4] - 2026-01-18
 
 ### Fixed
@@ -299,6 +321,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.5.5]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.5
 [1.5.4]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.4
 [1.5.3]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.3
 [1.5.2]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.2

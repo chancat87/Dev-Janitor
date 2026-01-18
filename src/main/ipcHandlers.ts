@@ -12,7 +12,7 @@
  * Validates: Requirements 1.1, 1.3, 2.1, 2.2, 2.3, 2.4, 3.1, 4.1, 10.1, 11.1
  */
 
-import { ipcMain, BrowserWindow, shell } from 'electron'
+import { ipcMain, BrowserWindow, shell, app } from 'electron'
 import { detectionEngine } from './detectionEngine'
 import { packageManager } from './packageManager'
 import { serviceMonitor } from './serviceMonitor'
@@ -430,6 +430,36 @@ function registerAIHandlers(): void {
 }
 
 /**
+ * Register all IPC handlers for app info and updates
+ * These handlers are always registered, regardless of auto-updater status
+ */
+function registerAppHandlers(): void {
+  // Get current version - always available
+  ipcMain.handle('app:version', () => {
+    return app.getVersion()
+  })
+
+  // Update handlers - return appropriate responses when auto-updater is disabled
+  ipcMain.handle('update:check', async () => {
+    return {
+      success: false,
+      error: 'Auto-updater is not available in this build'
+    }
+  })
+
+  ipcMain.handle('update:download', async () => {
+    return {
+      success: false,
+      error: 'Auto-updater is not available in this build'
+    }
+  })
+
+  ipcMain.handle('update:install', () => {
+    console.log('Update install requested but auto-updater is not available')
+  })
+}
+
+/**
  * Register all IPC handlers for shell operations
  */
 function registerShellHandlers(): void {
@@ -558,6 +588,7 @@ export function registerAllIPCHandlers(): void {
   registerEnvironmentHandlers()
   registerSettingsHandlers()
   registerAIHandlers()
+  registerAppHandlers()
   registerShellHandlers()
   
   // Start service monitoring
@@ -603,6 +634,10 @@ export function cleanupIPCHandlers(): void {
   ipcMain.removeHandler('ai:update-config')
   ipcMain.removeHandler('ai:fetch-models')
   ipcMain.removeHandler('ai:test-connection')
+  ipcMain.removeHandler('app:version')
+  ipcMain.removeHandler('update:check')
+  ipcMain.removeHandler('update:download')
+  ipcMain.removeHandler('update:install')
   ipcMain.removeHandler('shell:open-path')
   ipcMain.removeHandler('shell:open-external')
   ipcMain.removeHandler('shell:execute-command')

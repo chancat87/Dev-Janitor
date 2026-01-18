@@ -136,8 +136,15 @@ function setupUpdateEvents(mainWindow: BrowserWindow): void {
 
 /**
  * Set up IPC handlers for update-related actions from renderer
+ * These handlers override the default handlers registered in ipcHandlers.ts
  */
 function setupIPCHandlers(_mainWindow: BrowserWindow): void {
+  // Remove default handlers first to avoid duplicate registration
+  ipcMain.removeHandler('update:check')
+  ipcMain.removeHandler('update:download')
+  ipcMain.removeHandler('update:install')
+  ipcMain.removeHandler('app:version')
+
   // Check for updates manually
   ipcMain.handle('update:check', async () => {
     try {

@@ -63,8 +63,8 @@ function createWindow() {
   
   // Determine preload script path - handle both dev and production
   const preloadPath = isDev
-    ? path.join(__dirname, 'preload.mjs')
-    : path.join(__dirname, 'preload.mjs')
+    ? path.join(__dirname, 'preload.cjs')
+    : path.join(__dirname, 'preload.cjs')
   
   console.log('[Main] Creating window with preload:', preloadPath)
   console.log('[Main] isDev:', isDev)
@@ -90,7 +90,26 @@ function createWindow() {
 
   // Show window when ready to render (prevents white screen flash on Mac)
   win.once('ready-to-show', () => {
+    console.log('[Main] Window ready to show')
     win?.show()
+  })
+
+  // Add error handling for renderer process
+  win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error('[Main] Failed to load:', { errorCode, errorDescription, validatedURL })
+  })
+
+  win.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[Main] Render process gone:', details)
+  })
+
+  win.webContents.on('unresponsive', () => {
+    console.error('[Main] Window became unresponsive')
+  })
+
+  win.webContents.on('console-message', (_event, level, message) => {
+    const levelNames = ['verbose', 'info', 'warning', 'error']
+    console.log(`[Renderer ${levelNames[level] || level}] ${message}`)
   })
 
   // Apply Content Security Policy (Requirement 3.1)
@@ -105,9 +124,12 @@ function createWindow() {
   })
 
   if (VITE_DEV_SERVER_URL) {
+    console.log('[Main] Loading dev server URL:', VITE_DEV_SERVER_URL)
     win.loadURL(VITE_DEV_SERVER_URL)
   } else {
-    win.loadFile(path.join(getRendererPath(), 'index.html'))
+    const indexPath = path.join(getRendererPath(), 'index.html')
+    console.log('[Main] Loading file:', indexPath)
+    win.loadFile(indexPath)
   }
 }
 

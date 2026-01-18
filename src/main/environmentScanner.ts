@@ -14,6 +14,7 @@
 
 import { EnvironmentVariable } from '../shared/types'
 import { isWindows, normalizePath } from './commandExecutor'
+import fs from 'node:fs'
 
 /**
  * Keywords used to categorize environment variables
@@ -292,7 +293,6 @@ export function analyzePathEntries(): {
   const duplicates = findDuplicatePathEntries()
   
   // Check for non-existent directories
-  const fs = require('fs')
   const nonExistent: string[] = []
   
   for (const entry of entries) {
