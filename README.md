@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.5.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.5.4-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT%20with%20Commons%20Clause-green.svg" alt="License">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/electron-33.3.1-9feaf9.svg" alt="Electron">
@@ -122,9 +122,34 @@ Download the latest release for your platform from the [Releases](https://github
 
 | Platform | Download |
 |----------|----------|
-| Windows | `Dev-Janitor-Setup-1.5.0.exe` |
-| macOS | `Dev-Janitor-1.5.0.dmg` |
-| Linux | `Dev-Janitor-1.5.0.AppImage` |
+| Windows | `Dev-Janitor-Setup-1.5.4.exe` |
+| macOS | `Dev-Janitor-1.5.4.dmg` |
+| Linux | `Dev-Janitor-1.5.4.AppImage` |
+
+### macOS Troubleshooting
+
+If you see **"Dev Janitor is damaged and can't be opened"** error on macOS, this is because the app is not signed with an Apple Developer certificate. To fix this:
+
+#### Option 1: Terminal Command (Recommended)
+
+Open Terminal and run:
+
+```bash
+xattr -cr /Applications/Dev\ Janitor.app
+```
+
+Or if the app is in your Downloads folder:
+
+```bash
+xattr -cr ~/Downloads/Dev\ Janitor.app
+```
+
+#### Option 2: System Preferences
+
+1. Click "Cancel" on the error dialog
+2. Go to **System Preferences > Security & Privacy**
+3. Look for the message about "Dev Janitor was blocked"
+4. Click **"Open Anyway"**
 
 ### Build from Source
 

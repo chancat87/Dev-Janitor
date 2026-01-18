@@ -141,7 +141,14 @@ const AIInsightContent: React.FC<{ content: string }> = ({ content }) => {
                   href={props.href} 
                   onClick={(e) => {
                     e.preventDefault()
-                    if (props.href) window.electronAPI.shell.openExternal(props.href)
+                    if (props.href) {
+                      // 防御性检查：确保 electronAPI.shell 存在
+                      if (window.electronAPI?.shell?.openExternal) {
+                        window.electronAPI.shell.openExternal(props.href)
+                      } else {
+                        window.open(props.href, '_blank', 'noopener,noreferrer')
+                      }
+                    }
                   }}
                 >
                   {props.children}
@@ -281,7 +288,12 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({ open, onCl
   // Open a URL in browser
   const handleOpenUrl = async (url: string) => {
     try {
-      await window.electronAPI.shell.openExternal(url)
+      // 防御性检查：确保 electronAPI.shell 存在
+      if (window.electronAPI?.shell?.openExternal) {
+        await window.electronAPI.shell.openExternal(url)
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
     } catch (error) {
       window.open(url, '_blank', 'noopener,noreferrer')
     }

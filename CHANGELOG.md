@@ -5,6 +5,28 @@ All notable changes to Dev Janitor will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.4] - 2026-01-18
+
+### Fixed
+
+#### Additional Defensive Checks
+- **AIAssistantDrawer.tsx**: Added null checks for `window.electronAPI.shell.openExternal` in:
+  - Markdown link click handler (AIInsightContent component)
+  - `handleOpenUrl` function
+- **PackageTable.tsx**: Added null checks for `window.electronAPI.packages` in:
+  - `handleUpdatePackage` function
+  - `checkVersion` function
+- **Graceful Fallback**: All external link operations now fallback to `window.open()` when electronAPI is unavailable
+
+### Documentation
+
+#### macOS Installation Guide
+- Added troubleshooting section for macOS "App is damaged" warning
+- Documented `xattr -cr` command to remove quarantine attribute
+- Added alternative solution via System Preferences > Security & Privacy
+
+---
+
 ## [1.5.3] - 2026-01-18
 
 ### Fixed
@@ -277,6 +299,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.5.4]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.4
 [1.5.3]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.3
 [1.5.2]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.2
 [1.5.1]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.1

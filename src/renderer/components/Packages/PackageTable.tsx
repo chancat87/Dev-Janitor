@@ -58,7 +58,7 @@ const getPackageUrl = (packageName: string, manager: 'npm' | 'pip' | 'composer')
 const compareVersions = (v1: string, v2: string): number => {
   const parts1 = v1.replace(/^[^\d]*/, '').split('.').map(n => parseInt(n) || 0)
   const parts2 = v2.replace(/^[^\d]*/, '').split('.').map(n => parseInt(n) || 0)
-  
+
   for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
     const p1 = parts1[i] || 0
     const p2 = parts2[i] || 0
@@ -77,7 +77,7 @@ const PackageTable: React.FC<PackageTableProps> = ({
   const { t } = useTranslation()
   const { packageVersionCache, updatePackageVersionInfo } = useAppStore()
   const [checkingAll, setCheckingAll] = useState(false)
-  
+
   // Progress state for version check - Validates: Requirements 8.1, 8.2, 8.4
   const [checkProgress, setCheckProgress] = useState<{
     total: number;
@@ -143,16 +143,20 @@ const PackageTable: React.FC<PackageTableProps> = ({
     updatePackageVersionInfo(packageName, { updating: true })
 
     try {
+      // 防御性检查：确保 electronAPI.packages 存在
+      if (!window.electronAPI?.packages?.update) {
+        throw new Error('Packages API not available')
+      }
       const result = await window.electronAPI.packages.update(packageName, manager)
-      
+
       if (result.success) {
         message.success(t('packages.updateSuccess', 'Package updated successfully'))
         // Update the version cache to show as latest
-        updatePackageVersionInfo(packageName, { 
-          latest: result.newVersion || packageVersionCache[packageName]?.latest || '', 
-          checking: false, 
+        updatePackageVersionInfo(packageName, {
+          latest: result.newVersion || packageVersionCache[packageName]?.latest || '',
+          checking: false,
           checked: true,
-          updating: false 
+          updating: false
         })
         // Trigger a refresh to update the package list
         onRefresh()
@@ -185,13 +189,17 @@ const PackageTable: React.FC<PackageTableProps> = ({
     updatePackageVersionInfo(packageName, { latest: '', checking: true, checked: false })
 
     try {
+      // 防御性检查：确保 electronAPI.packages 存在
+      if (!window.electronAPI?.packages) {
+        throw new Error('Packages API not available')
+      }
       let result = null
       if (manager === 'npm') {
         result = await window.electronAPI.packages.checkNpmLatestVersion(packageName)
       } else if (manager === 'pip') {
         result = await window.electronAPI.packages.checkPipLatestVersion(packageName)
       }
-      
+
       if (result) {
         updatePackageVersionInfo(packageName, { latest: result.latest, checking: false, checked: true })
       } else {
@@ -212,35 +220,35 @@ const PackageTable: React.FC<PackageTableProps> = ({
 
     // Create abort controller for cancellation - Validates: Requirement 8.4
     abortControllerRef.current = new AbortController()
-    
+
     setCheckingAll(true)
     // Initialize progress - Validates: Requirements 8.1, 8.2
     setCheckProgress({ total: packages.length, completed: 0, cancelled: false })
-    
+
     for (let i = 0; i < packages.length; i++) {
       // Check if cancelled - Validates: Requirement 8.4
       if (abortControllerRef.current?.signal.aborted) {
         setCheckProgress(prev => prev ? { ...prev, cancelled: true } : null)
         break
       }
-      
+
       await checkVersion(packages[i].name)
       // Update progress - Validates: Requirement 8.2
       setCheckProgress(prev => prev ? { ...prev, completed: i + 1 } : null)
-      
+
       // Small delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 200))
     }
-    
+
     setCheckingAll(false)
-    
+
     // Show completion notification - Validates: Requirement 8.3
     if (!abortControllerRef.current?.signal.aborted) {
       message.success(t('packages.versionCheckComplete', 'Version check complete'))
     } else {
       message.info(t('packages.versionCheckCancelled', 'Version check cancelled'))
     }
-    
+
     setCheckProgress(null)
     abortControllerRef.current = null
   }, [manager, packages, t, checkVersion])
@@ -256,11 +264,11 @@ const PackageTable: React.FC<PackageTableProps> = ({
   const renderVersionStatus = (record: PackageInfo) => {
     const info = packageVersionCache[record.name]
     const supportsCheck = manager === 'npm' || manager === 'pip'
-    
+
     if (!supportsCheck) {
       return <Text type="secondary">-</Text>
     }
-    
+
     if (!info || !info.checked) {
       return (
         <Button
@@ -277,7 +285,7 @@ const PackageTable: React.FC<PackageTableProps> = ({
 
     // Use memoized comparison instead of calling compareVersions directly
     const comparison = memoizedVersionComparison[record.name] ?? 0
-    
+
     if (comparison >= 0) {
       return (
         <Tag icon={<CheckCircleOutlined />} color="success">
@@ -289,8 +297,8 @@ const PackageTable: React.FC<PackageTableProps> = ({
       return (
         <Space>
           <Tooltip title={`${t('packages.latestVersion', 'Latest version')}: ${info.latest}`}>
-            <Tag 
-              icon={<ArrowUpOutlined />} 
+            <Tag
+              icon={<ArrowUpOutlined />}
               color="warning"
               style={{ cursor: 'pointer' }}
               onClick={() => handleCopyUpdateCommand(record.name)}
@@ -405,7 +413,7 @@ const PackageTable: React.FC<PackageTableProps> = ({
           {/* Progress bar - Validates: Requirements 8.1, 8.2 */}
           {checkProgress && (
             <div style={{ marginTop: 8 }}>
-              <Progress 
+              <Progress
                 percent={Math.round((checkProgress.completed / checkProgress.total) * 100)}
                 status={checkProgress.cancelled ? 'exception' : 'active'}
                 format={() => `${checkProgress.completed}/${checkProgress.total}`}

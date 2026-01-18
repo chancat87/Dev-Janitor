@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/版本-1.4.0-blue.svg" alt="版本">
+  <img src="https://img.shields.io/badge/版本-1.5.4-blue.svg" alt="版本">
   <img src="https://img.shields.io/badge/许可证-MIT%20with%20Commons%20Clause-green.svg" alt="许可证">
   <img src="https://img.shields.io/badge/平台-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg" alt="平台">
   <img src="https://img.shields.io/badge/electron-33.3.1-9feaf9.svg" alt="Electron">
@@ -112,9 +112,34 @@ Dev Janitor（开发清道夫）是一款功能强大的桌面应用程序，旨
 
 | 平台 | 下载 |
 |------|------|
-| Windows | `Dev-Janitor-Setup-1.4.0.exe` |
-| macOS | `Dev-Janitor-1.4.0.dmg` |
-| Linux | `Dev-Janitor-1.4.0.AppImage` |
+| Windows | `Dev-Janitor-Setup-1.5.4.exe` |
+| macOS | `Dev-Janitor-1.5.4.dmg` |
+| Linux | `Dev-Janitor-1.5.4.AppImage` |
+
+### macOS 故障排除
+
+如果在 macOS 上看到 **"Dev Janitor 已损坏，无法打开"** 的错误提示，这是因为应用没有 Apple 开发者签名。解决方法如下：
+
+#### 方法一：终端命令（推荐）
+
+打开终端，运行以下命令：
+
+```bash
+xattr -cr /Applications/Dev\ Janitor.app
+```
+
+如果应用在下载文件夹中：
+
+```bash
+xattr -cr ~/Downloads/Dev\ Janitor.app
+```
+
+#### 方法二：系统偏好设置
+
+1. 在错误对话框中点击"取消"
+2. 打开 **系统偏好设置 > 安全性与隐私**
+3. 找到 "Dev Janitor 被阻止" 的提示
+4. 点击 **"仍要打开"**
 
 ### 从源码构建
 
