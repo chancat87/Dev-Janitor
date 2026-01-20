@@ -941,7 +941,7 @@ export class DetectionEngine {
         description: 'AI coding agent from OpenAI that runs locally',
         homepage: 'https://github.com/openai/codex',
         provider: 'openai',
-        configPath: isWindows ? '%USERPROFILE%\\.codex' : '~/.codex',
+        configPath: isWindows() ? '%USERPROFILE%\\.codex' : '~/.codex',
       },
       {
         name: 'claude',
@@ -951,7 +951,7 @@ export class DetectionEngine {
         description: 'Agentic coding tool from Anthropic',
         homepage: 'https://github.com/anthropics/claude-code',
         provider: 'anthropic',
-        configPath: isWindows ? '%USERPROFILE%\\.claude' : '~/.claude',
+        configPath: isWindows() ? '%USERPROFILE%\\.claude' : '~/.claude',
       },
       {
         name: 'gemini',
@@ -961,7 +961,7 @@ export class DetectionEngine {
         description: 'AI agent from Google that brings Gemini to your terminal',
         homepage: 'https://github.com/google-gemini/gemini-cli',
         provider: 'google',
-        configPath: isWindows ? '%USERPROFILE%\\.gemini' : '~/.gemini',
+        configPath: isWindows() ? '%USERPROFILE%\\.gemini' : '~/.gemini',
       },
       {
         name: 'opencode',
@@ -971,7 +971,7 @@ export class DetectionEngine {
         description: 'Open source AI coding agent by SST',
         homepage: 'https://opencode.ai',
         provider: 'sst',
-        configPath: isWindows ? '%USERPROFILE%\\.opencode' : '~/.opencode',
+        configPath: isWindows() ? '%USERPROFILE%\\.opencode' : '~/.opencode',
       },
     ]
 
