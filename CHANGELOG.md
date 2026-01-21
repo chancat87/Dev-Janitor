@@ -12,6 +12,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.0] - 2026-01-21
+
+### Added
+
+#### Cache Cleaner (NEW!)
+- **New sidebar entry**: "Cache Cleaner" for managing package manager caches
+- **Multi-cache support**: Scan and clean caches for 11 package managers:
+  - npm, yarn, pnpm
+  - pip
+  - Composer
+  - Cargo (registry + git)
+  - Gradle
+  - Maven
+  - NuGet
+  - Homebrew (macOS)
+  - CocoaPods (macOS)
+- **Risk level indicators**: Low/Medium/High risk labels for each cache
+- **Size statistics**: Display total cache size and individual cache sizes
+- **Batch cleaning**: Select multiple caches to clean at once
+- **Safety warnings**: 
+  - First-time warning banner requiring acknowledgment
+  - Confirmation dialog before cleaning
+  - Special warnings for high-risk caches (Maven, etc.)
+- **Cleaning results**: Summary of freed space after cleaning
+
+#### Tool Uninstall Feature
+- **Uninstall button**: Added to tool detail modal for installed tools
+- **Supported tools**:
+  - npm global tools (yarn, pnpm, typescript, etc.)
+  - Homebrew tools (macOS)
+  - apt tools (Linux)
+  - Rust/Cargo via rustup
+  - Version managers (nvm, pyenv, rbenv)
+  - Deno, Bun, and more
+- **Safety features**:
+  - Shows warning message before uninstall
+  - Displays the command that will be executed
+  - Manual uninstall instructions when automatic uninstall is not available
+  - Double confirmation for destructive operations
+
+### Changed
+- Updated sidebar navigation with new Cache Cleaner entry
+- Enhanced tool detail modal with uninstall functionality
+
+---
+
 ## [1.6.1] - 2026-01-20
 
 ### Added
@@ -343,7 +389,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/cocojojo5213/Dev-Janitor/compare/v1.6.2...HEAD
+[Unreleased]: https://github.com/cocojojo5213/Dev-Janitor/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.7.0
 [1.6.1]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.6.1
 [1.5.5]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.5
 [1.5.4]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.5.4

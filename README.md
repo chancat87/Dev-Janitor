@@ -109,6 +109,20 @@ Dev Janitor is a powerful desktop application designed to help developers detect
 - **Dark Mode**: Easy on the eyes for night coding
 - **System Follow**: Automatically matches your OS theme preference
 
+### 🧹 Cache Cleaner (NEW!)
+- **Multi-Cache Support**: Scan and clean caches for 11 package managers
+  - npm, yarn, pnpm, pip, Composer, Cargo, Gradle, Maven, NuGet, Homebrew, CocoaPods
+- **Size Statistics**: Display total cache size and individual cache sizes
+- **Risk Level Indicators**: Low/Medium/High risk labels for each cache
+- **Batch Cleaning**: Select multiple caches to clean at once
+- **Safety Warnings**: Confirmation dialogs and special warnings for high-risk caches
+
+### 🗑️ Tool Uninstall (NEW!)
+- **One-Click Uninstall**: Uninstall development tools directly from the UI
+- **Windows Support**: Uses winget for common tools (Node.js, Python, Git, Docker, etc.)
+- **Cross-Platform**: Supports Homebrew (macOS), apt (Linux), and more
+- **Safety Features**: Warning messages and confirmation dialogs before uninstall
+
 ### 🔄 Auto Update
 - **Automatic Check**: Checks for updates on startup
 - **One-Click Update**: Download and install updates with a single click
@@ -135,9 +149,9 @@ Download the latest release for your platform from the [Releases](https://github
 
 | Platform | Download |
 |----------|----------|
-| Windows | `Dev-Janitor-Setup-1.6.2.exe` |
-| macOS | `Dev-Janitor-1.6.2.dmg` |
-| Linux | `Dev-Janitor-1.6.2.AppImage` |
+| Windows | `Dev-Janitor-Setup-1.7.0.exe` |
+| macOS | `Dev-Janitor-1.7.0.dmg` |
+| Linux | `Dev-Janitor-1.7.0.AppImage` |
 
 ### macOS Troubleshooting
 

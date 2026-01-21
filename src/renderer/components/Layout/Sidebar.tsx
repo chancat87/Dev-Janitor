@@ -22,6 +22,7 @@ import {
   LeftOutlined,
   RightOutlined,
   RobotOutlined,
+  ClearOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store'
@@ -71,6 +72,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
       key: 'ai-cli' as ViewType,
       icon: <RobotOutlined />,
       label: t('nav.aiCli'),
+    },
+    {
+      key: 'cache-cleaner' as ViewType,
+      icon: <ClearOutlined />,
+      label: t('nav.cacheCleaner'),
     },
     {
       key: 'settings' as ViewType,

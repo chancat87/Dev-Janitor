@@ -1163,8 +1163,277 @@ export class DetectionEngine {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }
+
+  /**
+   * Uninstall a development tool
+   * 
+   * ⚠️ WARNING: This is a destructive operation. Tools may be required by other software.
+   * 
+   * @param toolName The name of the tool to uninstall
+   * @returns Promise with success status and optional error message
+   */
+  async uninstallTool(toolName: string): Promise<{ success: boolean; error?: string; command?: string }> {
+    const lowerName = toolName.toLowerCase()
+    
+    // Define uninstall commands for different tools and platforms
+    const uninstallCommands: Record<string, { win32: string; darwin: string; linux: string; warning?: string }> = {
+      // Package managers installed via npm
+      'yarn': {
+        win32: 'npm uninstall -g yarn',
+        darwin: 'npm uninstall -g yarn',
+        linux: 'npm uninstall -g yarn',
+      },
+      'pnpm': {
+        win32: 'npm uninstall -g pnpm',
+        darwin: 'npm uninstall -g pnpm',
+        linux: 'npm uninstall -g pnpm',
+      },
+      // Tools that can be uninstalled via npm
+      'typescript': {
+        win32: 'npm uninstall -g typescript',
+        darwin: 'npm uninstall -g typescript',
+        linux: 'npm uninstall -g typescript',
+      },
+      'ts-node': {
+        win32: 'npm uninstall -g ts-node',
+        darwin: 'npm uninstall -g ts-node',
+        linux: 'npm uninstall -g ts-node',
+      },
+      // Windows: use winget for common tools
+      'node': {
+        win32: 'winget uninstall --id OpenJS.NodeJS -e --silent',
+        darwin: 'brew uninstall node',
+        linux: 'sudo apt remove -y nodejs',
+        warning: 'This will remove Node.js and may affect npm packages',
+      },
+      'python': {
+        win32: 'winget uninstall --name Python -e --silent',
+        darwin: 'brew uninstall python',
+        linux: 'sudo apt remove -y python3',
+        warning: 'This will remove Python and may affect pip packages',
+      },
+      'python3': {
+        win32: 'winget uninstall --name Python -e --silent',
+        darwin: 'brew uninstall python',
+        linux: 'sudo apt remove -y python3',
+        warning: 'This will remove Python and may affect pip packages',
+      },
+      'php': {
+        win32: 'winget uninstall --name PHP -e --silent',
+        darwin: 'brew uninstall php',
+        linux: 'sudo apt remove -y php',
+        warning: 'This will remove PHP and may affect Composer packages',
+      },
+      'java': {
+        win32: 'winget uninstall --name "Java" -e --silent',
+        darwin: 'brew uninstall openjdk',
+        linux: 'sudo apt remove -y default-jdk',
+        warning: 'This will remove Java JDK',
+      },
+      'go': {
+        win32: 'winget uninstall --id GoLang.Go -e --silent',
+        darwin: 'brew uninstall go',
+        linux: 'sudo apt remove -y golang-go',
+      },
+      'rust': {
+        win32: 'rustup self uninstall -y',
+        darwin: 'rustup self uninstall -y',
+        linux: 'rustup self uninstall -y',
+        warning: 'This will remove Rust and Cargo',
+      },
+      'rustc': {
+        win32: 'rustup self uninstall -y',
+        darwin: 'rustup self uninstall -y',
+        linux: 'rustup self uninstall -y',
+        warning: 'This will remove Rust and Cargo',
+      },
+      'cargo': {
+        win32: 'rustup self uninstall -y',
+        darwin: 'rustup self uninstall -y',
+        linux: 'rustup self uninstall -y',
+        warning: 'This will remove Rust and Cargo',
+      },
+      'ruby': {
+        win32: 'winget uninstall --name Ruby -e --silent',
+        darwin: 'brew uninstall ruby',
+        linux: 'sudo apt remove -y ruby',
+      },
+      'git': {
+        win32: 'winget uninstall --id Git.Git -e --silent',
+        darwin: 'brew uninstall git',
+        linux: 'sudo apt remove -y git',
+        warning: 'This will remove Git version control',
+      },
+      'docker': {
+        win32: 'winget uninstall --id Docker.DockerDesktop -e --silent',
+        darwin: 'brew uninstall --cask docker',
+        linux: 'sudo apt remove -y docker.io',
+        warning: 'This will remove Docker and all containers',
+      },
+      'deno': {
+        win32: 'irm https://deno.land/uninstall.ps1 | iex',
+        darwin: 'rm -rf ~/.deno',
+        linux: 'rm -rf ~/.deno',
+      },
+      'bun': {
+        win32: 'powershell -c "Remove-Item -Recurse -Force $env:USERPROFILE\\.bun"',
+        darwin: 'rm -rf ~/.bun',
+        linux: 'rm -rf ~/.bun',
+      },
+      // Cloud tools
+      'aws': {
+        win32: 'winget uninstall --id Amazon.AWSCLI -e --silent',
+        darwin: 'brew uninstall awscli',
+        linux: 'sudo apt remove -y awscli',
+      },
+      'az': {
+        win32: 'winget uninstall --id Microsoft.AzureCLI -e --silent',
+        darwin: 'brew uninstall azure-cli',
+        linux: 'sudo apt remove -y azure-cli',
+      },
+      'gcloud': {
+        win32: 'winget uninstall --id Google.CloudSDK -e --silent',
+        darwin: 'brew uninstall google-cloud-sdk',
+        linux: 'sudo apt remove -y google-cloud-sdk',
+      },
+      // Kubernetes tools
+      'kubectl': {
+        win32: 'winget uninstall --id Kubernetes.kubectl -e --silent',
+        darwin: 'brew uninstall kubectl',
+        linux: 'sudo apt remove -y kubectl',
+      },
+      'helm': {
+        win32: 'winget uninstall --id Helm.Helm -e --silent',
+        darwin: 'brew uninstall helm',
+        linux: 'sudo snap remove helm',
+      },
+      // Version managers
+      'nvm': {
+        win32: 'winget uninstall --name "NVM for Windows" -e --silent',
+        darwin: 'rm -rf ~/.nvm',
+        linux: 'rm -rf ~/.nvm',
+        warning: 'This will remove nvm and all Node.js versions managed by it',
+      },
+      'pyenv': {
+        win32: 'winget uninstall --name pyenv -e --silent',
+        darwin: 'brew uninstall pyenv',
+        linux: 'rm -rf ~/.pyenv',
+        warning: 'This will remove pyenv and all Python versions managed by it',
+      },
+      'rbenv': {
+        win32: '',
+        darwin: 'brew uninstall rbenv',
+        linux: 'rm -rf ~/.rbenv',
+        warning: 'This will remove rbenv and all Ruby versions managed by it',
+      },
+      // .NET
+      'dotnet': {
+        win32: 'winget uninstall --id Microsoft.DotNet.SDK.8 -e --silent',
+        darwin: 'brew uninstall dotnet',
+        linux: 'sudo apt remove -y dotnet-sdk-8.0',
+      },
+    }
+
+    const platform = process.platform as 'win32' | 'darwin' | 'linux'
+    const toolConfig = uninstallCommands[lowerName]
+
+    if (!toolConfig) {
+      return { 
+        success: false, 
+        error: `Uninstall not supported for ${toolName}. Please uninstall manually.` 
+      }
+    }
+
+    const command = toolConfig[platform]
+    if (!command) {
+      return { 
+        success: false, 
+        error: `Automatic uninstall not available for ${toolName} on ${platform}. Please uninstall manually.` 
+      }
+    }
+
+    try {
+      const result = await this.executor.executeSafe(command)
+      if (result.success) {
+        this.cache.invalidate(lowerName)
+        return { success: true, command }
+      }
+      return { 
+        success: false, 
+        error: result.stderr || 'Uninstallation failed',
+        command 
+      }
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        command 
+      }
+    }
+  }
+
+  /**
+   * Get uninstall information for a tool (without executing)
+   */
+  getUninstallInfo(toolName: string): { 
+    canUninstall: boolean; 
+    command?: string; 
+    warning?: string;
+    manualInstructions?: string;
+  } {
+    const lowerName = toolName.toLowerCase()
+    const platform = process.platform as 'win32' | 'darwin' | 'linux'
+    
+    const uninstallCommands: Record<string, { win32: string; darwin: string; linux: string; warning?: string }> = {
+      'yarn': { win32: 'npm uninstall -g yarn', darwin: 'npm uninstall -g yarn', linux: 'npm uninstall -g yarn' },
+      'pnpm': { win32: 'npm uninstall -g pnpm', darwin: 'npm uninstall -g pnpm', linux: 'npm uninstall -g pnpm' },
+      'node': { win32: 'winget uninstall --id OpenJS.NodeJS -e --silent', darwin: 'brew uninstall node', linux: 'sudo apt remove -y nodejs', warning: 'This will remove Node.js and may affect npm packages' },
+      'python': { win32: 'winget uninstall --name Python -e --silent', darwin: 'brew uninstall python', linux: 'sudo apt remove -y python3', warning: 'This will remove Python and may affect pip packages' },
+      'java': { win32: 'winget uninstall --name "Java" -e --silent', darwin: 'brew uninstall openjdk', linux: 'sudo apt remove -y default-jdk', warning: 'This will remove Java JDK' },
+      'go': { win32: 'winget uninstall --id GoLang.Go -e --silent', darwin: 'brew uninstall go', linux: 'sudo apt remove -y golang-go' },
+      'rust': { win32: 'rustup self uninstall -y', darwin: 'rustup self uninstall -y', linux: 'rustup self uninstall -y', warning: 'This will remove Rust and Cargo' },
+      'rustc': { win32: 'rustup self uninstall -y', darwin: 'rustup self uninstall -y', linux: 'rustup self uninstall -y', warning: 'This will remove Rust and Cargo' },
+      'cargo': { win32: 'rustup self uninstall -y', darwin: 'rustup self uninstall -y', linux: 'rustup self uninstall -y', warning: 'This will remove Rust and Cargo' },
+      'git': { win32: 'winget uninstall --id Git.Git -e --silent', darwin: 'brew uninstall git', linux: 'sudo apt remove -y git', warning: 'This will remove Git version control' },
+      'docker': { win32: 'winget uninstall --id Docker.DockerDesktop -e --silent', darwin: 'brew uninstall --cask docker', linux: 'sudo apt remove -y docker.io', warning: 'This will remove Docker and all containers' },
+      'deno': { win32: 'irm https://deno.land/uninstall.ps1 | iex', darwin: 'rm -rf ~/.deno', linux: 'rm -rf ~/.deno' },
+      'bun': { win32: 'powershell -c "Remove-Item -Recurse -Force $env:USERPROFILE\\.bun"', darwin: 'rm -rf ~/.bun', linux: 'rm -rf ~/.bun' },
+      'nvm': { win32: 'winget uninstall --name "NVM for Windows" -e --silent', darwin: 'rm -rf ~/.nvm', linux: 'rm -rf ~/.nvm', warning: 'This will remove nvm and all Node.js versions managed by it' },
+      'dotnet': { win32: 'winget uninstall --id Microsoft.DotNet.SDK.8 -e --silent', darwin: 'brew uninstall dotnet', linux: 'sudo apt remove -y dotnet-sdk-8.0' },
+      'aws': { win32: 'winget uninstall --id Amazon.AWSCLI -e --silent', darwin: 'brew uninstall awscli', linux: 'sudo apt remove -y awscli' },
+      'kubectl': { win32: 'winget uninstall --id Kubernetes.kubectl -e --silent', darwin: 'brew uninstall kubectl', linux: 'sudo apt remove -y kubectl' },
+    }
+
+    const toolConfig = uninstallCommands[lowerName]
+    
+    if (!toolConfig) {
+      return { 
+        canUninstall: false,
+        manualInstructions: platform === 'win32' 
+          ? `Please uninstall ${toolName} through Windows Settings > Apps > Installed Apps`
+          : `Please uninstall ${toolName} manually.`
+      }
+    }
+
+    const command = toolConfig[platform]
+    if (!command) {
+      return { 
+        canUninstall: false,
+        manualInstructions: platform === 'win32' 
+          ? `Please uninstall ${toolName} through Windows Settings > Apps > Installed Apps`
+          : `Please uninstall ${toolName} manually.`
+      }
+    }
+
+    return {
+      canUninstall: true,
+      command,
+      warning: toolConfig.warning,
+    }
+  }
 }
+
+
 
 // Export a default instance
 export const detectionEngine = new DetectionEngine()
-

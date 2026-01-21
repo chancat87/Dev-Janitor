@@ -27,21 +27,14 @@
 
 ---
 
-## 🧹 v1.8.0 - 缓存清理功能
+## 🧹 v1.8.0 - 更多清理功能（计划中）
 
-### 包管理器缓存清理
-- [ ] 扫描各包管理器缓存目录大小
-  - npm: `~/.npm/_cacache`
-  - yarn: `~/.yarn/cache`
-  - pnpm: `~/.pnpm-store`
-  - pip: `~/.cache/pip` (Linux/Mac) / `%LOCALAPPDATA%\pip\cache` (Windows)
-  - Composer: `~/.composer/cache`
-  - Cargo: `~/.cargo/registry/cache`
-  - Homebrew: `~/Library/Caches/Homebrew`
-- [ ] 显示各缓存占用空间
-- [ ] 一键清理单个/全部缓存
-- [ ] 清理前确认提示
-- [ ] 清理结果统计（释放了多少空间）
+### 项目清理
+- [ ] 扫描 node_modules 目录
+- [ ] 扫描 __pycache__ 目录
+- [ ] 扫描 .gradle 构建缓存
+- [ ] 显示项目占用空间
+- [ ] 一键清理未使用的项目依赖
 
 ---
 
@@ -64,6 +57,13 @@
 
 ## ✅ 已完成
 
+### v1.7.0 - 缓存清理与工具卸载
+- [x] 包管理器缓存清理（npm、yarn、pnpm、pip、Composer、Cargo、Gradle、Maven、NuGet、Homebrew、CocoaPods）
+- [x] 风险等级标识（低/中/高）
+- [x] 高级功能警告提示
+- [x] 工具卸载功能（支持 winget、Homebrew、apt 等）
+- [x] 卸载前警告和确认弹窗
+
 ### v1.6.2 - AI CLI 基础功能
 - [x] AI CLI 工具检测 (Codex, Claude, Gemini, OpenCode)
 - [x] 一键安装/更新/卸载
@@ -80,4 +80,4 @@
 
 ---
 
-*最后更新: 2026-01-20*
+*最后更新: 2026-01-21*

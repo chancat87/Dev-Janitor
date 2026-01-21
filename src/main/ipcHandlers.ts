@@ -19,8 +19,9 @@ import { serviceMonitor } from './serviceMonitor'
 import { environmentScanner } from './environmentScanner'
 import { aiAssistant } from './aiAssistant'
 import { commandExecutor } from './commandExecutor'
+import { cacheScanner } from './cacheScanner'
 import { commandValidator, inputValidator, validateIPCSender } from './security'
-import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable, AnalysisResult, AIConfig, AICLITool } from '../shared/types'
+import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable, AnalysisResult, AIConfig, AICLITool, CacheScanResult, CleanResult } from '../shared/types'
 
 // Store for language preference
 let currentLanguage = 'en-US'
@@ -85,6 +86,38 @@ function registerToolsHandlers(): void {
         isInstalled: false,
         category: 'other',
       }
+    }
+  })
+
+  // Uninstall a tool
+  ipcMain.handle('tools:uninstall', async (event, toolName: string): Promise<{ success: boolean; error?: string; command?: string }> => {
+    try {
+      // Validate IPC sender
+      if (!validateIPCSender(event)) {
+        console.warn('Security warning: IPC message from untrusted sender for tools:uninstall')
+        return { success: false, error: 'Untrusted sender' }
+      }
+
+      // Validate tool name
+      if (!toolName || typeof toolName !== 'string' || toolName.length > 100) {
+        return { success: false, error: 'Invalid tool name' }
+      }
+
+      const result = await detectionEngine.uninstallTool(toolName)
+      return result
+    } catch (error) {
+      console.error(`Error uninstalling tool ${toolName}:`, error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  // Get uninstall info for a tool
+  ipcMain.handle('tools:get-uninstall-info', async (_event, toolName: string): Promise<{ canUninstall: boolean; command?: string; warning?: string; manualInstructions?: string }> => {
+    try {
+      return detectionEngine.getUninstallInfo(toolName)
+    } catch (error) {
+      console.error(`Error getting uninstall info for ${toolName}:`, error)
+      return { canUninstall: false, manualInstructions: 'Unable to determine uninstall method' }
     }
   })
 }
@@ -664,6 +697,86 @@ export function areIPCHandlersRegistered(): boolean {
 }
 
 /**
+ * Register all IPC handlers for cache cleaning
+ * 
+ * ⚠️ WARNING: These operations are destructive and irreversible
+ */
+function registerCacheHandlers(): void {
+  // Scan all caches
+  ipcMain.handle('cache:scan-all', async (): Promise<CacheScanResult> => {
+    try {
+      const result = await cacheScanner.scanAllCaches()
+      return result
+    } catch (error) {
+      console.error('Error scanning caches:', error)
+      sendToAllWindows('error', `Failed to scan caches: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      return {
+        caches: [],
+        totalSize: 0,
+        totalSizeFormatted: '0 B',
+        scanTime: 0,
+      }
+    }
+  })
+
+  // Clean a single cache
+  ipcMain.handle('cache:clean', async (event, cacheId: string): Promise<CleanResult> => {
+    try {
+      // Validate IPC sender
+      if (!validateIPCSender(event)) {
+        console.warn('Security warning: IPC message from untrusted sender for cache:clean')
+        return { id: cacheId, success: false, freedSpace: 0, freedSpaceFormatted: '0 B', error: 'Untrusted sender' }
+      }
+
+      // Validate cache ID
+      if (!cacheId || typeof cacheId !== 'string' || cacheId.length > 50) {
+        return { id: cacheId, success: false, freedSpace: 0, freedSpaceFormatted: '0 B', error: 'Invalid cache ID' }
+      }
+
+      const result = await cacheScanner.cleanCache(cacheId)
+      return result
+    } catch (error) {
+      console.error(`Error cleaning cache ${cacheId}:`, error)
+      return {
+        id: cacheId,
+        success: false,
+        freedSpace: 0,
+        freedSpaceFormatted: '0 B',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  })
+
+  // Clean multiple caches
+  ipcMain.handle('cache:clean-multiple', async (event, cacheIds: string[]): Promise<CleanResult[]> => {
+    try {
+      // Validate IPC sender
+      if (!validateIPCSender(event)) {
+        console.warn('Security warning: IPC message from untrusted sender for cache:clean-multiple')
+        return cacheIds.map(id => ({ id, success: false, freedSpace: 0, freedSpaceFormatted: '0 B', error: 'Untrusted sender' }))
+      }
+
+      // Validate cache IDs
+      if (!Array.isArray(cacheIds) || cacheIds.length === 0 || cacheIds.length > 20) {
+        return [{ id: 'unknown', success: false, freedSpace: 0, freedSpaceFormatted: '0 B', error: 'Invalid cache IDs' }]
+      }
+
+      const results = await cacheScanner.cleanMultipleCaches(cacheIds)
+      return results
+    } catch (error) {
+      console.error('Error cleaning multiple caches:', error)
+      return cacheIds.map(id => ({
+        id,
+        success: false,
+        freedSpace: 0,
+        freedSpaceFormatted: '0 B',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }))
+    }
+  })
+}
+
+/**
  * Register all IPC handlers
  * Call this function during app initialization
  * Validates: Requirement 11.4 - Prevent duplicate registration
@@ -682,6 +795,7 @@ export function registerAllIPCHandlers(): void {
   registerSettingsHandlers()
   registerAIHandlers()
   registerAICLIHandlers()
+  registerCacheHandlers()
   registerAppHandlers()
   registerShellHandlers()
   
@@ -709,6 +823,8 @@ export function cleanupIPCHandlers(): void {
   // Remove all handlers using ipcMain.removeHandler()
   ipcMain.removeHandler('tools:detect-all')
   ipcMain.removeHandler('tools:detect-one')
+  ipcMain.removeHandler('tools:uninstall')
+  ipcMain.removeHandler('tools:get-uninstall-info')
   ipcMain.removeHandler('packages:list-npm')
   ipcMain.removeHandler('packages:list-pip')
   ipcMain.removeHandler('packages:list-composer')
@@ -739,6 +855,9 @@ export function cleanupIPCHandlers(): void {
   ipcMain.removeHandler('ai-cli:install')
   ipcMain.removeHandler('ai-cli:update')
   ipcMain.removeHandler('ai-cli:uninstall')
+  ipcMain.removeHandler('cache:scan-all')
+  ipcMain.removeHandler('cache:clean')
+  ipcMain.removeHandler('cache:clean-multiple')
   
   ipcHandlersRegistered = false
   console.log('All IPC handlers cleaned up')

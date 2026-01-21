@@ -23,6 +23,7 @@ import EnvironmentView from '../Environment/EnvironmentView'
 import { SettingsView } from '../Settings'
 import { AIAssistantDrawer } from '../AI'
 import { AICLIView } from '../AICli'
+import { CacheCleanerView } from '../CacheCleaner'
 
 const { Content } = Layout
 
@@ -75,6 +76,8 @@ const AppLayout: React.FC = () => {
         return <SettingsView />
       case 'ai-cli':
         return <AICLIView />
+      case 'cache-cleaner':
+        return <CacheCleanerView />
       default:
         return <ToolsView />
     }

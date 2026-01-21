@@ -108,7 +108,36 @@ export type SupportedLanguage = 'zh-CN' | 'en-US'
 export type ThemeMode = 'system' | 'light' | 'dark'
 
 // View Types
-export type ViewType = 'tools' | 'packages' | 'services' | 'environment' | 'settings' | 'ai-cli'
+export type ViewType = 'tools' | 'packages' | 'services' | 'environment' | 'settings' | 'ai-cli' | 'cache-cleaner'
+
+// Cache Information Model
+export interface CacheInfo {
+  id: string                    // Unique identifier (e.g., 'npm', 'yarn')
+  name: string                  // Display name
+  path: string                  // Cache directory path
+  size: number                  // Size in bytes
+  sizeFormatted: string         // Human-readable size
+  exists: boolean               // Whether the directory exists
+  lastModified?: Date           // Last modification time
+  description: string           // Description of what this cache contains
+  cleanCommand?: string         // Native clean command if available
+  riskLevel: 'low' | 'medium' | 'high'  // Risk level for cleaning
+}
+
+export interface CleanResult {
+  id: string
+  success: boolean
+  freedSpace: number            // Bytes freed
+  freedSpaceFormatted: string
+  error?: string
+}
+
+export interface CacheScanResult {
+  caches: CacheInfo[]
+  totalSize: number
+  totalSizeFormatted: string
+  scanTime: number              // Scan duration in ms
+}
 
 // AI CLI Tool Information
 export interface AICLITool {

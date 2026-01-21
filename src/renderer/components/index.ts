@@ -18,3 +18,6 @@ export * from './Settings'
 
 // AI CLI components
 export * from './AICli'
+
+// Cache Cleaner components
+export * from './CacheCleaner'

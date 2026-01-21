@@ -11,7 +11,7 @@
  */
 
 import { ipcRenderer, contextBridge } from 'electron'
-import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable, AnalysisResult, AIConfig, AICLITool } from '../shared/types'
+import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable, AnalysisResult, AIConfig, AICLITool, CacheScanResult, CleanResult } from '../shared/types'
 
 /**
  * Preload error logging utility
@@ -90,6 +90,8 @@ interface ElectronAPI {
   tools: {
     detectAll: () => Promise<ToolInfo[]>
     detectOne: (toolName: string) => Promise<ToolInfo>
+    uninstall: (toolName: string) => Promise<{ success: boolean; error?: string; command?: string }>
+    getUninstallInfo: (toolName: string) => Promise<{ canUninstall: boolean; command?: string; warning?: string; manualInstructions?: string }>
   }
 
   // Packages API
@@ -155,6 +157,13 @@ interface ElectronAPI {
     uninstall: (toolName: string) => Promise<{ success: boolean; error?: string }>
   }
 
+  // Cache Cleaner API
+  cache: {
+    scanAll: () => Promise<CacheScanResult>
+    clean: (cacheId: string) => Promise<CleanResult>
+    cleanMultiple: (cacheIds: string[]) => Promise<CleanResult[]>
+  }
+
   // App/Update API
   app: {
     getVersion: () => Promise<string>
@@ -199,6 +208,8 @@ function createDegradedAPI(): ElectronAPI {
     tools: {
       detectAll: createDegradedPromise,
       detectOne: createDegradedPromise,
+      uninstall: createDegradedPromise,
+      getUninstallInfo: createDegradedPromise,
     },
 
     packages: {
@@ -256,6 +267,12 @@ function createDegradedAPI(): ElectronAPI {
       uninstall: createDegradedPromise,
     },
 
+    cache: {
+      scanAll: createDegradedPromise,
+      clean: createDegradedPromise,
+      cleanMultiple: createDegradedPromise,
+    },
+
     app: {
       getVersion: createDegradedPromise,
       checkForUpdates: createDegradedPromise,
@@ -292,6 +309,8 @@ function createElectronAPI(): ElectronAPI {
     tools: {
       detectAll: () => ipcRenderer.invoke('tools:detect-all'),
       detectOne: (toolName: string) => ipcRenderer.invoke('tools:detect-one', toolName),
+      uninstall: (toolName: string) => ipcRenderer.invoke('tools:uninstall', toolName),
+      getUninstallInfo: (toolName: string) => ipcRenderer.invoke('tools:get-uninstall-info', toolName),
     },
 
     // Packages API
@@ -401,6 +420,13 @@ function createElectronAPI(): ElectronAPI {
       install: (toolName: string) => ipcRenderer.invoke('ai-cli:install', toolName),
       update: (toolName: string) => ipcRenderer.invoke('ai-cli:update', toolName),
       uninstall: (toolName: string) => ipcRenderer.invoke('ai-cli:uninstall', toolName),
+    },
+
+    // Cache Cleaner API
+    cache: {
+      scanAll: () => ipcRenderer.invoke('cache:scan-all'),
+      clean: (cacheId: string) => ipcRenderer.invoke('cache:clean', cacheId),
+      cleanMultiple: (cacheIds: string[]) => ipcRenderer.invoke('cache:clean-multiple', cacheIds),
     },
 
     // App/Update API

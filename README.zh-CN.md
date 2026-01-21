@@ -104,6 +104,25 @@ Dev Janitor（开发清道夫）是一款功能强大的桌面应用程序，旨
 - **轻松切换**：在设置中即时切换语言
 - **系统检测**：首次启动时自动检测系统语言
 
+### 🎨 主题支持（新功能！）
+- **浅色模式**：清爽明亮的界面
+- **深色模式**：夜间编码更护眼
+- **跟随系统**：自动匹配操作系统主题偏好
+
+### 🧹 缓存清理（新功能！）
+- **多缓存支持**：扫描和清理 11 种包管理器缓存
+  - npm、yarn、pnpm、pip、Composer、Cargo、Gradle、Maven、NuGet、Homebrew、CocoaPods
+- **大小统计**：显示总缓存大小和各缓存大小
+- **风险等级**：低/中/高风险标识
+- **批量清理**：选择多个缓存一键清理
+- **安全警告**：清理前确认弹窗，高风险缓存特别警告
+
+### �️ 工具卸载（新功能！）
+- **一键卸载**：直接在界面中卸载开发工具
+- **Windows 支持**：使用 winget 卸载常见工具（Node.js、Python、Git、Docker 等）
+- **跨平台**：支持 Homebrew（macOS）、apt（Linux）等
+- **安全特性**：卸载前显示警告信息和确认弹窗
+
 ### 💻 跨平台
 - **Windows**：完全支持 Windows 10/11
 - **macOS**：原生支持 macOS 10.15+
@@ -125,9 +144,9 @@ Dev Janitor（开发清道夫）是一款功能强大的桌面应用程序，旨
 
 | 平台 | 下载 |
 |------|------|
-| Windows | `Dev-Janitor-Setup-1.6.2.exe` |
-| macOS | `Dev-Janitor-1.6.2.dmg` |
-| Linux | `Dev-Janitor-1.6.2.AppImage` |
+| Windows | `Dev-Janitor-Setup-1.7.0.exe` |
+| macOS | `Dev-Janitor-1.7.0.dmg` |
+| Linux | `Dev-Janitor-1.7.0.AppImage` |
 
 ### macOS 故障排除
 

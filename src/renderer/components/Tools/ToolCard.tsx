@@ -13,8 +13,8 @@
  * Property 8: Action Menu Completeness
  */
 
-import React from 'react'
-import { Card, Tag, Button, Dropdown, Typography, Tooltip, message } from 'antd'
+import React, { useState, useEffect } from 'react'
+import { Card, Tag, Button, Dropdown, Typography, Tooltip, message, Modal, Alert } from 'antd'
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -22,11 +22,15 @@ import {
   EyeOutlined,
   SyncOutlined,
   CopyOutlined,
+  DeleteOutlined,
+  WarningOutlined,
+  ExclamationCircleOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import type { ToolInfo } from '@shared/types'
 
 const { Text, Paragraph } = Typography
+const { confirm } = Modal
 
 export interface ToolCardProps {
   tool: ToolInfo
@@ -78,6 +82,22 @@ const getCategoryColor = (category: ToolInfo['category']): string => {
 
 const ToolCard: React.FC<ToolCardProps> = ({ tool, onRefresh, onViewDetails }) => {
   const { t } = useTranslation()
+  const [uninstallInfo, setUninstallInfo] = useState<{
+    canUninstall: boolean
+    command?: string
+    warning?: string
+    manualInstructions?: string
+  } | null>(null)
+  const [uninstalling, setUninstalling] = useState(false)
+
+  // Fetch uninstall info when tool changes
+  useEffect(() => {
+    if (tool?.isInstalled) {
+      window.electronAPI.tools.getUninstallInfo(tool.name).then(setUninstallInfo)
+    } else {
+      setUninstallInfo(null)
+    }
+  }, [tool])
 
   const handleCopyPath = () => {
     if (tool.path) {
@@ -89,6 +109,88 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool, onRefresh, onViewDetails }) =
           message.error(t('notifications.copyFailed'))
         })
     }
+  }
+
+  const handleUninstall = () => {
+    if (!uninstallInfo?.canUninstall) {
+      // Show modal with manual instructions instead of toast
+      Modal.info({
+        title: t('tools.uninstallManualTitle', { name: tool.displayName }),
+        icon: <ExclamationCircleOutlined />,
+        content: (
+          <div>
+            <Paragraph>
+              {uninstallInfo?.manualInstructions || t('tools.uninstallManual')}
+            </Paragraph>
+            <Alert
+              type="info"
+              showIcon
+              message={t('tools.uninstallManualSteps')}
+              description={
+                <ol style={{ paddingLeft: 20, marginTop: 8 }}>
+                  <li>{t('tools.uninstallStep1')}</li>
+                  <li>{t('tools.uninstallStep2')}</li>
+                  <li>{t('tools.uninstallStep3', { name: tool.displayName })}</li>
+                </ol>
+              }
+            />
+          </div>
+        ),
+        okText: t('common.ok'),
+      })
+      return
+    }
+
+    confirm({
+      title: t('tools.uninstallConfirmTitle', { name: tool.displayName }),
+      icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+      content: (
+        <div>
+          {uninstallInfo.warning && (
+            <Alert
+              type="warning"
+              showIcon
+              icon={<WarningOutlined />}
+              message={uninstallInfo.warning}
+              style={{ marginBottom: 12 }}
+            />
+          )}
+          <Paragraph>
+            {t('tools.uninstallConfirmMessage')}
+          </Paragraph>
+          {uninstallInfo.command && (
+            <Paragraph code style={{ fontSize: 12 }}>
+              {uninstallInfo.command}
+            </Paragraph>
+          )}
+          <Alert
+            type="error"
+            showIcon
+            message={t('tools.uninstallIrreversible')}
+            style={{ marginTop: 12 }}
+          />
+        </div>
+      ),
+      okText: t('tools.uninstallConfirm'),
+      okType: 'danger',
+      cancelText: t('common.cancel'),
+      onOk: async () => {
+        setUninstalling(true)
+        try {
+          const result = await window.electronAPI.tools.uninstall(tool.name)
+          if (result.success) {
+            message.success(t('tools.uninstallSuccess', { name: tool.displayName }))
+            onRefresh()
+          } else {
+            message.error(t('tools.uninstallFailed', { error: result.error }))
+          }
+        } catch (error) {
+          message.error(t('tools.uninstallFailed', { error: String(error) }))
+        } finally {
+          setUninstalling(false)
+        }
+      },
+    })
   }
 
   // Build action menu items - simplified, only safe operations
@@ -111,6 +213,16 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool, onRefresh, onViewDetails }) =
     })
   }
 
+  // Add uninstall option if tool is installed
+  if (tool.isInstalled) {
+    actionMenuItems.push({
+      key: 'uninstall',
+      icon: <DeleteOutlined />,
+      label: t('tools.uninstall'),
+      onClick: handleUninstall,
+    })
+  }
+
   return (
     <Card
       className="h-full hover:shadow-md transition-shadow duration-200"
@@ -122,14 +234,26 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool, onRefresh, onViewDetails }) =
         <Tooltip key="details" title={t('tools.viewDetails')}>
           <Button type="text" icon={<EyeOutlined />} onClick={onViewDetails} />
         </Tooltip>,
-        <Dropdown
-          key="more"
-          menu={{ items: actionMenuItems }}
-          trigger={['click']}
-          placement="bottomRight"
-        >
-          <Button type="text" icon={<MoreOutlined />} />
-        </Dropdown>,
+        tool.isInstalled ? (
+          <Tooltip key="uninstall" title={t('tools.uninstall')}>
+            <Button 
+              type="text" 
+              danger
+              icon={<DeleteOutlined />} 
+              onClick={handleUninstall}
+              loading={uninstalling}
+            />
+          </Tooltip>
+        ) : (
+          <Dropdown
+            key="more"
+            menu={{ items: actionMenuItems }}
+            trigger={['click']}
+            placement="bottomRight"
+          >
+            <Button type="text" icon={<MoreOutlined />} />
+          </Dropdown>
+        ),
       ]}
     >
       <div className="flex flex-col gap-3">
