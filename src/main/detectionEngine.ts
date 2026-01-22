@@ -1058,7 +1058,7 @@ export class DetectionEngine {
         name: 'opencode',
         displayName: 'OpenCode',
         command: 'opencode',
-        packageName: 'opencode',
+        packageName: 'opencode-ai',
         description: 'Open source AI coding agent by SST',
         homepage: 'https://opencode.ai',
         provider: 'sst',
@@ -1190,7 +1190,7 @@ export class DetectionEngine {
       codex: '@openai/codex',
       claude: '@anthropic-ai/claude-code',
       gemini: '@google/gemini-cli',
-      opencode: 'opencode',
+      opencode: 'opencode-ai',
       iflow: 'iflow-cli',
     }
 
@@ -1220,7 +1220,7 @@ export class DetectionEngine {
       codex: '@openai/codex',
       claude: '@anthropic-ai/claude-code',
       gemini: '@google/gemini-cli',
-      opencode: 'opencode',
+      opencode: 'opencode-ai',
       iflow: 'iflow-cli',
     }
 
@@ -1253,13 +1253,18 @@ export class DetectionEngine {
 
   /**
    * Uninstall an AI CLI tool
+   * 
+   * Enhanced uninstallation with:
+   * - Force flag to ensure complete removal
+   * - npm cache cleanup for the package
+   * - Verification that package is actually removed
    */
   async uninstallAICLITool(toolName: string): Promise<{ success: boolean; error?: string }> {
     const packageMap: Record<string, string> = {
       codex: '@openai/codex',
       claude: '@anthropic-ai/claude-code',
       gemini: '@google/gemini-cli',
-      opencode: 'opencode',
+      opencode: 'opencode-ai',
       iflow: 'iflow-cli',
     }
 
@@ -1269,14 +1274,51 @@ export class DetectionEngine {
     }
 
     try {
-      // Uninstall the package
-      const result = await this.executor.executeSafe(`npm uninstall -g ${packageName}`)
-      if (result.success) {
-        // Clear cache for this tool
-        this.cache.invalidate(toolName)
-        return { success: true }
+      // Step 1: Uninstall the package with --force flag
+      await this.executor.executeSafe(`npm uninstall -g ${packageName} --force`)
+      
+      // Step 2: Clean npm cache for this specific package to remove any residual files
+      // This helps prevent corrupted package issues on reinstall
+      await this.executor.executeSafe(`npm cache clean --force`)
+      
+      // Step 3: Verify the package is actually removed by checking if it still exists
+      const verifyResult = await this.executor.executeSafe(`npm list -g ${packageName} --depth=0`)
+      const stillInstalled = verifyResult.success && verifyResult.stdout.includes(packageName)
+      
+      if (stillInstalled) {
+        // Package still exists, try alternative removal methods
+        // Try removing from npm prefix directly
+        const prefixResult = await this.executor.executeSafe('npm config get prefix')
+        if (prefixResult.success && prefixResult.stdout) {
+          const prefix = prefixResult.stdout.trim()
+          // On Windows, global packages are in prefix/node_modules
+          // On Unix, they're in prefix/lib/node_modules
+          const isWin = process.platform === 'win32'
+          const modulePath = isWin 
+            ? `${prefix}\\node_modules\\${packageName.replace('/', '\\')}` 
+            : `${prefix}/lib/node_modules/${packageName}`
+          
+          // Try to remove the directory if it exists
+          if (isWin) {
+            await this.executor.executeSafe(`rmdir /s /q "${modulePath}"`)
+          } else {
+            await this.executor.executeSafe(`rm -rf "${modulePath}"`)
+          }
+        }
+        
+        // Verify again
+        const finalVerify = await this.executor.executeSafe(`npm list -g ${packageName} --depth=0`)
+        if (finalVerify.success && finalVerify.stdout.includes(packageName)) {
+          return { 
+            success: false, 
+            error: 'Package could not be completely removed. Try running "npm uninstall -g ' + packageName + ' --force" manually with administrator privileges.' 
+          }
+        }
       }
-      return { success: false, error: result.stderr || 'Uninstallation failed' }
+
+      // Clear cache for this tool
+      this.cache.invalidate(toolName)
+      return { success: true }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }

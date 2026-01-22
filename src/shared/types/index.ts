@@ -31,14 +31,31 @@ export interface ToolInfo {
   detectionTime?: number    // Time taken to detect in milliseconds
 }
 
+// Package Manager Types - Extended for enhanced-package-discovery
+export type PackageManagerType = 
+  | 'npm' 
+  | 'pip' 
+  | 'composer' 
+  | 'cargo' 
+  | 'gem'
+  // New package managers (Requirement 8.1)
+  | 'brew'
+  | 'conda'
+  | 'pipx'
+  | 'poetry'
+  | 'pyenv'
+
 // Package Information Model
 export interface PackageInfo {
   name: string              // Package name
   version: string           // Version string
-  location: string          // Installation location
-  manager: 'npm' | 'pip' | 'composer' | 'cargo' | 'gem'
+  location: string          // Installation location (extended: 'formula', 'cask', 'conda-env', 'pipx-venv', 'pyenv-version')
+  manager: PackageManagerType
   description?: string      // Package description
   homepage?: string         // Package homepage URL
+  // New fields for enhanced package managers (Requirement 8.2)
+  channel?: string          // Conda channel
+  environment?: string      // Conda/Poetry environment name
 }
 
 // Running Service Model
@@ -231,3 +248,12 @@ export {
   unwrapResponse,
   getErrorMessage,
 } from './ipcResponse'
+
+// Re-export Package Manager Configuration types
+export {
+  type ManagerAvailabilityStatus,
+  type DiscoveryMethod,
+  type PackageManagerStatus,
+  type PackageManagerConfig,
+  type SearchResult,
+} from './packageManagerConfig'

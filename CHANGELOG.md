@@ -5,11 +5,35 @@ All notable changes to Dev Janitor will be documented in this file.
 
 ---
 
-## [1.7.4] - Planned
+## [1.7.4] - 2026-01-22
 
-### Planned / 计划中
-- **macOS Tool Detection**: Add common macOS paths for better tool detection (Homebrew, nvm, Go, .NET, Java, etc.) - Fixes #28
-- **macOS 工具检测**: 添加常见 macOS 路径以改善工具检测（Homebrew、nvm、Go、.NET、Java 等）- 修复 #28
+### Added / 新增
+- **Enhanced Package Discovery**: Support for Homebrew, Conda, Pipx, Poetry, and Pyenv package managers
+- **增强包发现**: 支持 Homebrew、Conda、Pipx、Poetry 和 Pyenv 包管理器
+- **Tiered Path Search**: Smart 4-tier search strategy for finding package managers (direct command → PATH scan → common paths → custom config)
+- **分层路径搜索**: 智能四层搜索策略查找包管理器（直接命令 → PATH 扫描 → 常见路径 → 自定义配置）
+- **PATH Status Detection**: Detect when package managers are installed but not in PATH, with helpful suggestions
+- **PATH 状态检测**: 检测包管理器已安装但不在 PATH 中的情况，并提供修复建议
+- **Custom Config Support**: User-configurable paths via `~/.config/dev-janitor/package-managers.json`
+- **自定义配置支持**: 用户可通过 `~/.config/dev-janitor/package-managers.json` 配置自定义路径
+- **Package Uninstall Button**: Added uninstall button to the packages table for npm/pip/composer packages
+- **包卸载按钮**: 在依赖包表格中添加了 npm/pip/composer 包的卸载按钮
+- **Issue Templates**: Added GitHub issue templates for bug reports, feature requests, and general questions (PR #32)
+- **Issue 模板**: 添加了 GitHub issue 模板，用于 bug 报告、功能请求和一般问题 (PR #32)
+
+### Changed / 变更
+- **Property-Based Testing**: Added comprehensive PBT tests for all new package handlers
+- **属性测试**: 为所有新包处理器添加了全面的属性测试
+
+### Fixed / 修复
+- **macOS nvm detection**: Fixed nvm detection on macOS/Linux where nvm is a shell script, not a binary (PR #29, thanks @webliuxiang)
+- **macOS nvm 检测**: 修复 macOS/Linux 上 nvm 检测问题，nvm 是 shell 脚本而非二进制文件 (PR #29, 感谢 @webliuxiang)
+- **AI CLI detection on macOS**: Improved AI CLI tool detection to not require npm list check, supporting alternative installation methods (PR #29)
+- **macOS AI CLI 检测**: 改进 AI CLI 工具检测，不再强制要求 npm list 检查，支持其他安装方式 (PR #29)
+- **Enhanced npm package uninstall**: Added `--force` flag, npm cache cleanup, and verification to ensure complete package removal
+- **增强 npm 包卸载**: 添加 `--force` 标志、npm 缓存清理和验证机制，确保包被完全删除
+- **AI Cleanup algorithm**: Improved junk file detection with whitelist mechanism to avoid false positives (audio, video, documents are now safe)
+- **AI 垃圾清理算法**: 改进垃圾文件检测算法，添加白名单机制避免误删（音频、视频、文档等文件现在安全）
 
 ---
 
@@ -135,6 +159,7 @@ All notable changes to Dev Janitor will be documented in this file.
 
 ---
 
+[1.7.4]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.7.4
 [1.7.3]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.7.3
 [1.7.2]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.7.2
 [1.7.1]: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v1.7.1

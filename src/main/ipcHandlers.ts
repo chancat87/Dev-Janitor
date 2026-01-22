@@ -14,7 +14,7 @@
 
 import { ipcMain, BrowserWindow, shell, app } from 'electron'
 import { detectionEngine } from './detectionEngine'
-import { packageManager } from './packageManager'
+import { packageManager, PackageDiscovery } from './packageManager'
 import { serviceMonitor } from './serviceMonitor'
 import { environmentScanner } from './environmentScanner'
 import { aiAssistant } from './aiAssistant'
@@ -22,7 +22,7 @@ import { commandExecutor } from './commandExecutor'
 import { cacheScanner } from './cacheScanner'
 import { aiCleanupScanner } from './aiCleanupScanner'
 import { commandValidator, inputValidator, validateIPCSender } from './security'
-import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable, AnalysisResult, AIConfig, AICLITool, CacheScanResult, CleanResult, AICleanupScanResult, AICleanupResult } from '../shared/types'
+import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable, AnalysisResult, AIConfig, AICLITool, CacheScanResult, CleanResult, AICleanupScanResult, AICleanupResult, PackageManagerStatus } from '../shared/types'
 
 // Store for language preference
 let currentLanguage = 'en-US'
@@ -38,6 +38,19 @@ let cachedEnvironmentData: {
   environment: EnvironmentVariable[]
   services: RunningService[]
 } | null = null
+
+// Enhanced package discovery instance
+let packageDiscovery: PackageDiscovery | null = null
+
+/**
+ * Get or create the package discovery instance
+ */
+function getPackageDiscovery(): PackageDiscovery {
+  if (!packageDiscovery) {
+    packageDiscovery = new PackageDiscovery()
+  }
+  return packageDiscovery
+}
 
 /**
  * Send event to all renderer windows
@@ -189,7 +202,87 @@ function registerPackagesHandlers(): void {
     }
   })
 
-  // Uninstall a package
+  // Enhanced Package Discovery: Discover all available package managers
+  // Validates: Requirements 14.5, 14.6
+  ipcMain.handle('packages:discover-managers', async (): Promise<PackageManagerStatus[]> => {
+    try {
+      const discovery = getPackageDiscovery()
+      const statuses = await discovery.discoverAvailableManagers()
+      return statuses
+    } catch (error) {
+      console.error('Error discovering package managers:', error)
+      sendToAllWindows('error', `Failed to discover package managers: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      return []
+    }
+  })
+
+  // Enhanced Package Discovery: Get status for a specific package manager
+  // Validates: Requirements 14.5, 14.6
+  ipcMain.handle('packages:get-manager-status', async (_event, manager: string): Promise<PackageManagerStatus | null> => {
+    try {
+      const discovery = getPackageDiscovery()
+      const status = await discovery.getManagerStatus(manager as any)
+      return status
+    } catch (error) {
+      console.error(`Error getting status for ${manager}:`, error)
+      return null
+    }
+  })
+
+  // Enhanced Package Discovery: List packages from a specific manager
+  ipcMain.handle('packages:list-by-manager', async (_event, manager: string): Promise<PackageInfo[]> => {
+    try {
+      const discovery = getPackageDiscovery()
+      const packages = await discovery.listPackages(manager as any)
+      return packages
+    } catch (error) {
+      console.error(`Error listing packages for ${manager}:`, error)
+      sendToAllWindows('error', `Failed to list ${manager} packages: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      return []
+    }
+  })
+
+  // Enhanced Package Discovery: List all packages from all available managers
+  ipcMain.handle('packages:list-all-enhanced', async (_event): Promise<PackageInfo[]> => {
+    try {
+      const discovery = getPackageDiscovery()
+      const packages = await discovery.listAllPackages((manager, status) => {
+        // Send progress updates to renderer
+        sendToAllWindows('packages:scan-progress', { manager, status })
+      })
+      return packages
+    } catch (error) {
+      console.error('Error listing all packages:', error)
+      sendToAllWindows('error', `Failed to list all packages: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      return []
+    }
+  })
+
+  // Enhanced Package Discovery: Uninstall package with enhanced support
+  ipcMain.handle('packages:uninstall-enhanced', async (event, name: string, manager: string, options?: { cask?: boolean }): Promise<{ success: boolean; error?: string }> => {
+    try {
+      // Validate IPC sender
+      if (!validateIPCSender(event)) {
+        console.warn('Security warning: IPC message from untrusted sender for packages:uninstall-enhanced')
+        return { success: false, error: 'Untrusted sender' }
+      }
+
+      // Validate package name format
+      const nameValidation = inputValidator.validatePackageName(name)
+      if (!nameValidation.valid) {
+        return { success: false, error: nameValidation.error }
+      }
+
+      const discovery = getPackageDiscovery()
+      const success = await discovery.uninstallPackage(nameValidation.value!, manager as any, options)
+      return { success }
+    } catch (error) {
+      console.error(`Error uninstalling package ${name}:`, error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  // Uninstall a package (legacy support)
   ipcMain.handle('packages:uninstall', async (event, name: string, manager: string): Promise<{ success: boolean; error?: string }> => {
     try {
       // Validate IPC sender (Requirement 1.3 - security logging)
@@ -950,6 +1043,11 @@ export function cleanupIPCHandlers(): void {
   ipcMain.removeHandler('packages:list-composer')
   ipcMain.removeHandler('packages:list-cargo')
   ipcMain.removeHandler('packages:list-gem')
+  ipcMain.removeHandler('packages:discover-managers')
+  ipcMain.removeHandler('packages:get-manager-status')
+  ipcMain.removeHandler('packages:list-by-manager')
+  ipcMain.removeHandler('packages:list-all-enhanced')
+  ipcMain.removeHandler('packages:uninstall-enhanced')
   ipcMain.removeHandler('packages:uninstall')
   ipcMain.removeHandler('packages:update')
   ipcMain.removeHandler('packages:check-npm-latest')

@@ -1,14 +1,14 @@
 /**
  * AI Cleanup Scanner Module
  * 
- * Scans and cleans up junk files created by AI coding assistants.
+ * Scans and cleans junk files created by AI coding assistants.
  * Supports: Claude, Cursor, Aider, Copilot, Windsurf, and other AI tools.
  * 
  * Common junk files include:
  * - nul/NUL files (Windows device name accidentally created)
  * - .aider* temporary files
  * - .claude_* cache files
- * - AI tool backup and temp files
+ * - Files with invalid characters in names (created by AI bugs)
  */
 
 import { promises as fs } from 'fs'
@@ -90,6 +90,14 @@ interface JunkPattern {
   isExactMatch?: boolean
 }
 
+// Characters that are invalid or very unusual in filenames
+// These are often created by AI tools due to bugs
+const INVALID_FILENAME_CHARS = /[`{}[\]<>|]/
+
+// Pattern for files that look like AI-generated garbage
+// Must have NO extension and contain unusual characters
+const AI_GARBAGE_PATTERN = /^[^.]+$/  // No extension
+
 const JUNK_PATTERNS: JunkPattern[] = [
   // Windows device name files (created by buggy AI tools)
   // These are definitely junk - Windows reserved names should never be files
@@ -126,6 +134,141 @@ const JUNK_PATTERNS: JunkPattern[] = [
     riskLevel: 'low',
   },
 ]
+
+// Known safe file extensions that should never be flagged
+const SAFE_EXTENSIONS = new Set([
+  // Audio
+  '.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma',
+  // Video
+  '.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm',
+  // Images
+  '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.ico', '.webp', '.tiff',
+  // Documents
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.rtf',
+  // Archives
+  '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2',
+  // Code
+  '.js', '.ts', '.jsx', '.tsx', '.py', '.java', '.c', '.cpp', '.h', '.cs',
+  '.go', '.rs', '.rb', '.php', '.swift', '.kt', '.scala', '.vue', '.svelte',
+  // Config
+  '.json', '.yaml', '.yml', '.xml', '.toml', '.ini', '.env', '.config',
+  // Web
+  '.html', '.htm', '.css', '.scss', '.sass', '.less',
+  // Data
+  '.csv', '.sql', '.db', '.sqlite',
+  // Other common
+  '.md', '.markdown', '.log', '.lock', '.map', '.d.ts',
+])
+
+// Known safe filenames without extensions
+const SAFE_FILENAMES = new Set([
+  'README', 'LICENSE', 'CHANGELOG', 'CONTRIBUTING', 'AUTHORS', 'HISTORY',
+  'Makefile', 'Dockerfile', 'Vagrantfile', 'Gemfile', 'Rakefile', 'Procfile',
+  'CODEOWNERS', 'SECURITY', 'FUNDING', 'SUPPORT',
+  '.gitignore', '.gitattributes', '.gitmodules', '.gitkeep',
+  '.npmignore', '.npmrc', '.nvmrc', '.node-version',
+  '.editorconfig', '.prettierrc', '.eslintrc', '.babelrc',
+  '.dockerignore', '.env', '.env.local', '.env.example',
+])
+
+/**
+ * Check if a file is likely AI-generated junk based on its characteristics
+ */
+async function isLikelyAIJunk(filePath: string, fileName: string): Promise<{
+  isJunk: boolean
+  source: string
+  description: string
+  descriptionZh: string
+  riskLevel: 'low' | 'medium'
+} | null> {
+  // Get file extension
+  const ext = path.extname(fileName).toLowerCase()
+  
+  // Skip files with known safe extensions
+  if (ext && SAFE_EXTENSIONS.has(ext)) {
+    return null
+  }
+  
+  // Skip known safe filenames
+  if (SAFE_FILENAMES.has(fileName) || SAFE_FILENAMES.has(fileName.toLowerCase())) {
+    return null
+  }
+  
+  // Check if filename contains invalid/unusual characters
+  if (INVALID_FILENAME_CHARS.test(fileName)) {
+    // Verify it's a small file (AI junk is usually tiny)
+    try {
+      const stats = await fs.stat(filePath)
+      if (stats.size < 1024) { // Less than 1KB
+        return {
+          isJunk: true,
+          source: 'AI Tool Bug',
+          description: 'File with invalid characters in name - likely AI-generated junk',
+          descriptionZh: '文件名包含无效字符 - 可能是 AI 生成的垃圾文件',
+          riskLevel: 'medium',
+        }
+      }
+    } catch {
+      return null
+    }
+  }
+  
+  // Check for files without extension that have unusual names
+  if (!ext && AI_GARBAGE_PATTERN.test(fileName)) {
+    // Must be very short name (1-4 chars) with unusual characters
+    if (fileName.length <= 4 && /[^a-zA-Z0-9._-]/.test(fileName)) {
+      try {
+        const stats = await fs.stat(filePath)
+        // Must be tiny file
+        if (stats.size < 100) {
+          return {
+            isJunk: true,
+            source: 'AI Tool Bug',
+            description: 'Tiny file with unusual name - likely AI-generated junk',
+            descriptionZh: '异常命名的小文件 - 可能是 AI 生成的垃圾文件',
+            riskLevel: 'medium',
+          }
+        }
+      } catch {
+        return null
+      }
+    }
+  }
+  
+  return null
+}
+
+/**
+ * Check if a directory is a code project (has markers like .git, package.json, etc.)
+ */
+async function isCodeProject(dirPath: string): Promise<boolean> {
+  const markers = [
+    '.git',
+    'package.json',
+    'Cargo.toml',
+    'go.mod',
+    'pom.xml',
+    'build.gradle',
+    'requirements.txt',
+    'setup.py',
+    'pyproject.toml',
+    'composer.json',
+    'Gemfile',
+    '.project',
+    'CMakeLists.txt',
+  ]
+  
+  for (const marker of markers) {
+    try {
+      await fs.access(path.join(dirPath, marker))
+      return true
+    } catch {
+      // Continue checking
+    }
+  }
+  
+  return false
+}
 
 /**
  * Common directories to scan
@@ -187,18 +330,23 @@ class AICleanupScanner {
   }
 
   /**
-   * Scan a directory for AI junk files (non-recursive for safety)
+   * Scan a directory for AI junk files
    */
-  private async scanDirectory(dirPath: string, maxDepth: number = 2, currentDepth: number = 0): Promise<AIJunkFile[]> {
+  private async scanDirectory(dirPath: string, maxDepth: number = 2, currentDepth: number = 0, isInCodeProject: boolean = false): Promise<AIJunkFile[]> {
     const results: AIJunkFile[] = []
     
     if (currentDepth > maxDepth) return results
     
     try {
+      // Check if this directory is a code project
+      const isProject = isInCodeProject || await isCodeProject(dirPath)
+      
       const entries = await fs.readdir(dirPath, { withFileTypes: true })
       
       for (const entry of entries) {
         const fullPath = path.join(dirPath, entry.name)
+        
+        // First check against known patterns
         const pattern = this.matchesPattern(entry.name)
         
         if (pattern) {
@@ -221,13 +369,35 @@ class AICleanupScanner {
           } catch {
             // Skip inaccessible files
           }
+        } else if (entry.isFile() && isProject) {
+          // Only check for AI junk in code project directories
+          const junkInfo = await isLikelyAIJunk(fullPath, entry.name)
+          if (junkInfo) {
+            try {
+              const stats = await fs.stat(fullPath)
+              results.push({
+                id: Buffer.from(fullPath).toString('base64'),
+                name: entry.name,
+                path: fullPath,
+                size: stats.size,
+                sizeFormatted: formatBytes(stats.size),
+                type: 'file',
+                source: junkInfo.source,
+                description: this.language === 'zh-CN' ? junkInfo.descriptionZh : junkInfo.description,
+                riskLevel: junkInfo.riskLevel,
+                lastModified: stats.mtime,
+              })
+            } catch {
+              // Skip inaccessible files
+            }
+          }
         }
         
         // Recursively scan subdirectories (but skip node_modules, .git, etc.)
         if (entry.isDirectory() && currentDepth < maxDepth) {
-          const skipDirs = ['node_modules', '.git', '.svn', '.hg', 'vendor', '__pycache__', 'venv', '.venv']
+          const skipDirs = ['node_modules', '.git', '.svn', '.hg', 'vendor', '__pycache__', 'venv', '.venv', 'dist', 'build', 'target', '.next', '.nuxt']
           if (!skipDirs.includes(entry.name)) {
-            const subResults = await this.scanDirectory(fullPath, maxDepth, currentDepth + 1)
+            const subResults = await this.scanDirectory(fullPath, maxDepth, currentDepth + 1, isProject)
             results.push(...subResults)
           }
         }

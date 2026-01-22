@@ -5,11 +5,11 @@
  * - Package name and version
  * - Latest version check
  * - Location
- * - Copy and link actions only (safe operations)
+ * - Uninstall functionality
  */
 
 import React, { useState, useMemo, useCallback, useRef } from 'react'
-import { Table, Button, Typography, Tooltip, message, Tag, Space, Progress } from 'antd'
+import { Table, Button, Typography, Tooltip, message, Tag, Space, Progress, Popconfirm } from 'antd'
 import {
   LinkOutlined,
   CopyOutlined,
@@ -19,6 +19,7 @@ import {
   SyncOutlined,
   DownloadOutlined,
   StopOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store'
@@ -81,16 +82,18 @@ const PackageTable: React.FC<PackageTableProps> = ({
   const { packageVersionCache, updatePackageVersionInfo } = useAppStore()
   const [checkingAll, setCheckingAll] = useState(false)
 
-  // Progress state for version check - Validates: Requirements 8.1, 8.2, 8.4
+  // Progress state for version check
   const [checkProgress, setCheckProgress] = useState<{
     total: number;
     completed: number;
     cancelled: boolean;
   } | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  
+  // Track which packages are being uninstalled
+  const [uninstallingPackages, setUninstallingPackages] = useState<Set<string>>(new Set())
 
-  // Memoize version comparison results to avoid recalculation on every render
-  // Validates: Requirement 7.1
+  // Memoize version comparison results
   const memoizedVersionComparison = useMemo(() => {
     return packages.reduce<Record<string, number>>((acc, pkg) => {
       const cacheKey = `${manager}:${pkg.name}`
@@ -102,7 +105,6 @@ const PackageTable: React.FC<PackageTableProps> = ({
     }, {});
   }, [packages, packageVersionCache, manager]);
 
-  // Validates: Requirement 7.2
   const handleCopyLocation = useCallback((location: string) => {
     navigator.clipboard.writeText(location)
       .then(() => {
@@ -113,7 +115,6 @@ const PackageTable: React.FC<PackageTableProps> = ({
       })
   }, [t])
 
-  // Validates: Requirement 7.2
   const handleCopyUpdateCommand = useCallback((packageName: string) => {
     let command = ''
     switch (manager) {
@@ -136,12 +137,9 @@ const PackageTable: React.FC<PackageTableProps> = ({
       })
   }, [manager, t])
 
-  // Validates: Requirement 7.2
-  // Update a single package
   const checkVersion = useCallback(async (packageName: string) => {
     if (manager !== 'npm' && manager !== 'pip') return;
 
-    // 防御性检查：确保 electronAPI.packages 存在
     if (!window.electronAPI?.packages) {
       console.error('Packages API not available')
       updatePackageVersionInfo(`${manager}:${packageName}`, {
@@ -152,7 +150,6 @@ const PackageTable: React.FC<PackageTableProps> = ({
       return
     }
 
-    // 标记为"检查中"
     updatePackageVersionInfo(`${manager}:${packageName}`, { latest: '', checking: true, checked: false })
 
     try {
@@ -175,7 +172,6 @@ const PackageTable: React.FC<PackageTableProps> = ({
   const handleUpdatePackage = useCallback(async (packageName: string) => {
     if (manager !== 'npm' && manager !== 'pip') return;
 
-    // 防御性检查：确保 electronAPI.packages 存在
     if (!window.electronAPI?.packages?.update) {
       message.error(t('packages.updateFailed'))
       return
@@ -187,7 +183,7 @@ const PackageTable: React.FC<PackageTableProps> = ({
       if (result.success) {
         message.success(t('packages.updateSuccess'))
         onRefresh()
-        await checkVersion(packageName) // 刷新最新版本状态
+        await checkVersion(packageName)
       } else {
         message.error(result.error || t('packages.updateFailed'))
       }
@@ -199,9 +195,34 @@ const PackageTable: React.FC<PackageTableProps> = ({
     }
   }, [manager, t, onRefresh, checkVersion, updatePackageVersionInfo])
 
-  /**
-   * 异步并行全量检查
-   */
+  // Handle package uninstallation
+  const handleUninstallPackage = useCallback(async (packageName: string) => {
+    if (!window.electronAPI?.packages?.uninstall) {
+      message.error(t('packages.uninstallFailed', 'Uninstall failed'))
+      return
+    }
+
+    setUninstallingPackages(prev => new Set(prev).add(packageName))
+    try {
+      const success = await window.electronAPI.packages.uninstall(packageName, manager)
+      if (success) {
+        message.success(t('packages.uninstallSuccess', 'Package uninstalled successfully'))
+        onRefresh()
+      } else {
+        message.error(t('packages.uninstallFailed', 'Uninstall failed'))
+      }
+    } catch (error) {
+      console.error(`Failed to uninstall package ${packageName}:`, error)
+      message.error(t('packages.uninstallFailed', 'Uninstall failed'))
+    } finally {
+      setUninstallingPackages(prev => {
+        const next = new Set(prev)
+        next.delete(packageName)
+        return next
+      })
+    }
+  }, [manager, t, onRefresh])
+
   const checkAllVersions = useCallback(async () => {
     if (manager !== 'npm' && manager !== 'pip') return;
 
@@ -211,22 +232,19 @@ const PackageTable: React.FC<PackageTableProps> = ({
     setCheckingAll(true);
     setCheckProgress({ total: packages.length, completed: 0, cancelled: false });
 
-    const CONCURRENCY_LIMIT = 5; // 设置并发数为 5
+    const CONCURRENCY_LIMIT = 5;
     const queue = [...packages];
     let completedCount = 0;
 
-    // 工作单元：不断从队列中取出任务执行
     const worker = async () => {
       while (queue.length > 0 && !signal.aborted) {
         const pkg = queue.shift();
         if (!pkg) break;
         try {
           await checkVersion(pkg.name);
-          // 添加小延迟避免触发 API 速率限制
           await new Promise(resolve => setTimeout(resolve, 100));
         } finally {
           completedCount++;
-          // Check if component is still mounted before updating state
           if (!signal.aborted) {
             setCheckProgress(prev => prev ? { ...prev, completed: completedCount } : null);
           }
@@ -234,7 +252,6 @@ const PackageTable: React.FC<PackageTableProps> = ({
       }
     };
 
-    // 启动多个 Worker 并行工作
     const workers = Array(Math.min(CONCURRENCY_LIMIT, packages.length))
       .fill(null)
       .map(() => worker());
@@ -244,10 +261,8 @@ const PackageTable: React.FC<PackageTableProps> = ({
     } catch (err) {
       console.error("Parallel check failed", err);
     } finally {
-      // Only update state if not aborted (component still mounted)
       if (!signal.aborted) {
         setCheckingAll(false);
-        // 任务结束后 2 秒自动隐藏进度条
         setTimeout(() => {
           if (!signal.aborted) {
             setCheckProgress(null);
@@ -286,7 +301,6 @@ const PackageTable: React.FC<PackageTableProps> = ({
         return (
           <Space size="small" wrap>
             <Tag color="blue" className="font-mono m-0">{record.version}</Tag>
-            {/* 如果有更新，显示箭头及最新版本号 Tag */}
             {hasUpdate && info ? (
               <>
                 <ArrowRightOutlined style={{ fontSize: 10, color: "#bfbfbf" }} />
@@ -302,7 +316,6 @@ const PackageTable: React.FC<PackageTableProps> = ({
                 </Tooltip>
               </>
             ) : isLatest ? (
-              /* 已是最新状态，显示绿色 Tag */
               <Tag color="success" className="m-0">{t('packages.latest')}</Tag>
             ) : null}
           </Space>
@@ -326,38 +339,70 @@ const PackageTable: React.FC<PackageTableProps> = ({
     {
       title: t('common.actions'),
       key: 'actions',
-      width: 130,
+      width: 200,
       align: 'right',
       render: (_, record) => {
         const info = packageVersionCache[`${manager}:${record.name}`]
-        if (manager !== 'npm' && manager !== 'pip') return null;
-
+        const isUninstalling = uninstallingPackages.has(record.name)
         const comparison = memoizedVersionComparison[record.name] ?? 0;
 
-        // 已经检查过且发现新版本 -> 显示“更新”按钮
+        // Uninstall button - always shown
+        const uninstallButton = (
+          <Popconfirm
+            title={t('packages.confirmUninstall', 'Confirm uninstall')}
+            description={t('packages.confirmUninstallDesc', `Are you sure you want to uninstall ${record.name}?`)}
+            onConfirm={() => handleUninstallPackage(record.name)}
+            okText={t('common.confirm', 'Yes')}
+            cancelText={t('common.cancel', 'No')}
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title={t('packages.uninstall', 'Uninstall')}>
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={isUninstalling ? <LoadingOutlined /> : <DeleteOutlined />}
+                disabled={isUninstalling}
+              />
+            </Tooltip>
+          </Popconfirm>
+        )
+
+        // For non npm/pip managers, only show uninstall button
+        if (manager !== 'npm' && manager !== 'pip') {
+          return uninstallButton;
+        }
+
+        // Has update available - show update button and uninstall button
         if (info?.checked && comparison < 0) {
           return (
-            <Button
-              type="primary" size="small" ghost
-              icon={info.updating ? <LoadingOutlined /> : <DownloadOutlined />}
-              onClick={() => handleUpdatePackage(record.name)}
-              disabled={info.updating}
-            >
-              {info.updating ? t('packages.updating') : t('packages.update')}
-            </Button>
+            <Space size="small">
+              <Button
+                type="primary" size="small" ghost
+                icon={info.updating ? <LoadingOutlined /> : <DownloadOutlined />}
+                onClick={() => handleUpdatePackage(record.name)}
+                disabled={info.updating}
+              >
+                {info.updating ? t('packages.updating') : t('packages.update')}
+              </Button>
+              {uninstallButton}
+            </Space>
           );
         }
 
-        // 默认显示“检查更新”按钮。如果是“检查中”，则切换为 Loading。
+        // Default: show check update button and uninstall button
         return (
-          <Button
-            type="link" size="small"
-            icon={info?.checking ? <LoadingOutlined /> : <SyncOutlined />}
-            onClick={() => checkVersion(record.name)}
-            disabled={info?.checking}
-          >
-            {info?.checking ? "" : t('packages.checkUpdate')}
-          </Button>
+          <Space size="small">
+            <Button
+              type="link" size="small"
+              icon={info?.checking ? <LoadingOutlined /> : <SyncOutlined />}
+              onClick={() => checkVersion(record.name)}
+              disabled={info?.checking}
+            >
+              {info?.checking ? "" : t('packages.checkUpdate')}
+            </Button>
+            {uninstallButton}
+          </Space>
         );
       },
     },
@@ -365,7 +410,6 @@ const PackageTable: React.FC<PackageTableProps> = ({
 
   return (
     <div className="package-table">
-      {/* 顶部操作区：全量检查及进度展示 */}
       {(manager === 'npm' || manager === 'pip') && (
         <div style={{ marginBottom: 16 }}>
           <Space>

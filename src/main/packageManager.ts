@@ -529,6 +529,8 @@ export async function listGemPackages(): Promise<PackageInfo[]> {
 /**
  * Uninstall a package using the appropriate package manager
  * 
+ * Enhanced with force flags and verification for more reliable uninstallation
+ * 
  * @param packageName The name of the package to uninstall
  * @param manager The package manager to use
  * @returns Promise resolving to true if successful
@@ -541,7 +543,8 @@ export async function uninstallPackage(
 
   switch (manager) {
     case 'npm':
-      command = `npm uninstall -g ${packageName}`
+      // Use --force flag to ensure complete removal even if there are issues
+      command = `npm uninstall -g ${packageName} --force`
       break
     case 'pip':
       // Use -y to auto-confirm, try py -m pip on Windows first
@@ -565,6 +568,31 @@ export async function uninstallPackage(
   }
 
   const result = await executeSafe(command)
+  
+  // For npm, verify the package is actually removed and clean cache if needed
+  if (manager === 'npm') {
+    // Clean npm cache to prevent corrupted package issues
+    await executeSafe('npm cache clean --force')
+    
+    // Verify removal
+    const verifyResult = await executeSafe(`npm list -g ${packageName} --depth=0`)
+    if (verifyResult.success && verifyResult.stdout.includes(packageName)) {
+      // Package still exists, try to force remove
+      const prefix = (await executeSafe('npm config get prefix')).stdout?.trim()
+      if (prefix) {
+        const modulePath = isWindows() 
+          ? `${prefix}\\node_modules\\${packageName}` 
+          : `${prefix}/lib/node_modules/${packageName}`
+        
+        if (isWindows()) {
+          await executeSafe(`rmdir /s /q "${modulePath}"`)
+        } else {
+          await executeSafe(`rm -rf "${modulePath}"`)
+        }
+      }
+    }
+  }
+  
   return result.success
 }
 
@@ -823,3 +851,13 @@ export class PackageManager {
 
 // Export a default instance
 export const packageManager = new PackageManager()
+
+/**
+ * Enhanced Package Discovery Integration
+ * Exports new package discovery functionality while maintaining backward compatibility
+ */
+export { PackageDiscovery } from './packageDiscovery/packageDiscovery'
+export { PathCache } from './packageDiscovery/pathCache'
+export { TieredPathSearch } from './packageDiscovery/tieredPathSearch'
+export type { PackageManagerHandler } from './packageDiscovery/types'
+export type { ProgressCallback } from './packageDiscovery/packageDiscovery'

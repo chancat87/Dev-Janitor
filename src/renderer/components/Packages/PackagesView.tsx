@@ -12,12 +12,12 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { Typography, Tabs, Input, Alert, Empty, Badge, message, Button } from 'antd'
-import { SearchOutlined } from '@ant-design/icons'
+import { Typography, Tabs, Input, Alert, Empty, Badge, message, Button, Space, Tooltip } from 'antd'
+import { SearchOutlined, WarningOutlined, CheckCircleOutlined, CopyOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store'
 import PackageTable from './PackageTable'
-import type { PackageInfo } from '@shared/types'
+import type { PackageInfo, PackageManagerStatus } from '@shared/types'
 
 const { Title, Text } = Typography
 
@@ -38,6 +38,8 @@ const PackagesView: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<PackageManager>('npm')
   const [searchText, setSearchText] = useState('')
+  const [managerStatuses, setManagerStatuses] = useState<PackageManagerStatus[]>([])
+  const [statusesLoading, setStatusesLoading] = useState(false)
 
   // Load packages on mount
   useEffect(() => {
@@ -45,6 +47,32 @@ const PackagesView: React.FC = () => {
       loadPackages('all')
     }
   }, [npmPackages.length, pipPackages.length, composerPackages.length, packagesLoading, loadPackages])
+
+  // Load package manager statuses on mount
+  useEffect(() => {
+    const loadStatuses = async () => {
+      if (!window.electronAPI?.packages?.discoverManagers) {
+        return
+      }
+      
+      setStatusesLoading(true)
+      try {
+        const statuses = await window.electronAPI.packages.discoverManagers()
+        setManagerStatuses(statuses)
+      } catch (error) {
+        console.error('Failed to load package manager statuses:', error)
+      } finally {
+        setStatusesLoading(false)
+      }
+    }
+    
+    loadStatuses()
+  }, [])
+
+  // Get status for a specific manager
+  const getManagerStatus = (manager: PackageManager): PackageManagerStatus | undefined => {
+    return managerStatuses.find(s => s.manager === manager)
+  }
 
   // Check if package managers are installed
   const isNpmInstalled = useMemo(() => {
@@ -101,6 +129,22 @@ const PackagesView: React.FC = () => {
     loadPackages(activeTab)
   }
 
+  // Handle copy PATH command
+  const handleCopyPathCommand = (status: PackageManagerStatus) => {
+    if (!status.foundPath) return
+    
+    const isWindows = window.electronAPI.platform === 'win32'
+    const pathDir = status.foundPath.substring(0, status.foundPath.lastIndexOf(isWindows ? '\\' : '/'))
+    
+    const command = isWindows
+      ? `setx PATH "%PATH%;${pathDir}"`
+      : `export PATH="$PATH:${pathDir}"`
+    
+    navigator.clipboard.writeText(command)
+      .then(() => message.success(t('notifications.copySuccess', 'Copied to clipboard')))
+      .catch(() => message.error(t('notifications.copyFailed', 'Copy failed')))
+  }
+
   // Check if current manager is installed
   const isCurrentManagerInstalled = (): boolean => {
     switch (activeTab) {
@@ -115,13 +159,86 @@ const PackagesView: React.FC = () => {
     }
   }
 
+  // Render PATH warning for current manager
+  const renderPathWarning = () => {
+    const status = getManagerStatus(activeTab)
+    
+    if (!status || status.status !== 'path_missing') {
+      return null
+    }
+
+    return (
+      <Alert
+        message={
+          <Space>
+            <WarningOutlined />
+            <Text strong>{t('packages.pathMissing', `${activeTab.toUpperCase()} is installed but not in PATH`)}</Text>
+          </Space>
+        }
+        description={
+          <div>
+            <Text>{status.message || t('packages.pathMissingDescription', 'The package manager is installed but not accessible from the command line.')}</Text>
+            {status.foundPath && (
+              <div style={{ marginTop: 8 }}>
+                <Text type="secondary">Found at: </Text>
+                <Text code>{status.foundPath}</Text>
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<CopyOutlined />}
+                  onClick={() => handleCopyPathCommand(status)}
+                >
+                  {t('packages.copyPathCommand', 'Copy PATH command')}
+                </Button>
+              </div>
+            )}
+          </div>
+        }
+        type="warning"
+        showIcon
+        closable
+        style={{ marginBottom: 16 }}
+      />
+    )
+  }
+
+  // Render status indicator for tab
+  const renderStatusIndicator = (manager: PackageManager) => {
+    const status = getManagerStatus(manager)
+    
+    if (!status || statusesLoading) {
+      return null
+    }
+
+    if (status.status === 'available') {
+      return (
+        <Tooltip title={t('packages.available', 'Available')}>
+          <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 4 }} />
+        </Tooltip>
+      )
+    }
+
+    if (status.status === 'path_missing') {
+      return (
+        <Tooltip title={t('packages.pathMissing', 'Installed but not in PATH')}>
+          <WarningOutlined style={{ color: '#faad14', marginLeft: 4 }} />
+        </Tooltip>
+      )
+    }
+
+    return null
+  }
+
   // Tab items with package counts
   const tabItems = [
     {
       key: 'npm',
       label: (
         <Badge count={npmPackages.length} size="small" offset={[10, 0]}>
-          <span>{t('packages.npm')}</span>
+          <Space size={4}>
+            <span>{t('packages.npm')}</span>
+            {renderStatusIndicator('npm')}
+          </Space>
         </Badge>
       ),
       children: null,
@@ -130,7 +247,10 @@ const PackagesView: React.FC = () => {
       key: 'pip',
       label: (
         <Badge count={pipPackages.length} size="small" offset={[10, 0]}>
-          <span>{t('packages.pip')}</span>
+          <Space size={4}>
+            <span>{t('packages.pip')}</span>
+            {renderStatusIndicator('pip')}
+          </Space>
         </Badge>
       ),
       children: null,
@@ -139,7 +259,10 @@ const PackagesView: React.FC = () => {
       key: 'composer',
       label: (
         <Badge count={composerPackages.length} size="small" offset={[10, 0]}>
-          <span>{t('packages.composer')}</span>
+          <Space size={4}>
+            <span>{t('packages.composer')}</span>
+            {renderStatusIndicator('composer')}
+          </Space>
         </Badge>
       ),
       children: null,
@@ -212,6 +335,9 @@ const PackagesView: React.FC = () => {
         <Title level={3} className="!mb-1">{t('packages.title')}</Title>
         <Text type="secondary">{t('packages.subtitle')}</Text>
       </div>
+
+      {/* PATH Warning */}
+      {renderPathWarning()}
 
       {/* Tabs for package managers - Validates: Requirement 3.3, 4.3 */}
       <Tabs

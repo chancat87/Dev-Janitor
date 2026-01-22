@@ -11,7 +11,7 @@
  */
 
 import { ipcRenderer, contextBridge } from 'electron'
-import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable, AnalysisResult, AIConfig, AICLITool, CacheScanResult, CleanResult, AICleanupScanResult, AICleanupResult } from '../shared/types'
+import type { ToolInfo, PackageInfo, RunningService, EnvironmentVariable, AnalysisResult, AIConfig, AICLITool, CacheScanResult, CleanResult, AICleanupScanResult, AICleanupResult, PackageManagerStatus } from '../shared/types'
 
 /**
  * Preload error logging utility
@@ -105,6 +105,13 @@ interface ElectronAPI {
     update: (name: string, manager: string) => Promise<{ success: boolean; newVersion?: string; error?: string }>
     checkNpmLatestVersion: (packageName: string) => Promise<{ name: string; latest: string; current?: string } | null>
     checkPipLatestVersion: (packageName: string) => Promise<{ name: string; latest: string } | null>
+    // Enhanced Package Discovery API
+    discoverManagers: () => Promise<PackageManagerStatus[]>
+    getManagerStatus: (manager: string) => Promise<PackageManagerStatus | null>
+    listByManager: (manager: string) => Promise<PackageInfo[]>
+    listAllEnhanced: () => Promise<PackageInfo[]>
+    uninstallEnhanced: (name: string, manager: string, options?: { cask?: boolean }) => Promise<{ success: boolean; error?: string }>
+    onScanProgress: (callback: (data: { manager: string; status: string }) => void) => () => void
   }
 
   // Services API
@@ -230,6 +237,12 @@ function createDegradedAPI(): ElectronAPI {
       update: createDegradedPromise,
       checkNpmLatestVersion: createDegradedPromise,
       checkPipLatestVersion: createDegradedPromise,
+      discoverManagers: createDegradedPromise,
+      getManagerStatus: createDegradedPromise,
+      listByManager: createDegradedPromise,
+      listAllEnhanced: createDegradedPromise,
+      uninstallEnhanced: createDegradedPromise,
+      onScanProgress: createDegradedCallback,
     },
 
     services: {
@@ -343,6 +356,22 @@ function createElectronAPI(): ElectronAPI {
         ipcRenderer.invoke('packages:check-npm-latest', packageName),
       checkPipLatestVersion: (packageName: string) =>
         ipcRenderer.invoke('packages:check-pip-latest', packageName),
+      // Enhanced Package Discovery API
+      discoverManagers: () => ipcRenderer.invoke('packages:discover-managers'),
+      getManagerStatus: (manager: string) => ipcRenderer.invoke('packages:get-manager-status', manager),
+      listByManager: (manager: string) => ipcRenderer.invoke('packages:list-by-manager', manager),
+      listAllEnhanced: () => ipcRenderer.invoke('packages:list-all-enhanced'),
+      uninstallEnhanced: (name: string, manager: string, options?: { cask?: boolean }) =>
+        ipcRenderer.invoke('packages:uninstall-enhanced', name, manager, options),
+      onScanProgress: (callback: (data: { manager: string; status: string }) => void) => {
+        const handler = (_event: Electron.IpcRendererEvent, data: { manager: string; status: string }) => {
+          callback(data)
+        }
+        ipcRenderer.on('packages:scan-progress', handler)
+        return () => {
+          ipcRenderer.removeListener('packages:scan-progress', handler)
+        }
+      },
     },
 
     // Services API
