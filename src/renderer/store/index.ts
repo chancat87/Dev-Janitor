@@ -45,6 +45,7 @@ interface AppState {
   runningServices: RunningService[]
   servicesLoading: boolean
   servicesError: string | null
+  servicesSilentRefreshing: boolean
   
   // Environment
   environmentVariables: EnvironmentVariable[]
@@ -64,6 +65,7 @@ interface AppState {
   loadTools: () => Promise<void>
   loadPackages: (manager?: 'npm' | 'pip' | 'composer' | 'all') => Promise<void>
   loadServices: () => Promise<void>
+  loadServicesSilently: () => Promise<void>
   loadEnvironment: () => Promise<void>
   refreshAll: () => Promise<void>
   
@@ -92,6 +94,7 @@ interface AppState {
   setRunningServices: (services: RunningService[]) => void
   setServicesLoading: (loading: boolean) => void
   setServicesError: (error: string | null) => void
+  setServicesSilentRefreshing: (refreshing: boolean) => void
   setEnvironmentVariables: (vars: EnvironmentVariable[]) => void
   setPathEntries: (entries: string[]) => void
   setEnvLoading: (loading: boolean) => void
@@ -135,6 +138,7 @@ export const useAppStore = create<AppState>()(
       runningServices: [],
       servicesLoading: false,
       servicesError: null,
+      servicesSilentRefreshing: false,
       
       // Environment
       environmentVariables: [],
@@ -216,6 +220,26 @@ export const useAppStore = create<AppState>()(
           const errorMessage = error instanceof Error ? error.message : 'Failed to load services'
           set({ servicesError: errorMessage, servicesLoading: false })
           console.error('Failed to load services:', error)
+        }
+      },
+      
+      /**
+       * Load running services silently (background refresh)
+       * Does not show loading state, only updates data
+       * Validates: Requirements 11.1, 11.3, 11.6
+       */
+      loadServicesSilently: async () => {
+        set({ servicesSilentRefreshing: true })
+        
+        try {
+          const runningServices = await ipcClient.services.list()
+          set({ runningServices, servicesError: null })
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to load services'
+          set({ servicesError: errorMessage })
+          console.error('Failed to load services silently:', error)
+        } finally {
+          set({ servicesSilentRefreshing: false })
         }
       },
       
@@ -368,6 +392,7 @@ export const useAppStore = create<AppState>()(
       setRunningServices: (services: RunningService[]) => set({ runningServices: services }),
       setServicesLoading: (loading: boolean) => set({ servicesLoading: loading }),
       setServicesError: (error: string | null) => set({ servicesError: error }),
+      setServicesSilentRefreshing: (refreshing: boolean) => set({ servicesSilentRefreshing: refreshing }),
       setEnvironmentVariables: (vars: EnvironmentVariable[]) => set({ environmentVariables: vars }),
       setPathEntries: (entries: string[]) => set({ pathEntries: entries }),
       setEnvLoading: (loading: boolean) => set({ envLoading: loading }),

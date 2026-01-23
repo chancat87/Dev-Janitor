@@ -12,8 +12,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Typography, Switch, Space, Alert, Empty, Button, message, Badge, theme } from 'antd'
-import { SyncOutlined } from '@ant-design/icons'
+import { Typography, Switch, Space, Alert, Empty, Button, message, Badge, theme, Spin } from 'antd'
+import { SyncOutlined, LoadingOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store'
 import ServiceTable from './ServiceTable'
@@ -30,7 +30,9 @@ const ServicesView: React.FC = () => {
     runningServices,
     servicesLoading,
     servicesError,
+    servicesSilentRefreshing,
     loadServices,
+    loadServicesSilently,
     killService,
   } = useAppStore()
 
@@ -48,11 +50,11 @@ const ServicesView: React.FC = () => {
     if (!autoRefresh) return
 
     const intervalId = setInterval(() => {
-      loadServices()
+      loadServicesSilently()
     }, AUTO_REFRESH_INTERVAL)
 
     return () => clearInterval(intervalId)
-  }, [autoRefresh, loadServices])
+  }, [autoRefresh, loadServicesSilently])
 
   // Handle kill service - Validates: Requirement 11.7
   const handleKillService = useCallback(async (pid: number) => {
@@ -143,11 +145,24 @@ const ServicesView: React.FC = () => {
           </Space>
         </div>
 
-        {/* Auto-refresh status message */}
-        <div className="mt-2">
+        {/* Auto-refresh status message & silent refresh indicator */}
+        <div className="mt-2 flex items-center justify-between">
           <Text type="secondary" className="text-xs">
             {autoRefresh ? t('services.autoRefreshOn') : t('services.autoRefreshOff')}
           </Text>
+          
+          {/* Silent refresh indicator - aligned to right */}
+          {servicesSilentRefreshing && (
+            <div className="flex items-center gap-2">
+              <Spin
+                indicator={<LoadingOutlined className="text-gray-400" />}
+                size="small"
+              />
+              <Text type="secondary" className="text-xs">
+                {t('common.updating') || 'Updating...'}
+              </Text>
+            </div>
+          )}
         </div>
       </div>
 
