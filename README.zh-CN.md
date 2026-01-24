@@ -1,82 +1,116 @@
-# Dev Janitor 开发清道夫
+# Dev Janitor v2 🧹
 
-<p align="center">
-  <img src="build/icon.svg" alt="Dev Janitor Logo" width="128" height="128">
-</p>
+<div align="center">
 
-<p align="center">
-  <strong>Vibe Coding 工具箱</strong>
-  <br>
-  <em>管理开发工具、AI 编程助手和依赖包的跨平台桌面应用</em>
-</p>
+<img src="assets/dev_janitor_banner_cn.png" alt="Dev Janitor Banner" width="100%"/>
 
-<p align="center">
-  <a href="README.md">English</a> •
-  <a href="https://github.com/cocojojo5213/Dev-Janitor/releases">下载</a> •
-  <a href="CHANGELOG.md">更新日志</a>
-</p>
+[![Build Status](https://github.com/cocojojo5213/dev-janitor/workflows/CI/badge.svg)](https://github.com/cocojojo5213/dev-janitor/actions)
+[![Release](https://img.shields.io/github/v/release/cocojojo5213/dev-janitor)](https://github.com/cocojojo5213/dev-janitor/releases)
+[![Downloads](https://img.shields.io/github/downloads/cocojojo5213/dev-janitor/total)](https://github.com/cocojojo5213/dev-janitor/releases)
+[![License](https://img.shields.io/github/license/cocojojo5213/dev-janitor)](LICENSE)
 
-<p align="center">
-  <img src="https://img.shields.io/github/v/release/cocojojo5213/Dev-Janitor?label=版本" alt="版本">
-  <img src="https://img.shields.io/badge/平台-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg" alt="平台">
-</p>
+**让您的开发环境始终保持闪亮如新 ✨**
+
+[下载安装](#-安装) • [功能特特性](#-功能特性) • [软件截图](#-软件截图) • [参与贡献](#-参与贡献) • [English](README.md)
+
+</div>
 
 ---
 
-<p align="center">
-  <img src="docs/hero-1.webp" alt="Dev Janitor 预览" width="800">
-</p>
+## 🚀 为什么选择 Dev Janitor?
+
+开发者热爱创造，但我们讨厌身后留下的混乱。`node_modules` 黑洞、构建产生的 `target` 文件夹、不再使用的 Docker 容器、AI 工具遗留的临时文件……它们正在吞噬您的磁盘空间，拖慢您的系统速度。
+
+**Dev Janitor** 是您的私人机器人管家，它能智能识别并清理这些开发垃圾，为您瞬间回收数 GB 的空间，让您的机器运行如飞。
 
 ## ✨ 功能特性
 
-| 功能 | 说明 |
-|------|------|
-| 🔍 **工具检测** | 自动检测 39+ 开发工具（Node.js、Python、Docker、Git 等） |
-| 🤖 **AI CLI 管理** | 一键安装/更新/卸载 Codex、Claude Code、Gemini CLI、OpenCode、iFlow |
-| 📦 **包管理** | 管理 npm、pip、Composer 全局包，支持一键更新 |
-| ⚡ **服务监控** | 监控开发进程，一键终止占用端口的服务 |
-| 🧹 **缓存清理** | 清理 11 种包管理器缓存，释放磁盘空间 |
-| 🌍 **多语言** | 支持中文和英文界面 |
-| 🎨 **主题** | 支持亮色/暗色/跟随系统主题 |
+### 🧹 智能清理
+- **深度扫描**: 使用智能算法发现隐藏在项目深处的垃圾文件。
+- **AI 残留清理**: 专门检测 AI 编程工具（如 Aider, Cursor, Copilot）产生的工件和缓存。
+- **安全模式**: 白名单保护机制，确保永远不会误删您的重要文件。
 
-## 📸 截图
+### 🛠️ 工具管理
+- **一站式管理**: 统一管理 Node, Python, Rust, Go 等各种语言环境的全局工具。
+- **版本控制**: 轻松查看版本信息，一键更新过时的全局包。
+- **AI CLI 市场**: 支持一键安装和管理 Claude Code, Codex, Aider 等热门 AI 命令行工具。
 
-<p align="center">
-  <img src="docs/screenshots/demo.gif" alt="Dev Janitor 演示" width="800">
-</p>
+### 📊 系统健康
+- **进程杀手**: 快速识别并终结占用大量资源的开发进程。
+- **端口扫描**: 一眼看穿是谁占用了 3000 或 8080 端口，并一键释放。
+- **环境医生**: 自动分析您的 PATH 环境变量和 Shell 配置文件，发现潜在错误和冲突。
+
+## 📸 软件截图
+
+<div align="center">
+  <img src="assets/headers/screenshot_dashboard.png" alt="仪表盘预览" width="800"/>
+  <p><em>现代化的仪表盘设计，系统状态一目了然</em></p>
+</div>
+
+<br/>
+
+<div align="center">
+  <img src="assets/headers/screenshot_clean.png" alt="清理页面预览" width="800"/>
+  <p><em>一键扫描，秒级清理，瞬间释放 Gigabytes 空间</em></p>
+</div>
+
+*(请将您的软件截图重命名为 `screenshot_dashboard.png` 和 `screenshot_clean.png` 并放入 `dev-janitor-v2/assets/headers/` 目录下)*
 
 ## 📥 安装
 
-从 [Releases](https://github.com/cocojojo5213/Dev-Janitor/releases) 下载对应平台的安装包：
+### Windows
+从 [Releases](https://github.com/cocojojo5213/dev-janitor/releases) 页面下载最新的 `.msi` 安装包。
 
-| 平台 | 文件 |
-|------|------|
-| Windows | `Dev-Janitor-Windows-x.x.x-x64-Setup.exe` |
-| macOS | `Dev-Janitor-Mac-x.x.x.dmg` |
-| Linux | `Dev-Janitor-Linux-x.x.x.AppImage` |
+### MacOS
+从 [Releases](https://github.com/cocojojo5213/dev-janitor/releases) 下载 `.dmg` 文件。
+> *注意: 因签名原因，首次运行可能需要 右键 > 打开 来绕过 Gatekeeper。*
 
-> **macOS 用户**：如遇"应用已损坏"提示，请在终端运行：`xattr -cr /Applications/Dev\ Janitor.app`
+### Linux
+我们提供 AppImage, .deb, 和 .rpm 格式。请前往 [Releases](https://github.com/cocojojo5213/dev-janitor/releases) 页面下载。
 
-## 🛠️ 开发
+## 🛠️ 本地开发
 
+本项目使用 🧡 **Tauri 2.0**, **React**, 和 **Rust** 构建。
+
+<details>
+<summary>点击查看开发环境配置指南</summary>
+
+### 前置要求
+- Node.js 20+
+- pnpm 8+
+- Rust 1.75+
+
+### 启动步骤
 ```bash
-# 克隆项目
-git clone https://github.com/cocojojo5213/Dev-Janitor.git
-cd Dev-Janitor
+# 克隆仓库
+git clone https://github.com/cocojojo5213/dev-janitor.git
+cd dev-janitor/dev-janitor-v2
 
 # 安装依赖
-npm install
+pnpm install
 
-# 开发模式
-npm run dev
-
-# 构建
-npm run build
+# 启动开发服务器
+pnpm tauri dev
 ```
+
+</details>
+
+## 🤝 参与贡献
+
+我们非常欢迎您的贡献！在提交 PR 之前，请先阅读我们的 [贡献指南](CONTRIBUTING.md)。
+
+1. Fork 本仓库
+2. 创建您的特性分支 (`git checkout -b feature/CoolFeature`)
+3. 提交您的更改 (`git commit -m 'Add some CoolFeature'`)
+4. 推送到分支 (`git push origin feature/CoolFeature`)
+5. 开启 Pull Request
 
 ## 📄 许可证
 
-MIT License with Commons Clause - 详见 [LICENSE](LICENSE)
+## 📄 许可证
+
+**MIT License with Commons Clause** - 详见 [LICENSE](LICENSE)
+(本软件免费供个人和非商业用途使用，禁止商业销售。)
 
 ## 📧 联系
 
@@ -84,4 +118,6 @@ MIT License with Commons Clause - 详见 [LICENSE](LICENSE)
 
 ---
 
-<p align="center">Made with ❤️</p>
+<div align="center">
+  <sub>Built by <a href="https://github.com/cocojojo5213">cocojojo5213</a> with the help of <a href="https://cursor.sh">Cursor</a> and <a href="https://deepmind.google/technologies/gemini/">Gemini</a>.</sub>
+</div>

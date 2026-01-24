@@ -1,0 +1,118 @@
+{
+    "app": {
+        "name": "开发清道夫",
+        "version": "v2.0.0"
+    },
+    "nav": {
+        "tools": "工具",
+        "packages": "依赖包",
+        "cache": "缓存",
+        "ai_cleanup": "AI垃圾",
+        "services": "服务",
+        "config": "配置",
+        "ai_cli": "AI CLI",
+        "settings": "设置"
+    },
+    "tools": {
+        "title": "开发工具检测",
+        "description": "检测系统中已安装的开发工具",
+        "scan": "扫描",
+        "scanning": "扫描中...",
+        "name": "名称",
+        "version": "版本",
+        "path": "路径",
+        "status": "状态",
+        "actions": "操作",
+        "uninstall": "卸载",
+        "installed": "已安装",
+        "not_in_path": "不在 PATH",
+        "multiple_versions": "多版本",
+        "no_tools": "未检测到开发工具",
+        "total_found": "共发现 {{count}} 个工具"
+    },
+    "packages": {
+        "title": "依赖包管理",
+        "description": "管理 npm、pip、Cargo 等包管理器的全局包",
+        "refresh": "刷新",
+        "update": "更新",
+        "uninstall": "卸载",
+        "name": "名称",
+        "version": "版本",
+        "latest": "最新版",
+        "manager": "管理器",
+        "outdated": "有更新",
+        "up_to_date": "最新"
+    },
+    "cache": {
+        "title": "缓存清理",
+        "description": "清理包管理器缓存，释放磁盘空间",
+        "scan": "扫描缓存",
+        "clean": "清理选中",
+        "clean_all": "全部清理",
+        "manager": "包管理器",
+        "size": "大小",
+        "path": "路径",
+        "total_size": "总计：{{size}}"
+    },
+    "ai_cleanup": {
+        "title": "AI 垃圾清理",
+        "description": "扫描并删除 AI 编程助手产生的垃圾文件",
+        "scan_mode": "扫描模式",
+        "full_disk": "全盘扫描",
+        "select_folder": "选择目录",
+        "scan": "开始扫描",
+        "filename": "文件名",
+        "size": "大小",
+        "reason": "原因",
+        "delete": "删除",
+        "delete_selected": "删除选中"
+    },
+    "services": {
+        "title": "服务监控",
+        "description": "监控端口和进程",
+        "ports": "端口",
+        "processes": "进程",
+        "port": "端口",
+        "pid": "PID",
+        "process": "进程",
+        "kill": "终止"
+    },
+    "config": {
+        "title": "环境诊断",
+        "description": "诊断并修复 PATH 和 Shell 配置问题",
+        "diagnose": "诊断",
+        "current": "当前配置",
+        "suggested": "建议配置",
+        "ai_analyze": "AI 分析"
+    },
+    "ai_cli": {
+        "title": "AI CLI 工具",
+        "description": "管理 AI 编程助手命令行工具",
+        "name": "工具",
+        "status": "状态",
+        "version": "版本",
+        "install": "安装",
+        "update": "更新",
+        "uninstall": "卸载"
+    },
+    "settings": {
+        "title": "设置",
+        "theme": "主题",
+        "theme_light": "浅色",
+        "theme_dark": "深色",
+        "theme_system": "跟随系统",
+        "language": "语言",
+        "ai_endpoint": "自定义 AI 端点",
+        "ai_endpoint_placeholder": "https://api.openai.com/v1"
+    },
+    "common": {
+        "loading": "加载中...",
+        "error": "错误",
+        "success": "成功",
+        "confirm": "确认",
+        "cancel": "取消",
+        "close": "关闭",
+        "copy": "复制",
+        "copied": "已复制！"
+    }
+}

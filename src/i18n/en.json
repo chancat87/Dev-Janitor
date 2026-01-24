@@ -1,0 +1,118 @@
+{
+    "app": {
+        "name": "Dev Janitor",
+        "version": "v2.0.0"
+    },
+    "nav": {
+        "tools": "Tools",
+        "packages": "Packages",
+        "cache": "Cache",
+        "ai_cleanup": "AI Cleanup",
+        "services": "Services",
+        "config": "Config",
+        "ai_cli": "AI CLI",
+        "settings": "Settings"
+    },
+    "tools": {
+        "title": "Development Tools",
+        "description": "Detected development tools on your system",
+        "scan": "Scan",
+        "scanning": "Scanning...",
+        "name": "Name",
+        "version": "Version",
+        "path": "Path",
+        "status": "Status",
+        "actions": "Actions",
+        "uninstall": "Uninstall",
+        "installed": "Installed",
+        "not_in_path": "Not in PATH",
+        "multiple_versions": "Multiple Versions",
+        "no_tools": "No development tools detected",
+        "total_found": "{{count}} tools found"
+    },
+    "packages": {
+        "title": "Package Management",
+        "description": "Manage global packages from npm, pip, Cargo, etc.",
+        "refresh": "Refresh",
+        "update": "Update",
+        "uninstall": "Uninstall",
+        "name": "Name",
+        "version": "Version",
+        "latest": "Latest",
+        "manager": "Manager",
+        "outdated": "Outdated",
+        "up_to_date": "Up to date"
+    },
+    "cache": {
+        "title": "Cache Cleaner",
+        "description": "Clean package manager caches to free up disk space",
+        "scan": "Scan Caches",
+        "clean": "Clean Selected",
+        "clean_all": "Clean All",
+        "manager": "Package Manager",
+        "size": "Size",
+        "path": "Path",
+        "total_size": "Total: {{size}}"
+    },
+    "ai_cleanup": {
+        "title": "AI Junk Cleanup",
+        "description": "Scan and remove junk files created by AI coding assistants",
+        "scan_mode": "Scan Mode",
+        "full_disk": "Full Disk",
+        "select_folder": "Select Folder",
+        "scan": "Start Scan",
+        "filename": "Filename",
+        "size": "Size",
+        "reason": "Reason",
+        "delete": "Delete",
+        "delete_selected": "Delete Selected"
+    },
+    "services": {
+        "title": "Service Monitor",
+        "description": "Monitor ports and processes",
+        "ports": "Ports",
+        "processes": "Processes",
+        "port": "Port",
+        "pid": "PID",
+        "process": "Process",
+        "kill": "Kill"
+    },
+    "config": {
+        "title": "Environment Doctor",
+        "description": "Diagnose and fix PATH and shell configuration issues",
+        "diagnose": "Diagnose",
+        "current": "Current Config",
+        "suggested": "Suggested Config",
+        "ai_analyze": "AI Analyze"
+    },
+    "ai_cli": {
+        "title": "AI CLI Tools",
+        "description": "Manage AI coding assistant CLI tools",
+        "name": "Tool",
+        "status": "Status",
+        "version": "Version",
+        "install": "Install",
+        "update": "Update",
+        "uninstall": "Uninstall"
+    },
+    "settings": {
+        "title": "Settings",
+        "theme": "Theme",
+        "theme_light": "Light",
+        "theme_dark": "Dark",
+        "theme_system": "System",
+        "language": "Language",
+        "ai_endpoint": "Custom AI Endpoint",
+        "ai_endpoint_placeholder": "https://api.openai.com/v1"
+    },
+    "common": {
+        "loading": "Loading...",
+        "error": "Error",
+        "success": "Success",
+        "confirm": "Confirm",
+        "cancel": "Cancel",
+        "close": "Close",
+        "copy": "Copy",
+        "copied": "Copied!"
+    }
+}
