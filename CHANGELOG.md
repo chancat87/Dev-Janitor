@@ -5,6 +5,17 @@ All notable changes to Dev Janitor will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-01-25
+
+### 新增
+- **聊天记录管理** ([Issue #35](https://github.com/cocojojo5213/Dev-Janitor/issues/35))
+  - 新增"聊天记录"功能模块，管理各项目中 AI 编程助手产生的对话历史
+  - 支持按项目分组显示聊天记录和调试文件
+  - 自动识别 Claude Code、OpenAI Codex、Gemini CLI、Aider、Cursor、Continue、Cody 等 AI 工具的聊天记录
+  - 支持扫描全局 AI 配置目录（~/.claude、~/.codex 等）
+  - 支持批量删除和单个删除操作
+  - 释放完成项目占用的磁盘空间
+
 ## [2.0.5] - 2026-01-25
 
 ### 修复

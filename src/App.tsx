@@ -10,6 +10,7 @@ const SettingsView = lazy(() => import('./components/views/SettingsView').then(m
 const PackagesView = lazy(() => import('./components/views/PackagesView').then(m => ({ default: m.PackagesView })));
 const CacheView = lazy(() => import('./components/views/CacheView').then(m => ({ default: m.CacheView })));
 const AiCleanupView = lazy(() => import('./components/views/AiCleanupView').then(m => ({ default: m.AiCleanupView })));
+const ChatHistoryView = lazy(() => import('./components/views/ChatHistoryView').then(m => ({ default: m.ChatHistoryView })));
 const ServicesView = lazy(() => import('./components/views/ServicesView').then(m => ({ default: m.ServicesView })));
 const ConfigView = lazy(() => import('./components/views/ConfigView').then(m => ({ default: m.ConfigView })));
 const AiCliView = lazy(() => import('./components/views/AiCliView').then(m => ({ default: m.AiCliView })));
@@ -30,6 +31,7 @@ function CurrentView() {
     packages: PackagesView,
     cache: CacheView,
     ai_cleanup: AiCleanupView,
+    chat_history: ChatHistoryView,
     services: ServicesView,
     config: ConfigView,
     ai_cli: AiCliView,

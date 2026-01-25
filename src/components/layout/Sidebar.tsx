@@ -46,6 +46,11 @@ const Icons = {
             <line x1="12" y1="19" x2="20" y2="19" />
         </svg>
     ),
+    chatHistory: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+    ),
     settings: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="4" y1="21" x2="4" y2="14" />
@@ -66,6 +71,7 @@ const navItems: { id: NavView; icon: React.ReactNode }[] = [
     { id: 'packages', icon: Icons.packages },
     { id: 'cache', icon: Icons.cache },
     { id: 'ai_cleanup', icon: Icons.aiCleanup },
+    { id: 'chat_history', icon: Icons.chatHistory },
     { id: 'services', icon: Icons.services },
     { id: 'config', icon: Icons.config },
     { id: 'ai_cli', icon: Icons.aiCli },

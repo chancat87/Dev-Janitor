@@ -8,6 +8,7 @@
         "packages": "Packages",
         "cache": "Cache",
         "ai_cleanup": "AI Cleanup",
+        "chat_history": "Chat History",
         "services": "Services",
         "config": "Config",
         "ai_cli": "AI CLI",
@@ -190,6 +191,40 @@
         "type_temp_file": "Temporary Files",
         "type_anomalous": "Anomalous Files"
     },
+    "chat_history": {
+        "title": "Chat History Manager",
+        "description": "Manage AI assistant chat histories and debug files per project",
+        "tab_projects": "Project Chat History",
+        "tab_global": "Global Config",
+        "scan": "Scan",
+        "scan_global": "Scan Global Directories",
+        "scanning": "Scanning...",
+        "scan_placeholder": "Enter project root directory path...",
+        "depth_option": "Depth: {{depth}}",
+        "found_summary": "Found {{count}} projects ({{size}})",
+        "global_summary": "Found {{count}} global configs ({{size}})",
+        "selected_summary": "{{count}} selected ({{size}})",
+        "empty_result": "No chat history found. Enter a path to scan.",
+        "click_scan_global": "Click Scan to find global AI config directories",
+        "error_no_path": "Please enter a scan path",
+        "error_no_selection": "Please select at least one file",
+        "confirm_delete": "Are you sure you want to delete {{count}} files ({{size}})?",
+        "confirm_delete_single": "Delete {{name}} ({{size}})?",
+        "partial_failed": "{{count}} failed:\n{{errors}}",
+        "delete": "Delete",
+        "delete_selected": "Delete Selected",
+        "filename": "Filename",
+        "ai_tool": "AI Tool",
+        "type": "Type",
+        "size": "Size",
+        "path": "Path",
+        "file_types": {
+            "chat_history": "Chat History",
+            "cache": "Cache",
+            "debug": "Debug Files",
+            "global_config": "Global Config"
+        }
+    },
     "services": {
         "title": "Service Monitor",
         "description": "Monitor ports and processes",
@@ -310,6 +345,10 @@
             "codex": {
                 "name": "OpenAI Codex CLI",
                 "description": "OpenAI's Codex coding assistant"
+            },
+            "opencode": {
+                "name": "OpenCode",
+                "description": "Terminal-based AI coding assistant with multi-provider support"
             },
             "gemini": {
                 "name": "Gemini CLI",

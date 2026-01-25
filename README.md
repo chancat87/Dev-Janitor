@@ -27,13 +27,13 @@ Developers love creating, but we hate the mess left behind. `node_modules`, `tar
 
 ### 🧹 Intelligent Cleanup
 - **Deep Scan**: Uses smart heuristics to find junk files hidden in your projects.
-- **AI Leftovers**: Detects artifacts from AI coding tools (Aider, Cursor, Copilot).
-- **Safe Mode**: Whitelist protection ensures you never delete important files.
+- **AI Leftovers**: Detects artifacts from AI coding tools (Aider, Cursor, Copilot, OpenCode).
+- **Chat History**: Manage and clean AI chat histories and debug files per project.
 
 ### 🛠️ Tool Management
 - **One-Stop Shop**: Manage installed tools for Node, Python, Rust, Go, and more.
 - **Version Control**: Check versions and update global packages easily.
-- **AI CLI Hub**: Install and manage AI tools like Claude Code, Codex, and Aider.
+- **AI CLI Hub**: Install and manage AI tools like Claude Code, Codex, OpenCode, and Aider.
 
 ### 📊 System Health
 - **Process Killer**: Identify and stop resource-heavy development processes.

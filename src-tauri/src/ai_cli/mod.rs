@@ -58,6 +58,19 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             config_paths: find_config_files("codex"),
         }),
         check_tool(AiCliTool {
+            id: "opencode".to_string(),
+            name: "OpenCode".to_string(),
+            description: "Terminal-based AI coding assistant with multi-provider support"
+                .to_string(),
+            installed: false,
+            version: None,
+            install_command: "npm install -g opencode".to_string(),
+            update_command: "npm update -g opencode".to_string(),
+            uninstall_command: "npm uninstall -g opencode".to_string(),
+            docs_url: "https://github.com/opencode-ai/opencode".to_string(),
+            config_paths: find_config_files("opencode"),
+        }),
+        check_tool(AiCliTool {
             id: "gemini".to_string(),
             name: "Gemini CLI".to_string(),
             description: "Google's Gemini AI coding assistant".to_string(),
@@ -142,6 +155,11 @@ impl ConfigDiscovery {
             "codex" => ConfigDiscovery {
                 directories: vec![".codex"],
                 single_files: vec![".codexrc"],
+                config_extensions: vec!["json", "toml", "yaml", "yml"],
+            },
+            "opencode" => ConfigDiscovery {
+                directories: vec![".opencode"],
+                single_files: vec![".opencoderc"],
                 config_extensions: vec!["json", "toml", "yaml", "yml"],
             },
             "gemini" => ConfigDiscovery {
@@ -288,6 +306,7 @@ fn check_tool(mut tool: AiCliTool) -> AiCliTool {
     let (cmd, args) = match tool.id.as_str() {
         "claude" => ("claude", vec!["--version"]),
         "codex" => ("codex", vec!["--version"]),
+        "opencode" => ("opencode", vec!["--version"]),
         "gemini" => ("gemini", vec!["--version"]),
         "aider" => ("aider", vec!["--version"]),
         "continue" => ("continue", vec!["--version"]),

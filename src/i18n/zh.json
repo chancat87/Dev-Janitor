@@ -8,6 +8,7 @@
         "packages": "包管理",
         "cache": "缓存",
         "ai_cleanup": "AI 清理",
+        "chat_history": "聊天记录",
         "services": "服务",
         "config": "诊断",
         "ai_cli": "AI CLI",
@@ -190,6 +191,40 @@
         "type_temp_file": "临时文件",
         "type_anomalous": "异常文件"
     },
+    "chat_history": {
+        "title": "聊天记录管理",
+        "description": "管理各项目中 AI 编程助手产生的聊天记录和 Debug 文件",
+        "tab_projects": "项目聊天记录",
+        "tab_global": "全局配置",
+        "scan": "扫描",
+        "scan_global": "扫描全局目录",
+        "scanning": "扫描中...",
+        "scan_placeholder": "请输入要扫描的项目根目录路径...",
+        "depth_option": "深度：{{depth}}",
+        "found_summary": "发现 {{count}} 个项目（{{size}}）",
+        "global_summary": "发现 {{count}} 个全局配置（{{size}}）",
+        "selected_summary": "已选择 {{count}} 个（{{size}}）",
+        "empty_result": "未发现聊天记录，输入路径开始扫描",
+        "click_scan_global": "点击扫描按钮开始扫描全局 AI 配置目录",
+        "error_no_path": "请输入扫描路径",
+        "error_no_selection": "请选择至少一个文件",
+        "confirm_delete": "确定要删除 {{count}} 个文件（{{size}}）吗？",
+        "confirm_delete_single": "确定删除 {{name}}（{{size}}）吗？",
+        "partial_failed": "{{count}} 个失败：\n{{errors}}",
+        "delete": "删除",
+        "delete_selected": "删除选中",
+        "filename": "文件名",
+        "ai_tool": "AI 工具",
+        "type": "类型",
+        "size": "大小",
+        "path": "路径",
+        "file_types": {
+            "chat_history": "聊天记录",
+            "cache": "缓存",
+            "debug": "调试文件",
+            "global_config": "全局配置"
+        }
+    },
     "services": {
         "title": "服务监控",
         "description": "监控端口和进程",
@@ -310,6 +345,10 @@
             "codex": {
                 "name": "OpenAI Codex CLI",
                 "description": "OpenAI 的 Codex 编程助手"
+            },
+            "opencode": {
+                "name": "OpenCode",
+                "description": "基于终端的多提供者 AI 编程助手"
             },
             "gemini": {
                 "name": "Gemini CLI",
