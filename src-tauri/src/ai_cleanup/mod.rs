@@ -3,6 +3,7 @@
 
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
@@ -101,6 +102,9 @@ const WHITELIST_DIRECTORIES: &[&str] = &[
     "dist",
     "build",
 ];
+
+/// Clamp depth when the user tries to scan the filesystem root
+const ROOT_SCAN_MAX_DEPTH: usize = 8;
 
 /// Format bytes to human readable string
 fn format_size(bytes: u64) -> String {
@@ -242,21 +246,38 @@ fn check_anomalous(path: &Path) -> Option<String> {
     None
 }
 
-/// Scan a directory for AI junk files
-pub fn scan_ai_junk(root_path: &str, max_depth: usize) -> Vec<AiJunkFile> {
-    let root = PathBuf::from(root_path);
-    if !root.exists() {
-        return Vec::new();
+fn user_home_dir() -> Option<PathBuf> {
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(profile) = std::env::var_os("USERPROFILE") {
+            return Some(PathBuf::from(profile));
+        }
+        if let (Some(drive), Some(path)) = (std::env::var_os("HOMEDRIVE"), std::env::var_os("HOMEPATH")) {
+            let combined = format!("{}{}", drive.to_string_lossy(), path.to_string_lossy());
+            return Some(PathBuf::from(combined));
+        }
+        None
     }
 
-    let entries: Vec<_> = WalkDir::new(&root)
+    #[cfg(not(target_os = "windows"))]
+    {
+        std::env::var_os("HOME").map(PathBuf::from)
+    }
+}
+
+fn is_root_path(path: &Path) -> bool {
+    path.parent().is_none()
+}
+
+fn scan_target(root: &Path, max_depth: usize) -> Vec<AiJunkFile> {
+    let entries: Vec<_> = WalkDir::new(root)
         .max_depth(max_depth)
         .into_iter()
         .filter_entry(|e| !is_whitelisted(e.path()))
         .filter_map(|e| e.ok())
         .collect();
 
-    let mut junk_files: Vec<AiJunkFile> = entries
+    entries
         .par_iter()
         .filter_map(|entry| {
             let path = entry.path().to_path_buf();
@@ -314,7 +335,39 @@ pub fn scan_ai_junk(root_path: &str, max_depth: usize) -> Vec<AiJunkFile> {
 
             None
         })
+        .collect()
+}
+
+/// Scan a directory for AI junk files
+pub fn scan_ai_junk(root_path: &str, max_depth: usize) -> Vec<AiJunkFile> {
+    let root = PathBuf::from(root_path);
+    if !root.exists() {
+        return Vec::new();
+    }
+
+    let mut effective_depth = max_depth;
+    let mut targets = vec![root.clone()];
+
+    if is_root_path(&root) {
+        effective_depth = effective_depth.min(ROOT_SCAN_MAX_DEPTH);
+        if let Some(home) = user_home_dir() {
+            if home.exists() {
+                targets = vec![home];
+            }
+        }
+    }
+
+    let mut junk_files: Vec<AiJunkFile> = targets
+        .par_iter()
+        .flat_map(|target| scan_target(target, effective_depth))
         .collect();
+
+    // De-duplicate by full path to avoid repeats when targets overlap
+    let mut by_path: HashMap<String, AiJunkFile> = HashMap::new();
+    for file in junk_files.drain(..) {
+        by_path.insert(file.path.clone(), file);
+    }
+    let mut junk_files: Vec<AiJunkFile> = by_path.into_values().collect();
 
     // Sort by size descending
     junk_files.sort_by(|a, b| b.size.cmp(&a.size));

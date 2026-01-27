@@ -7,6 +7,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [Semantic Ver
 
 ---
 
+## [2.2.2] - 2026-01-27
+
+### 🛠 Fixes | 修复
+
+- Windows portable asset: Generate the portable ZIP in the Windows release directory and upload it via the GitHub API using `release_id`, so it reliably appears in GitHub Releases.  
+  Windows 便携版产物：在 Windows 发布目录中生成便携 ZIP，并通过 `release_id` 使用 GitHub API 上传，确保在 Releases 中稳定出现。
+- Windows 10 full-disk scan freeze: Clamp root scans to a safer max depth and redirect root-path scans to the current user's home directory to avoid drive-wide hangs.  
+  Windows 10 全盘扫描卡死：限制根路径扫描的最大深度，并将根路径扫描重定向到当前用户主目录，避免整盘扫描导致卡死。
+
+---
+
 ## [2.2.1] - 2026-01-27
 
 ### 🔐 AI Security Scan | AI 安全扫描

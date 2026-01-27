@@ -1,7 +1,7 @@
 {
     "app": {
         "name": "开发清道夫",
-        "version": "v2.2.1"
+        "version": "v2.2.2"
     },
     "nav": {
         "tools": "工具",
