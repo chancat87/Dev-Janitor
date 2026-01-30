@@ -74,7 +74,7 @@ export function SecurityScanView() {
 
         try {
             const result = await invoke<SecurityScanResult | null>('scan_tool_security_cmd', {
-                toolId,
+                tool_id: toolId,
             });
             if (result) {
                 setScanResult(result);

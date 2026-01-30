@@ -188,7 +188,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
             id: "opencode".into(),
             name: "OpenCode".into(),
             description: "Terminal-based AI coding assistant (CVE-2026-22812)".into(),
-            docs_url: "https://github.com/opencode-ai/opencode".into(),
+            docs_url: "https://opencode.ai/docs".into(),
             process_names: vec!["opencode".into()],
             ports: vec![
                 PortRule {
@@ -274,7 +274,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
             id: "claude-code".into(),
             name: "Claude Code".into(),
             description: "Anthropic's official AI coding CLI".into(),
-            docs_url: "https://docs.anthropic.com/claude-code".into(),
+            docs_url: "https://docs.anthropic.com/en/docs/claude-code/overview".into(),
             process_names: vec!["claude".into(), "claude-code".into()],
             ports: vec![
                 PortRule {
@@ -298,7 +298,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
             id: "codex-cli".into(),
             name: "Codex CLI".into(),
             description: "OpenAI's Codex command-line tool".into(),
-            docs_url: "https://github.com/openai/codex-cli".into(),
+            docs_url: "https://developers.openai.com/codex/cli".into(),
             process_names: vec!["codex".into()],
             ports: vec![],
             configs: vec![
@@ -351,7 +351,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
             id: "cursor".into(),
             name: "Cursor".into(),
             description: "AI-first code editor based on VS Code".into(),
-            docs_url: "https://cursor.sh".into(),
+            docs_url: "https://docs.cursor.com/en/cli/installation".into(),
             process_names: vec!["cursor".into(), "cursor-helper".into()],
             ports: vec![
                 PortRule {
@@ -455,7 +455,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
             id: "gemini-cli".into(),
             name: "Gemini CLI".into(),
             description: "Google's Gemini AI coding assistant".into(),
-            docs_url: "https://cloud.google.com/vertex-ai/docs/generative-ai/gemini".into(),
+            docs_url: "https://google-gemini.github.io/gemini-cli/".into(),
             process_names: vec!["gemini".into()],
             ports: vec![],
             configs: vec![

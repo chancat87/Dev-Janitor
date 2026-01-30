@@ -71,10 +71,12 @@ export function ChatHistoryView() {
 
         setIsScanning(true);
         setError(null);
+        setSelectedFiles(new Set());
+        setExpandedProjects(new Set());
         try {
             const result = await invoke<ProjectChatHistory[]>('scan_chat_history_cmd', {
                 path: scanPath,
-                maxDepth: scanDepth,
+                max_depth: scanDepth,
             });
             setProjects(result);
         } catch (e) {
@@ -88,6 +90,7 @@ export function ChatHistoryView() {
     const handleScanGlobal = async () => {
         setIsScanning(true);
         setError(null);
+        setSelectedFiles(new Set());
         try {
             const result = await invoke<ChatHistoryFile[]>('scan_global_chat_history_cmd');
             setGlobalFiles(result);

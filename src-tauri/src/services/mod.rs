@@ -28,6 +28,7 @@ pub struct PortInfo {
     pub pid: u32,
     pub process_name: String,
     pub state: String,
+    pub local_address: String,
 }
 
 /// Development-related process patterns
@@ -161,7 +162,7 @@ pub fn get_dev_processes() -> Vec<ProcessInfo> {
                     _ => "Unknown",
                 };
 
-                let memory = process.memory();
+                let memory = process.memory().saturating_mul(1024);
 
                 Some(ProcessInfo {
                     pid: pid.as_u32(),
@@ -208,7 +209,7 @@ pub fn get_all_processes() -> Vec<ProcessInfo> {
                 _ => "Unknown",
             };
 
-            let memory = process.memory();
+            let memory = process.memory().saturating_mul(1024);
             let category = get_process_category(&name).unwrap_or_else(|| "Other".to_string());
 
             ProcessInfo {
@@ -285,23 +286,24 @@ fn get_ports_windows() -> Vec<PortInfo> {
     // Parse netstat output
     for line in stdout.lines().skip(4) {
         let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() >= 5 {
+        if parts.len() >= 4 {
             let protocol = parts[0].to_uppercase();
             if protocol != "TCP" && protocol != "UDP" {
                 continue;
             }
 
             // Parse local address
-            let local_addr = parts[1];
+            let local_addr = parts[1].to_string();
             if let Some(port_str) = local_addr.rsplit(':').next() {
                 if let Ok(port) = port_str.parse::<u16>() {
-                    let state = if protocol == "TCP" && parts.len() > 3 {
-                        parts[3].to_string()
+                    let (state, pid_idx) = if protocol == "TCP" {
+                        if parts.len() < 5 {
+                            continue;
+                        }
+                        (parts[3].to_string(), 4)
                     } else {
-                        "N/A".to_string()
+                        ("N/A".to_string(), 3)
                     };
-
-                    let pid_idx = if protocol == "TCP" { 4 } else { 3 };
                     let pid: u32 = parts.get(pid_idx).and_then(|s| s.parse().ok()).unwrap_or(0);
 
                     let process_name = sys
@@ -315,6 +317,7 @@ fn get_ports_windows() -> Vec<PortInfo> {
                         pid,
                         process_name,
                         state,
+                        local_address: local_addr,
                     });
                 }
             }
@@ -323,7 +326,7 @@ fn get_ports_windows() -> Vec<PortInfo> {
 
     // Remove duplicates and sort by port
     let mut seen = std::collections::HashSet::new();
-    ports.retain(|p| seen.insert((p.port, p.protocol.clone())));
+    ports.retain(|p| seen.insert((p.port, p.protocol.clone(), p.local_address.clone())));
     ports.sort_by_key(|p| p.port);
     ports
 }
@@ -356,7 +359,7 @@ fn get_ports_unix() -> Vec<PortInfo> {
                 continue;
             }
 
-            let local_addr = parts[4];
+            let local_addr = parts[4].to_string();
             if let Some(port_str) = local_addr.rsplit(':').next() {
                 if let Ok(port) = port_str.parse::<u16>() {
                     let state = if parts.len() > 1 {
@@ -388,6 +391,7 @@ fn get_ports_unix() -> Vec<PortInfo> {
                         pid,
                         process_name,
                         state,
+                        local_address: local_addr,
                     });
                 }
             }

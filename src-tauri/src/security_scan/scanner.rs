@@ -32,6 +32,22 @@ fn check_port_binding(port: u16) -> Option<String> {
     None
 }
 
+fn is_safe_binding(local_address: &str, safe_bindings: &[String]) -> bool {
+    if local_address.is_empty() {
+        return false;
+    }
+
+    let addr = local_address.to_lowercase();
+
+    if addr.contains("127.0.0.1") || addr.contains("::1") || addr.contains("localhost") {
+        return true;
+    }
+
+    safe_bindings
+        .iter()
+        .any(|safe| addr.contains(&safe.to_lowercase()))
+}
+
 /// Get home directory cross-platform
 fn get_home_dir() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
@@ -52,15 +68,16 @@ pub fn check_exposed_ports(
     let mut findings = Vec::new();
 
     for port_rule in &tool.ports {
+        let mut safe_binding_found = false;
+        let mut reported_for_port = false;
+
         // Check if the port is in use
         for p in ports_info {
             if p.port == port_rule.port {
-                // Port is in use - check if it's safely bound
-                let is_safe = port_rule.safe_bindings.iter().any(|safe| {
-                    // This is simplified - in reality we'd check the actual binding address
-                    p.process_name.to_lowercase().contains("localhost")
-                        || p.state.contains("127.0.0.1")
-                });
+                let is_safe = is_safe_binding(&p.local_address, &port_rule.safe_bindings);
+                if is_safe {
+                    safe_binding_found = true;
+                }
 
                 if !is_safe {
                     findings.push(SecurityFinding {
@@ -74,22 +91,27 @@ pub fn check_exposed_ports(
                             port_rule.name
                         ),
                         details: format!(
-                            "Process: {}, State: {}, PID: {}",
-                            p.process_name, p.state, p.pid
+                            "Process: {}, State: {}, PID: {}, Local: {}",
+                            p.process_name,
+                            p.state,
+                            p.pid,
+                            if p.local_address.is_empty() {
+                                "unknown"
+                            } else {
+                                &p.local_address
+                            }
                         ),
                     });
+                    reported_for_port = true;
                 }
             }
         }
 
         // Also try direct connection check
-        if let Some(status) = check_port_binding(port_rule.port) {
+        if !safe_binding_found && !reported_for_port {
+            let status = check_port_binding(port_rule.port);
             // Port is listening - warn even if we couldn't determine exposure
-            let already_reported = findings
-                .iter()
-                .any(|f| f.issue.contains(&port_rule.port.to_string()));
-
-            if !already_reported {
+            if let Some(status) = status {
                 findings.push(SecurityFinding {
                     tool_id: tool.id.clone(),
                     tool_name: tool.name.clone(),

@@ -41,9 +41,9 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             installed: false,
             version: None,
             install_command: "npm install -g @anthropic-ai/claude-code".to_string(),
-            update_command: "npm update -g @anthropic-ai/claude-code".to_string(),
+            update_command: "npm install -g @anthropic-ai/claude-code@latest".to_string(),
             uninstall_command: "npm uninstall -g @anthropic-ai/claude-code".to_string(),
-            docs_url: "https://docs.anthropic.com/claude-code".to_string(),
+            docs_url: "https://docs.anthropic.com/en/docs/claude-code/overview".to_string(),
             config_paths: find_config_files("claude"),
         }),
         check_tool(AiCliTool {
@@ -52,10 +52,10 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             description: "OpenAI's Codex coding assistant".to_string(),
             installed: false,
             version: None,
-            install_command: "npm install -g @openai/codex".to_string(),
-            update_command: "npm update -g @openai/codex".to_string(),
+            install_command: "npm i -g @openai/codex@latest".to_string(),
+            update_command: "npm i -g @openai/codex@latest".to_string(),
             uninstall_command: "npm uninstall -g @openai/codex".to_string(),
-            docs_url: "https://github.com/openai/codex".to_string(),
+            docs_url: "https://developers.openai.com/codex/cli".to_string(),
             config_paths: find_config_files("codex"),
         }),
         check_tool(AiCliTool {
@@ -65,10 +65,10 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
                 .to_string(),
             installed: false,
             version: None,
-            install_command: "npm install -g opencode".to_string(),
-            update_command: "npm update -g opencode".to_string(),
-            uninstall_command: "npm uninstall -g opencode".to_string(),
-            docs_url: "https://github.com/opencode-ai/opencode".to_string(),
+            install_command: "npm install -g opencode-ai".to_string(),
+            update_command: "npm install -g opencode-ai@latest".to_string(),
+            uninstall_command: "npm uninstall -g opencode-ai".to_string(),
+            docs_url: "https://opencode.ai/docs".to_string(),
             config_paths: find_config_files("opencode"),
         }),
         check_tool(AiCliTool {
@@ -78,9 +78,9 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             installed: false,
             version: None,
             install_command: "npm install -g @google/gemini-cli".to_string(),
-            update_command: "npm update -g @google/gemini-cli".to_string(),
+            update_command: "npm install -g @google/gemini-cli@latest".to_string(),
             uninstall_command: "npm uninstall -g @google/gemini-cli".to_string(),
-            docs_url: "https://ai.google.dev/gemini-api/docs".to_string(),
+            docs_url: "https://google-gemini.github.io/gemini-cli/".to_string(),
             config_paths: find_config_files("gemini"),
         }),
         check_tool(AiCliTool {
@@ -101,10 +101,10 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             description: "Open-source AI code assistant".to_string(),
             installed: false,
             version: None,
-            install_command: "npm install -g continue".to_string(),
-            update_command: "npm update -g continue".to_string(),
-            uninstall_command: "npm uninstall -g continue".to_string(),
-            docs_url: "https://continue.dev".to_string(),
+            install_command: "npm install -g @continuedev/cli".to_string(),
+            update_command: "npm install -g @continuedev/cli@latest".to_string(),
+            uninstall_command: "npm uninstall -g @continuedev/cli".to_string(),
+            docs_url: "https://docs.continue.dev/cli/install".to_string(),
             config_paths: find_config_files("continue"),
         }),
         check_tool(AiCliTool {
@@ -125,10 +125,10 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             description: "Cursor AI editor command line interface".to_string(),
             installed: false,
             version: None,
-            install_command: "Download from https://cursor.sh".to_string(),
-            update_command: "cursor --update".to_string(),
+            install_command: "Download from https://docs.cursor.com/en/cli/installation (curl https://cursor.com/install -fsS | bash)".to_string(),
+            update_command: "cursor-agent update".to_string(),
             uninstall_command: "Manual uninstall required".to_string(),
-            docs_url: "https://cursor.sh".to_string(),
+            docs_url: "https://docs.cursor.com/en/cli/installation".to_string(),
             config_paths: find_config_files("cursor"),
         }),
     ]
@@ -310,13 +310,21 @@ fn check_tool(mut tool: AiCliTool) -> AiCliTool {
         "opencode" => ("opencode", vec!["--version"]),
         "gemini" => ("gemini", vec!["--version"]),
         "aider" => ("aider", vec!["--version"]),
-        "continue" => ("continue", vec!["--version"]),
+        "continue" => ("cn", vec!["--version"]),
         "cody" => ("cody", vec!["--version"]),
-        "cursor" => ("cursor", vec!["--version"]),
+        "cursor" => ("cursor-agent", vec!["--version"]),
         _ => return tool,
     };
 
-    if let Some(version) = run_command_get_version(cmd, &args) {
+    let version = match tool.id.as_str() {
+        "continue" => run_command_get_version(cmd, &args)
+            .or_else(|| run_command_get_version("continue", &["--version"])),
+        "cursor" => run_command_get_version(cmd, &args)
+            .or_else(|| run_command_get_version("cursor", &["--version"])),
+        _ => run_command_get_version(cmd, &args),
+    };
+
+    if let Some(version) = version {
         tool.installed = true;
         tool.version = Some(version);
     }

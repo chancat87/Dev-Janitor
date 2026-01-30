@@ -67,8 +67,8 @@ pub fn uninstall_tool(tool_id: String, path: String) -> Result<String, String> {
         "codex" => run_command("npm", &["uninstall", "-g", "@openai/codex"]),
         "claude" => run_command("npm", &["uninstall", "-g", "@anthropic-ai/claude-code"]),
         "gemini" => run_command("npm", &["uninstall", "-g", "@google/gemini-cli"]),
-        "opencode" => run_command("npm", &["uninstall", "-g", "opencode"]),
-        "iflow" => run_command("npm", &["uninstall", "-g", "iflow"]),
+        "opencode" => run_command("npm", &["uninstall", "-g", "opencode-ai"]),
+        "iflow" => run_command("npm", &["uninstall", "-g", "@iflow-ai/iflow-cli"]),
 
         // System-level tools - provide instructions
         "node" | "python" | "java" | "go" | "ruby" | "php" | "dotnet" | "deno" | "bun" => {

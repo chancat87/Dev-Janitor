@@ -7,6 +7,34 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [Semantic Ver
 
 ---
 
+## [2.2.4] - 2026-01-30
+
+### 🛠 Fixes & Updates | 修复与更新
+
+- Fix Tauri invoke parameter mismatch (camelCase → snake_case), restoring tool/package/cache/AI CLI/scan actions.  
+  修复 Tauri 调用参数命名不一致问题，恢复工具/包/缓存/AI CLI/扫描功能。
+- Chat History scan now clears previous selections to prevent accidental deletes.  
+  聊天记录扫描会清空旧选择，避免误删。
+- Services: refresh ports list after killing a process from the Ports tab.  
+  服务页：在端口页杀进程后刷新端口列表。
+- Windows UDP ports now parsed correctly (netstat output), improving port list accuracy.  
+  Windows UDP 端口解析修复，端口列表更准确。
+- Process memory display corrected (sysinfo KiB → bytes).  
+  修正进程内存显示（sysinfo KiB → 字节）。
+- Security scan now evaluates actual local bindings using parsed local addresses, reducing false positives.  
+  安全扫描改用真实本地绑定地址判断，降低误报。
+
+### 🔧 AI CLI Commands Refresh | AI CLI 命令更新
+
+- Updated latest install/update commands and docs for Codex, Claude Code, Gemini CLI, Continue, OpenCode, Cursor.  
+  更新 Codex、Claude Code、Gemini CLI、Continue、OpenCode、Cursor 的最新安装/更新命令与文档链接。
+- OpenCode uninstall now targets the new npm package name (`opencode-ai`).  
+  OpenCode 卸载改为新 npm 包名（`opencode-ai`）。
+- iFlow uninstall updated to new npm package name (`@iflow-ai/iflow-cli`).  
+  iFlow 卸载更新为新 npm 包名（`@iflow-ai/iflow-cli`）。
+
+---
+
 ## [2.2.3] - 2026-01-28
 
 ### 🛡️ Command Timeout Protection | 命令超时保护

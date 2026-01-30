@@ -58,7 +58,11 @@ export function ServicesView() {
         try {
             await killProcess(pid);
             setSuccess(t('services.success_kill', { name, pid }));
-            await handleRefreshProcesses();
+            if (activeTab === 'ports') {
+                await handleRefreshPorts();
+            } else {
+                await handleRefreshProcesses();
+            }
         } catch (e) {
             setError(String(e));
         }
