@@ -204,7 +204,7 @@ export function AiCleanupView() {
     };
 
     const translateReason = (reason: string) => {
-        const match = reason.match(/^(AI Tool|Temp):\\s*(.+?)\\s*-\\s*(.+)$/);
+        const match = reason.match(/^(AI Tool|Temp):\s*(.+?)\s*-\s*(.+)$/);
         if (match) {
             const [, prefix, pattern, detail] = match;
             const prefixLabel = reasonPrefixes[prefix] || `${prefix}:`;

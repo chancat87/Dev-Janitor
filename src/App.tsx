@@ -40,7 +40,7 @@ function CurrentView() {
     settings: SettingsView,
   };
 
-  const ViewComponent = viewComponents[currentView];
+  const ViewComponent = viewComponents[currentView] ?? ToolsView;
 
   return (
     <Suspense fallback={<LoadingFallback />}>

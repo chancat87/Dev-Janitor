@@ -5,12 +5,14 @@
 
 use crate::services::{get_ports_in_use, PortInfo};
 use chrono::Local;
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::time::Duration;
 use sysinfo::System;
+use glob::Pattern;
 
 use super::definitions::{
     AiToolSecurityRule, ConfigCheckType, RiskLevel, SecurityFinding,
@@ -148,98 +150,87 @@ pub fn check_config_files(tool: &AiToolSecurityRule) -> Vec<SecurityFinding> {
 
     for config_rule in &tool.configs {
         match &config_rule.check {
-            ConfigCheckType::FileContains { path_pattern: _, pattern } => {
-                // Search for matching config files
-                for config_path in &tool.config_paths {
-                    let full_path = home.join(config_path);
-                    if full_path.exists() {
-                        // Check files in the directory
-                        if full_path.is_dir() {
-                            if let Ok(entries) = fs::read_dir(&full_path) {
-                                for entry in entries.flatten() {
-                                    if let Ok(content) = fs::read_to_string(entry.path()) {
-                                        // Simple pattern check
-                                        let patterns: Vec<&str> = pattern.split('|').collect();
-                                        for p in patterns {
-                                            if content.contains(p) {
-                                                findings.push(SecurityFinding {
-                                                    tool_id: tool.id.clone(),
-                                                    tool_name: tool.name.clone(),
-                                                    issue: config_rule.name.clone(),
-                                                    description: config_rule.description.clone(),
-                                                    risk_level: config_rule.risk_level,
-                                                    remediation: config_rule.remediation.clone(),
-                                                    details: format!("Found in: {}", entry.path().display()),
-                                                });
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } else if let Ok(content) = fs::read_to_string(&full_path) {
-                            let patterns: Vec<&str> = pattern.split('|').collect();
-                            for p in patterns {
-                                if content.contains(p) {
-                                    findings.push(SecurityFinding {
-                                        tool_id: tool.id.clone(),
-                                        tool_name: tool.name.clone(),
-                                        issue: config_rule.name.clone(),
-                                        description: config_rule.description.clone(),
-                                        risk_level: config_rule.risk_level,
-                                        remediation: config_rule.remediation.clone(),
-                                        details: format!("Found in: {}", full_path.display()),
-                                    });
-                                    break;
-                                }
+            ConfigCheckType::FileContains { path_pattern, pattern } => {
+                let files = collect_matching_files(&home, &tool.config_paths, path_pattern);
+                for file_path in files {
+                    if let Ok(content) = fs::read_to_string(&file_path) {
+                        let patterns: Vec<&str> = pattern.split('|').collect();
+                        for p in patterns {
+                            if content.contains(p) {
+                                findings.push(SecurityFinding {
+                                    tool_id: tool.id.clone(),
+                                    tool_name: tool.name.clone(),
+                                    issue: config_rule.name.clone(),
+                                    description: config_rule.description.clone(),
+                                    risk_level: config_rule.risk_level,
+                                    remediation: config_rule.remediation.clone(),
+                                    details: format!("Found in: {}", file_path.display()),
+                                });
+                                break;
                             }
                         }
                     }
                 }
             }
-            ConfigCheckType::FileExists { path_pattern: _ } => {
-                for config_path in &tool.config_paths {
-                    let full_path = home.join(config_path);
-                    if full_path.exists() {
-                        findings.push(SecurityFinding {
-                            tool_id: tool.id.clone(),
-                            tool_name: tool.name.clone(),
-                            issue: config_rule.name.clone(),
-                            description: config_rule.description.clone(),
-                            risk_level: config_rule.risk_level,
-                            remediation: config_rule.remediation.clone(),
-                            details: format!("File exists: {}", full_path.display()),
-                        });
-                    }
+            ConfigCheckType::FileExists { path_pattern } => {
+                let files = collect_matching_files(&home, &tool.config_paths, path_pattern);
+                for file_path in files {
+                    findings.push(SecurityFinding {
+                        tool_id: tool.id.clone(),
+                        tool_name: tool.name.clone(),
+                        issue: config_rule.name.clone(),
+                        description: config_rule.description.clone(),
+                        risk_level: config_rule.risk_level,
+                        remediation: config_rule.remediation.clone(),
+                        details: format!("File exists: {}", file_path.display()),
+                    });
                 }
             }
-            ConfigCheckType::FileMissing { path_pattern: _, pattern } => {
-                // Check if required security config is missing
-                for config_path in &tool.config_paths {
-                    let full_path = home.join(config_path);
-                    if full_path.exists() && full_path.is_dir() {
-                        if let Ok(entries) = fs::read_dir(&full_path) {
-                            for entry in entries.flatten() {
-                                if let Ok(content) = fs::read_to_string(entry.path()) {
-                                    if !content.contains(pattern) {
-                                        findings.push(SecurityFinding {
-                                            tool_id: tool.id.clone(),
-                                            tool_name: tool.name.clone(),
-                                            issue: config_rule.name.clone(),
-                                            description: config_rule.description.clone(),
-                                            risk_level: config_rule.risk_level,
-                                            remediation: config_rule.remediation.clone(),
-                                            details: format!(
-                                                "Missing '{}' in: {}",
-                                                pattern,
-                                                entry.path().display()
-                                            ),
-                                        });
-                                    }
-                                }
-                            }
+            ConfigCheckType::FileMissing { path_pattern, pattern } => {
+                let files = collect_matching_files(&home, &tool.config_paths, path_pattern);
+                if files.is_empty() {
+                    continue;
+                }
+
+                let mut missing_files = Vec::new();
+                let mut found = false;
+
+                for file_path in files {
+                    if let Ok(content) = fs::read_to_string(&file_path) {
+                        if content.contains(pattern) {
+                            found = true;
+                            break;
+                        } else {
+                            missing_files.push(file_path);
                         }
                     }
+                }
+
+                if !found && !missing_files.is_empty() {
+                    let detail = if missing_files.len() == 1 {
+                        format!(
+                            "Missing '{}' in: {}",
+                            pattern,
+                            missing_files[0].display()
+                        )
+                    } else {
+                        format!(
+                            "Missing '{}' in {} files (e.g., {})",
+                            pattern,
+                            missing_files.len(),
+                            missing_files[0].display()
+                        )
+                    };
+
+                    findings.push(SecurityFinding {
+                        tool_id: tool.id.clone(),
+                        tool_name: tool.name.clone(),
+                        issue: config_rule.name.clone(),
+                        description: config_rule.description.clone(),
+                        risk_level: config_rule.risk_level,
+                        remediation: config_rule.remediation.clone(),
+                        details: detail,
+                    });
                 }
             }
             ConfigCheckType::EnvVar { name, insecure_value } => {
@@ -263,6 +254,71 @@ pub fn check_config_files(tool: &AiToolSecurityRule) -> Vec<SecurityFinding> {
     }
 
     findings
+}
+
+fn collect_matching_files(
+    home: &PathBuf,
+    config_paths: &[String],
+    path_pattern: &str,
+) -> Vec<PathBuf> {
+    let mut files = HashSet::new();
+    let pattern = if path_pattern.is_empty() {
+        "**/*"
+    } else {
+        path_pattern
+    };
+
+    for config_path in config_paths {
+        let full_path = home.join(config_path);
+        if full_path.is_file() {
+            if file_matches_pattern(&full_path, pattern) {
+                files.insert(full_path);
+            }
+            continue;
+        }
+
+        if full_path.is_dir() {
+            let base = full_path.to_string_lossy().replace('\\', "/");
+            let pat = pattern.replace('\\', "/");
+            let full_pattern = format!(
+                "{}/{}",
+                base.trim_end_matches('/'),
+                pat.trim_start_matches('/')
+            );
+
+            if let Ok(entries) = glob::glob(&full_pattern) {
+                for entry in entries.flatten() {
+                    if entry.is_file() {
+                        files.insert(entry);
+                    }
+                }
+            }
+        }
+    }
+
+    files.into_iter().collect()
+}
+
+fn file_matches_pattern(path: &PathBuf, pattern: &str) -> bool {
+    if pattern.is_empty() {
+        return true;
+    }
+
+    let file_name = match path.file_name() {
+        Some(name) => name.to_string_lossy(),
+        None => return true,
+    };
+
+    let pattern = pattern.replace('\\', "/");
+    let tail = pattern
+        .rsplit('/')
+        .next()
+        .unwrap_or(pattern.as_str())
+        .trim_start_matches("**/");
+
+    Pattern::new(tail)
+        .map(|p| p.matches(&file_name))
+        .unwrap_or(true)
 }
 
 /// Check if a tool's process is running

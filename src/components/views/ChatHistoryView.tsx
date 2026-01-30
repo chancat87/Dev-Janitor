@@ -346,7 +346,7 @@ export function ChatHistoryView() {
                                 >
                                     <div className="project-info">
                                         <span className="expand-icon">
-                                            {expandedProjects.has(project.id) ? '▼' : '▶'}
+                                            {expandedProjects.has(project.id) ? '-' : '+'}
                                         </span>
                                         <span className="project-name">{project.name}</span>
                                         <span className="project-size">{project.total_size_display}</span>
@@ -399,7 +399,7 @@ export function ChatHistoryView() {
                                                             />
                                                         </td>
                                                         <td>
-                                                            {file.is_directory ? '📁' : '📄'} {file.name}
+                                                            {file.is_directory ? '[DIR]' : '[FILE]'} {file.name}
                                                         </td>
                                                         <td>
                                                             <span className={`badge ${getToolBadgeClass(file.ai_tool)}`}>
@@ -494,7 +494,7 @@ export function ChatHistoryView() {
                                                 onChange={() => toggleFileSelection(file.path)}
                                             />
                                         </td>
-                                        <td>📁 {file.name}</td>
+                                        <td>{file.is_directory ? '[DIR]' : '[FILE]'} {file.name}</td>
                                         <td>
                                             <span className={`badge ${getToolBadgeClass(file.ai_tool)}`}>
                                                 {file.ai_tool}

@@ -336,65 +336,113 @@ fn get_ports_unix() -> Vec<PortInfo> {
     // Try ss first, then lsof
     let output = command_output_with_timeout("ss", &["-tulpn"], Duration::from_secs(5));
 
-    let output = match output {
-        Ok(o) if o.status.success() => o,
+    let (stdout, used_lsof) = match output {
+        Ok(o) if o.status.success() => (o.stdout, false),
         _ => {
-            // Try lsof
-            match command_output_with_timeout("lsof", &["-i", "-P", "-n"], Duration::from_secs(5)) {
-                Ok(o) => o,
-                Err(_) => return Vec::new(),
-            }
+            let lsof_output =
+                match command_output_with_timeout("lsof", &["-i", "-P", "-n"], Duration::from_secs(5)) {
+                    Ok(o) => o,
+                    Err(_) => return Vec::new(),
+                };
+            (lsof_output.stdout, true)
         }
     };
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = String::from_utf8_lossy(&stdout);
     let mut ports = Vec::new();
 
-    // Parse ss output format
-    for line in stdout.lines().skip(1) {
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() >= 5 {
-            let protocol = parts[0].to_uppercase();
-            if !protocol.starts_with("TCP") && !protocol.starts_with("UDP") {
+    if !used_lsof {
+        // Parse ss output format
+        for line in stdout.lines().skip(1) {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 5 {
+                let protocol = parts[0].to_uppercase();
+                if !protocol.starts_with("TCP") && !protocol.starts_with("UDP") {
+                    continue;
+                }
+
+                let local_addr = parts[4].to_string();
+                if let Some(port_str) = local_addr.rsplit(':').next() {
+                    if let Ok(port) = port_str.parse::<u16>() {
+                        let state = if parts.len() > 1 {
+                            parts[1].to_string()
+                        } else {
+                            "N/A".to_string()
+                        };
+
+                        // Extract PID from the process field
+                        let pid: u32 = parts
+                            .get(6)
+                            .and_then(|s| {
+                                s.split("pid=")
+                                    .nth(1)
+                                    .and_then(|p| p.split(',').next())
+                                    .and_then(|p| p.parse().ok())
+                            })
+                            .unwrap_or(0);
+
+                        let process_name = parts
+                            .get(6)
+                            .and_then(|s| s.split('"').nth(1))
+                            .unwrap_or("Unknown")
+                            .to_string();
+
+                        ports.push(PortInfo {
+                            port,
+                            protocol: protocol.replace("6", ""),
+                            pid,
+                            process_name,
+                            state,
+                            local_address: local_addr,
+                        });
+                    }
+                }
+            }
+        }
+    } else {
+        // Parse lsof output format
+        for line in stdout.lines().skip(1) {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() < 9 {
                 continue;
             }
 
-            let local_addr = parts[4].to_string();
-            if let Some(port_str) = local_addr.rsplit(':').next() {
-                if let Ok(port) = port_str.parse::<u16>() {
-                    let state = if parts.len() > 1 {
-                        parts[1].to_string()
-                    } else {
-                        "N/A".to_string()
-                    };
+            let process_name = parts[0].to_string();
+            let pid = parts[1].parse::<u32>().unwrap_or(0);
 
-                    // Extract PID from the process field
-                    let pid: u32 = parts
-                        .get(6)
-                        .and_then(|s| {
-                            s.split("pid=")
-                                .nth(1)
-                                .and_then(|p| p.split(',').next())
-                                .and_then(|p| p.parse().ok())
-                        })
-                        .unwrap_or(0);
+            let (proto_idx, protocol) = match parts
+                .iter()
+                .enumerate()
+                .find(|(_, p)| p.eq_ignore_ascii_case("TCP") || p.eq_ignore_ascii_case("UDP"))
+            {
+                Some((idx, proto)) => (idx, proto.to_uppercase()),
+                None => continue,
+            };
 
-                    let process_name = parts
-                        .get(6)
-                        .and_then(|s| s.split('"').nth(1))
-                        .unwrap_or("Unknown")
-                        .to_string();
-
-                    ports.push(PortInfo {
-                        port,
-                        protocol: protocol.replace("6", ""),
-                        pid,
-                        process_name,
-                        state,
-                        local_address: local_addr,
-                    });
-                }
+            let is_listen = parts.iter().any(|p| p.contains("LISTEN"));
+            if !is_listen {
+                continue;
             }
+
+            let local_addr = parts.get(proto_idx + 1).unwrap_or(&"").to_string();
+            let port = local_addr
+                .rsplit(':')
+                .next()
+                .and_then(|p| p.parse::<u16>().ok())
+                .unwrap_or(0);
+
+            if port == 0 {
+                continue;
+            }
+
+            ports.push(PortInfo {
+                port,
+                protocol,
+                pid,
+                process_name,
+                state: "LISTEN".to_string(),
+                local_address: local_addr,
+            });
         }
     }
 

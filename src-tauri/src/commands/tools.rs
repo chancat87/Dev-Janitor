@@ -3,6 +3,7 @@
 use crate::detection::{scan_all_tools, ToolInfo};
 
 use crate::utils::command::command_no_window;
+use crate::ai_cli;
 
 /// Scan for all development tools
 #[tauri::command]
@@ -63,11 +64,11 @@ pub fn uninstall_tool(tool_id: String, path: String) -> Result<String, String> {
             }
         }
 
-        // AI CLI tools (npm-based)
-        "codex" => run_command("npm", &["uninstall", "-g", "@openai/codex"]),
-        "claude" => run_command("npm", &["uninstall", "-g", "@anthropic-ai/claude-code"]),
-        "gemini" => run_command("npm", &["uninstall", "-g", "@google/gemini-cli"]),
-        "opencode" => run_command("npm", &["uninstall", "-g", "opencode-ai"]),
+        // AI CLI tools - defer to dedicated module (handles latest install methods)
+        "codex" | "claude" | "gemini" | "opencode" => {
+            ai_cli::uninstall_ai_tool(&tool_id)
+        }
+        // AI CLI tool (npm-based)
         "iflow" => run_command("npm", &["uninstall", "-g", "@iflow-ai/iflow-cli"]),
 
         // System-level tools - provide instructions
@@ -121,6 +122,19 @@ pub fn uninstall_tool(tool_id: String, path: String) -> Result<String, String> {
 
 /// Run a command and return result
 fn run_command(cmd: &str, args: &[&str]) -> Result<String, String> {
+    #[cfg(target_os = "windows")]
+    let output = {
+        let mut full = String::new();
+        full.push_str(cmd);
+        if !args.is_empty() {
+            full.push(' ');
+            full.push_str(&args.join(" "));
+        }
+        let cmd_args = ["/C", full.as_str()];
+        command_no_window("cmd").args(cmd_args).output()
+    };
+
+    #[cfg(not(target_os = "windows"))]
     let output = command_no_window(cmd).args(args).output();
 
     match output {

@@ -8,7 +8,22 @@ use std::time::Duration;
 
 pub struct PipManager {
     version: String,
-    command: String, // pip or pip3
+    command: PipCommand,
+}
+
+#[derive(Clone)]
+struct PipCommand {
+    program: String,
+    prefix_args: Vec<String>,
+}
+
+impl PipCommand {
+    fn new(program: &str, prefix_args: &[&str]) -> Self {
+        Self {
+            program: program.to_string(),
+            prefix_args: prefix_args.iter().map(|s| s.to_string()).collect(),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -26,8 +41,26 @@ struct PipOutdatedPackage {
 
 impl PipManager {
     pub fn new() -> Option<Self> {
-        // Try pip3 first, then pip
-        for cmd in &["pip3", "pip"] {
+        // Prefer invoking pip via the Python launcher/interpreter when available.
+        // This avoids ambiguity when multiple Python installs exist.
+        #[cfg(target_os = "windows")]
+        let candidates = vec![
+            PipCommand::new("py", &["-m", "pip"]),
+            PipCommand::new("python", &["-m", "pip"]),
+            PipCommand::new("python3", &["-m", "pip"]),
+            PipCommand::new("pip3", &[]),
+            PipCommand::new("pip", &[]),
+        ];
+
+        #[cfg(not(target_os = "windows"))]
+        let candidates = vec![
+            PipCommand::new("python3", &["-m", "pip"]),
+            PipCommand::new("python", &["-m", "pip"]),
+            PipCommand::new("pip3", &[]),
+            PipCommand::new("pip", &[]),
+        ];
+
+        for cmd in &candidates {
             if let Some(output) = run_pip_command(cmd, &["--version"]) {
                 // Extract version from "pip X.Y.Z from ..."
                 let version = output
@@ -37,7 +70,7 @@ impl PipManager {
                     .to_string();
                 return Some(Self {
                     version,
-                    command: cmd.to_string(),
+                    command: cmd.clone(),
                 });
             }
         }
@@ -124,14 +157,18 @@ impl PackageManager for PipManager {
     }
 }
 
-fn run_pip_command(pip_cmd: &str, args: &[&str]) -> Option<String> {
+fn run_pip_command(command: &PipCommand, args: &[&str]) -> Option<String> {
+    let mut full_args: Vec<String> = Vec::new();
+    full_args.extend(command.prefix_args.iter().cloned());
+    full_args.extend(args.iter().map(|s| s.to_string()));
+
     // On Windows, pip may need to run via cmd /C
     #[cfg(target_os = "windows")]
     let output = {
-        let pip_args = std::iter::once(pip_cmd)
-            .chain(args.iter().copied())
-            .collect::<Vec<_>>()
-            .join(" ");
+        let mut pip_args = Vec::with_capacity(1 + full_args.len());
+        pip_args.push(command.program.clone());
+        pip_args.extend(full_args.iter().cloned());
+        let pip_args = pip_args.join(" ");
         {
             let cmd_args = ["/C", pip_args.as_str()];
             command_output_with_timeout("cmd", &cmd_args, Duration::from_secs(30)).ok()?
@@ -139,7 +176,10 @@ fn run_pip_command(pip_cmd: &str, args: &[&str]) -> Option<String> {
     };
 
     #[cfg(not(target_os = "windows"))]
-    let output = command_output_with_timeout(pip_cmd, args, Duration::from_secs(30)).ok()?;
+    let output = {
+        let arg_refs: Vec<&str> = full_args.iter().map(|s| s.as_str()).collect();
+        command_output_with_timeout(&command.program, &arg_refs, Duration::from_secs(30)).ok()?
+    };
 
     if output.status.success() {
         Some(String::from_utf8_lossy(&output.stdout).to_string())

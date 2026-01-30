@@ -7,6 +7,27 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [Semantic Ver
 
 ---
 
+## [2.2.5] - 2026-01-30
+
+### Fixes & Updates | 修复与更新
+
+- Align AI CLI install/update/uninstall with latest tooling (Claude Code native installer, OpenCode upgrade/uninstall), and refresh docs.  
+  对齐 AI CLI 最新安装/更新/卸载方式（Claude Code 原生安装器、OpenCode 升级/卸载），并更新文档链接。
+- Prefer `python -m pip`/`py -m pip` for pip management to avoid wrong interpreter; run conda/composer via `cmd /C` on Windows.  
+  pip 优先走 `python -m pip`/`py -m pip` 避免解释器错配；Windows 下 conda/composer 通过 `cmd /C` 调用。
+- Cargo global list parsing now accepts pre-release versions.  
+  Cargo 全局列表解析支持预发布版本。
+- Security scan config checks now honor path patterns and avoid duplicate “missing” spam.  
+  安全扫描配置检查遵循路径模式，避免重复“缺失”提示。
+- Unix port scan fallback (lsof) parsing fixed.  
+  修复 Unix 端口扫描降级到 lsof 时的解析错误。
+- Tools uninstall delegates AI CLI tools to the dedicated module; Windows command execution normalized.  
+  工具卸载中 AI CLI 改由专用模块处理；Windows 命令执行统一规范化。
+- UI robustness: fallback view, missing badge styles, reason translation fix, ASCII icons for Windows terminals.  
+  界面稳健性提升：默认回退视图、补齐徽标样式、修复原因翻译、Windows 终端改用 ASCII 图标。
+
+---
+
 ## [2.2.4] - 2026-01-30
 
 ### 🛠 Fixes & Updates | 修复与更新

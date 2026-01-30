@@ -92,6 +92,17 @@ impl PackageManager for CondaManager {
 }
 
 fn run_conda_command(args: &[&str]) -> Option<String> {
+    #[cfg(target_os = "windows")]
+    let output = {
+        let conda_args = std::iter::once("conda")
+            .chain(args.iter().copied())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let cmd_args = ["/C", conda_args.as_str()];
+        command_output_with_timeout("cmd", &cmd_args, Duration::from_secs(30)).ok()?
+    };
+
+    #[cfg(not(target_os = "windows"))]
     let output = command_output_with_timeout("conda", args, Duration::from_secs(30)).ok()?;
     
     if output.status.success() {

@@ -94,6 +94,17 @@ impl PackageManager for ComposerManager {
 }
 
 fn run_composer_command(args: &[&str]) -> Option<String> {
+    #[cfg(target_os = "windows")]
+    let output = {
+        let composer_args = std::iter::once("composer")
+            .chain(args.iter().copied())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let cmd_args = ["/C", composer_args.as_str()];
+        command_output_with_timeout("cmd", &cmd_args, Duration::from_secs(30)).ok()?
+    };
+
+    #[cfg(not(target_os = "windows"))]
     let output = command_output_with_timeout("composer", args, Duration::from_secs(30)).ok()?;
 
     if output.status.success() {

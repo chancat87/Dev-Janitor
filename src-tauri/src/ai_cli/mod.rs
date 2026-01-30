@@ -33,6 +33,18 @@ pub struct AiConfigFile {
 
 /// Get all supported AI CLI tools with their status
 pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
+    let (claude_install_command, claude_uninstall_command) = if cfg!(target_os = "windows") {
+        (
+            "curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd".to_string(),
+            "del \"%USERPROFILE%\\.local\\bin\\claude.exe\" & rmdir /s /q \"%USERPROFILE%\\.local\\share\\claude\"".to_string(),
+        )
+    } else {
+        (
+            "curl -fsSL https://claude.ai/install.sh | bash".to_string(),
+            "rm -f ~/.local/bin/claude && rm -rf ~/.local/share/claude".to_string(),
+        )
+    };
+
     vec![
         check_tool(AiCliTool {
             id: "claude".to_string(),
@@ -40,10 +52,10 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             description: "Anthropic's Claude AI coding assistant".to_string(),
             installed: false,
             version: None,
-            install_command: "npm install -g @anthropic-ai/claude-code".to_string(),
-            update_command: "npm install -g @anthropic-ai/claude-code@latest".to_string(),
-            uninstall_command: "npm uninstall -g @anthropic-ai/claude-code".to_string(),
-            docs_url: "https://docs.anthropic.com/en/docs/claude-code/overview".to_string(),
+            install_command: claude_install_command,
+            update_command: "claude update".to_string(),
+            uninstall_command: claude_uninstall_command,
+            docs_url: "https://docs.anthropic.com/en/docs/claude-code/getting-started".to_string(),
             config_paths: find_config_files("claude"),
         }),
         check_tool(AiCliTool {
@@ -52,7 +64,7 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             description: "OpenAI's Codex coding assistant".to_string(),
             installed: false,
             version: None,
-            install_command: "npm i -g @openai/codex@latest".to_string(),
+            install_command: "npm i -g @openai/codex".to_string(),
             update_command: "npm i -g @openai/codex@latest".to_string(),
             uninstall_command: "npm uninstall -g @openai/codex".to_string(),
             docs_url: "https://developers.openai.com/codex/cli".to_string(),
@@ -66,8 +78,8 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             installed: false,
             version: None,
             install_command: "npm install -g opencode-ai".to_string(),
-            update_command: "npm install -g opencode-ai@latest".to_string(),
-            uninstall_command: "npm uninstall -g opencode-ai".to_string(),
+            update_command: "opencode upgrade".to_string(),
+            uninstall_command: "opencode uninstall".to_string(),
             docs_url: "https://opencode.ai/docs".to_string(),
             config_paths: find_config_files("opencode"),
         }),
@@ -116,7 +128,7 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             install_command: "npm install -g @sourcegraph/cody".to_string(),
             update_command: "npm update -g @sourcegraph/cody".to_string(),
             uninstall_command: "npm uninstall -g @sourcegraph/cody".to_string(),
-            docs_url: "https://sourcegraph.com/cody".to_string(),
+            docs_url: "https://sourcegraph.com/docs/cody/clients/install-cli".to_string(),
             config_paths: find_config_files("cody"),
         }),
         check_tool(AiCliTool {
@@ -159,9 +171,13 @@ impl ConfigDiscovery {
                 config_extensions: vec!["json", "toml", "yaml", "yml"],
             },
             "opencode" => ConfigDiscovery {
-                directories: vec![".opencode"],
-                single_files: vec![".opencoderc"],
-                config_extensions: vec!["json", "toml", "yaml", "yml"],
+                directories: vec![".opencode", ".config/opencode"],
+                single_files: vec![
+                    ".opencoderc",
+                    ".config/opencode/opencode.json",
+                    ".config/opencode/opencode.jsonc",
+                ],
+                config_extensions: vec!["json", "jsonc", "toml", "yaml", "yml"],
             },
             "gemini" => ConfigDiscovery {
                 directories: vec![".gemini"],

@@ -95,10 +95,10 @@ export function SecurityScanView() {
     };
 
     const riskEmojis: Record<string, string> = {
-        Critical: '🔴',
-        High: '🟠',
-        Medium: '🟡',
-        Low: '🔵',
+        Critical: '[C]',
+        High: '[H]',
+        Medium: '[M]',
+        Low: '[L]',
     };
 
     // Translate risk level from backend (English) to current locale
@@ -172,22 +172,22 @@ export function SecurityScanView() {
                                 </option>
                                 {scanResult.summary.critical > 0 && (
                                     <option value="Critical">
-                                        🔴 Critical ({scanResult.summary.critical})
+                                        {riskEmojis.Critical} Critical ({scanResult.summary.critical})
                                     </option>
                                 )}
                                 {scanResult.summary.high > 0 && (
                                     <option value="High">
-                                        🟠 High ({scanResult.summary.high})
+                                        {riskEmojis.High} High ({scanResult.summary.high})
                                     </option>
                                 )}
                                 {scanResult.summary.medium > 0 && (
                                     <option value="Medium">
-                                        🟡 Medium ({scanResult.summary.medium})
+                                        {riskEmojis.Medium} Medium ({scanResult.summary.medium})
                                     </option>
                                 )}
                                 {scanResult.summary.low > 0 && (
                                     <option value="Low">
-                                        🔵 Low ({scanResult.summary.low})
+                                        {riskEmojis.Low} Low ({scanResult.summary.low})
                                     </option>
                                 )}
                             </select>
@@ -227,7 +227,7 @@ export function SecurityScanView() {
                     {/* No issues found */}
                     {scanResult && scanResult.findings.length === 0 && (
                         <div className="card success-card" style={{ padding: 'var(--spacing-lg)', textAlign: 'center' }}>
-                            <span style={{ fontSize: 48 }}>✅</span>
+                            <span style={{ fontSize: 32 }}>OK</span>
                             <h3>{t('security.no_issues')}</h3>
                             <p className="text-secondary">{t('security.no_issues_desc')}</p>
                         </div>
@@ -254,7 +254,7 @@ export function SecurityScanView() {
                                         <code>{finding.details}</code>
                                     </div>
                                     <div className="finding-remediation">
-                                        <strong>💡 {t('security.remediation')}:</strong>
+                                        <strong>{t('security.remediation')}:</strong>
                                         <span>{finding.remediation}</span>
                                     </div>
                                 </div>
@@ -276,8 +276,8 @@ export function SecurityScanView() {
                                 <h4>{tool.name}</h4>
                                 <p className="text-secondary">{tool.description}</p>
                                 <div className="tool-meta">
-                                    <span>🔌 {tool.port_count} {t('security.ports')}</span>
-                                    <span>📝 {tool.config_check_count} {t('security.checks')}</span>
+                                    <span>{tool.port_count} {t('security.ports')}</span>
+                                    <span>{tool.config_check_count} {t('security.checks')}</span>
                                 </div>
                                 <div className="tool-actions">
                                     <button
@@ -293,7 +293,7 @@ export function SecurityScanView() {
                                         rel="noopener noreferrer"
                                         className="btn btn-ghost btn-small"
                                     >
-                                        📖 {t('security.docs')}
+                                        {t('security.docs')}
                                     </a>
                                 </div>
                             </div>

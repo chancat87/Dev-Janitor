@@ -49,7 +49,7 @@ impl PackageManager for CargoManager {
         // package_name v1.2.3:
         //     binary1
         //     binary2
-        let re = Regex::new(r"^(\S+)\s+v(\d+\.\d+\.\d+)").unwrap();
+        let re = Regex::new(r"^(\S+)\s+v([0-9][^\s:]*)").unwrap();
 
         for line in output.lines() {
             if let Some(caps) = re.captures(line) {
