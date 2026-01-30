@@ -25,6 +25,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [Semantic Ver
   工具卸载中 AI CLI 改由专用模块处理；Windows 命令执行统一规范化。
 - UI robustness: fallback view, missing badge styles, reason translation fix, ASCII icons for Windows terminals.  
   界面稳健性提升：默认回退视图、补齐徽标样式、修复原因翻译、Windows 终端改用 ASCII 图标。
+- Clippy cleanup: use `&Path` instead of `&PathBuf` in security scan helper.  
+  Clippy 清理：安全扫描辅助函数改用 `&Path`。
 
 ---
 

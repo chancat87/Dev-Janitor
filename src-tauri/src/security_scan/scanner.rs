@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::net::TcpStream;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 use sysinfo::System;
 use glob::Pattern;
@@ -299,7 +299,7 @@ fn collect_matching_files(
     files.into_iter().collect()
 }
 
-fn file_matches_pattern(path: &PathBuf, pattern: &str) -> bool {
+fn file_matches_pattern(path: &Path, pattern: &str) -> bool {
     if pattern.is_empty() {
         return true;
     }
