@@ -7,6 +7,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [Semantic Ver
 
 ---
 
+## [2.2.8] - 2026-02-05
+
+### Build Fix | 构建修复
+
+- Pin Tauri packages to ~2.9.x to fix version mismatch build error (`tauri 2.9.5` vs `@tauri-apps/api 2.10.1`).  
+  锁定 Tauri 相关包版本到 ~2.9.x，修复版本不匹配导致的构建错误。
+
+---
+
 ## [2.2.7] - 2026-02-05
 
 ### Fixes | 修复
