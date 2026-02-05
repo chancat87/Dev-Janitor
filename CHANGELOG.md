@@ -7,6 +7,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [Semantic Ver
 
 ---
 
+## [2.2.9] - 2026-02-05
+
+### Build Fix | 构建修复
+
+- Fix Tauri plugin version: plugins use separate versioning (^2.5.x), not same as core (^2.9.x).  
+  修复 Tauri 插件版本：插件使用独立版本号（^2.5.x），与核心（^2.9.x）不同。
+
+---
+
 ## [2.2.8] - 2026-02-05
 
 ### Build Fix | 构建修复
