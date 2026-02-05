@@ -7,8 +7,8 @@ use super::super::chat_history::{
 
 /// Scan for projects with AI chat history
 #[tauri::command]
-pub fn scan_chat_history_cmd(path: String, max_depth: usize) -> Vec<ProjectChatHistory> {
-    scan_chat_history(&path, max_depth)
+pub fn scan_chat_history_cmd(path: String, #[allow(non_snake_case)] maxDepth: usize) -> Vec<ProjectChatHistory> {
+    scan_chat_history(&path, maxDepth)
 }
 
 /// Scan global AI chat history locations

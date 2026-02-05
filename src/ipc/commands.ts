@@ -21,11 +21,11 @@ export async function scanTools(): Promise<ToolInfo[]> {
 }
 
 export async function getToolInfo(toolId: string): Promise<ToolInfo | null> {
-    return invoke<ToolInfo | null>('get_tool_info', { tool_id: toolId });
+    return invoke<ToolInfo | null>('get_tool_info', { toolId });
 }
 
 export async function uninstallTool(toolId: string, path: string): Promise<string> {
-    return invoke<string>('uninstall_tool', { tool_id: toolId, path });
+    return invoke<string>('uninstall_tool', { toolId, path });
 }
 
 // ============ Package Management ============
@@ -69,7 +69,7 @@ export async function scanCaches(): Promise<CacheInfo[]> {
 }
 
 export async function scanProjectCaches(path: string, maxDepth: number): Promise<CacheInfo[]> {
-    return invoke<CacheInfo[]>('scan_project_caches_cmd', { path, max_depth: maxDepth });
+    return invoke<CacheInfo[]>('scan_project_caches_cmd', { path, maxDepth });
 }
 
 export async function cleanCache(path: string): Promise<string> {
@@ -98,7 +98,7 @@ export interface AiJunkFile {
 
 // AI Cleanup commands
 export async function scanAiJunk(path: string, maxDepth: number): Promise<AiJunkFile[]> {
-    return invoke<AiJunkFile[]>('scan_ai_junk_cmd', { path, max_depth: maxDepth });
+    return invoke<AiJunkFile[]>('scan_ai_junk_cmd', { path, maxDepth });
 }
 
 export async function deleteAiJunk(path: string): Promise<string> {
@@ -229,13 +229,13 @@ export async function getAiCliTools(): Promise<AiCliTool[]> {
 }
 
 export async function installAiTool(toolId: string): Promise<string> {
-    return invoke<string>('install_ai_tool_cmd', { tool_id: toolId });
+    return invoke<string>('install_ai_tool_cmd', { toolId });
 }
 
 export async function updateAiTool(toolId: string): Promise<string> {
-    return invoke<string>('update_ai_tool_cmd', { tool_id: toolId });
+    return invoke<string>('update_ai_tool_cmd', { toolId });
 }
 
 export async function uninstallAiTool(toolId: string): Promise<string> {
-    return invoke<string>('uninstall_ai_tool_cmd', { tool_id: toolId });
+    return invoke<string>('uninstall_ai_tool_cmd', { toolId });
 }

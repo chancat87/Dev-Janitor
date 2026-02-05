@@ -4,8 +4,8 @@ use crate::ai_cleanup::{delete_ai_junk, scan_ai_junk, AiJunkFile};
 
 /// Scan a directory for AI junk files
 #[tauri::command]
-pub fn scan_ai_junk_cmd(path: String, max_depth: usize) -> Vec<AiJunkFile> {
-    scan_ai_junk(&path, max_depth)
+pub fn scan_ai_junk_cmd(path: String, #[allow(non_snake_case)] maxDepth: usize) -> Vec<AiJunkFile> {
+    scan_ai_junk(&path, maxDepth)
 }
 
 /// Delete an AI junk file

@@ -10,8 +10,8 @@ pub fn scan_caches() -> Vec<CacheInfo> {
 
 /// Scan project caches in a directory
 #[tauri::command]
-pub fn scan_project_caches_cmd(path: String, max_depth: usize) -> Vec<CacheInfo> {
-    scan_project_caches(&path, max_depth)
+pub fn scan_project_caches_cmd(path: String, #[allow(non_snake_case)] maxDepth: usize) -> Vec<CacheInfo> {
+    scan_project_caches(&path, maxDepth)
 }
 
 /// Clean a specific cache

@@ -13,23 +13,23 @@ pub fn scan_tools() -> Vec<ToolInfo> {
 
 /// Get tool info by ID
 #[tauri::command]
-pub fn get_tool_info(tool_id: String) -> Option<ToolInfo> {
+pub fn get_tool_info(#[allow(non_snake_case)] toolId: String) -> Option<ToolInfo> {
     let tools = scan_all_tools();
-    tools.into_iter().find(|t| t.id == tool_id)
+    tools.into_iter().find(|t| t.id == toolId)
 }
 
 /// Uninstall a tool
 #[tauri::command]
-pub fn uninstall_tool(tool_id: String, path: String) -> Result<String, String> {
+pub fn uninstall_tool(#[allow(non_snake_case)] toolId: String, path: String) -> Result<String, String> {
     // Get uninstall command based on tool type
-    let uninstall_result = match tool_id.as_str() {
+    let uninstall_result = match toolId.as_str() {
         // Package managers installed via npm
-        "pnpm" | "yarn" => run_command("npm", &["uninstall", "-g", &tool_id]),
+        "pnpm" | "yarn" => run_command("npm", &["uninstall", "-g", &toolId]),
 
         // Python tools
         "pip" | "pipx" | "poetry" | "uv" => {
             // pipx-installed tools
-            run_command("pipx", &["uninstall", &tool_id])
+            run_command("pipx", &["uninstall", &toolId])
         }
 
         // Rust tools
@@ -66,7 +66,7 @@ pub fn uninstall_tool(tool_id: String, path: String) -> Result<String, String> {
 
         // AI CLI tools - defer to dedicated module (handles latest install methods)
         "codex" | "claude" | "gemini" | "opencode" => {
-            ai_cli::uninstall_ai_tool(&tool_id)
+            ai_cli::uninstall_ai_tool(&toolId)
         }
         // AI CLI tool (npm-based)
         "iflow" => run_command("npm", &["uninstall", "-g", "@iflow-ai/iflow-cli"]),
@@ -77,18 +77,18 @@ pub fn uninstall_tool(tool_id: String, path: String) -> Result<String, String> {
             {
                 Err(format!(
                     "{} should be uninstalled from Windows Settings > Apps",
-                    tool_id
+                    toolId
                 ))
             }
             #[cfg(target_os = "macos")]
             {
-                Err(format!("{} should be uninstalled via Homebrew (brew uninstall {}) or from the original installer", tool_id, tool_id))
+                Err(format!("{} should be uninstalled via Homebrew (brew uninstall {}) or from the original installer", toolId, toolId))
             }
             #[cfg(target_os = "linux")]
             {
                 Err(format!(
                     "{} should be uninstalled via your package manager (apt/yum/pacman)",
-                    tool_id
+                    toolId
                 ))
             }
         }
@@ -96,24 +96,24 @@ pub fn uninstall_tool(tool_id: String, path: String) -> Result<String, String> {
         // Docker and containers
         "docker" | "podman" | "kubectl" => Err(format!(
             "{} should be uninstalled from your system's application management",
-            tool_id
+            toolId
         )),
 
         // Build tools
         "cmake" | "make" | "ninja" => Err(format!(
             "{} should be uninstalled via your system's package manager",
-            tool_id
+            toolId
         )),
 
         // Version control
         "git" | "svn" => Err(format!(
             "{} should be uninstalled via your system's package manager or installer",
-            tool_id
+            toolId
         )),
 
         _ => Err(format!(
             "Uninstall method for {} is not configured. Path: {}",
-            tool_id, path
+            toolId, path
         )),
     };
 

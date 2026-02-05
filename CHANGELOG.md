@@ -7,6 +7,25 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [Semantic Ver
 
 ---
 
+## [2.2.7] - 2026-02-05
+
+### Fixes | 修复
+
+- Fix Tauri 2.0 invoke parameter naming (snake_case → camelCase) for all commands with multi-word params.  
+  修复所有多词参数的 Tauri 2.0 调用参数命名（snake_case → camelCase）。
+  - `scan_ai_junk_cmd`, `scan_chat_history_cmd`, `scan_project_caches_cmd`: `max_depth` → `maxDepth`
+  - `get_tool_info`, `uninstall_tool`, `install_ai_tool_cmd`, `update_ai_tool_cmd`, `uninstall_ai_tool_cmd`, `scan_tool_security_cmd`: `tool_id` → `toolId`
+
+- Fix process memory display showing 1000x actual value (3 MB displayed as 3138 GB).  
+  修复进程内存显示为实际值的 1000 倍（3 MB 显示为 3138 GB）。
+  - Removed erroneous `saturating_mul(1024)` - `sysinfo::Process::memory()` already returns bytes.  
+    移除错误的 `saturating_mul(1024)` - `sysinfo::Process::memory()` 已返回字节。
+
+- Update Sourcegraph Cody CLI package name: `@sourcegraph/cody` → `@sourcegraph/cody-agent`.  
+  更新 Sourcegraph Cody CLI 包名：`@sourcegraph/cody` → `@sourcegraph/cody-agent`。
+
+---
+
 ## [2.2.6] - 2026-01-31
 
 ### Fixes & Updates

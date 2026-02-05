@@ -76,7 +76,7 @@ export function ChatHistoryView() {
         try {
             const result = await invoke<ProjectChatHistory[]>('scan_chat_history_cmd', {
                 path: scanPath,
-                max_depth: scanDepth,
+                maxDepth: scanDepth,
             });
             setProjects(result);
         } catch (e) {

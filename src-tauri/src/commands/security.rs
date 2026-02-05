@@ -28,8 +28,8 @@ pub fn get_security_tools_cmd() -> Vec<SecurityToolInfo> {
 
 /// Scan a specific tool only
 #[tauri::command]
-pub fn scan_tool_security_cmd(tool_id: String) -> Option<SecurityScanResult> {
-    scan_specific_tool(&tool_id)
+pub fn scan_tool_security_cmd(#[allow(non_snake_case)] toolId: String) -> Option<SecurityScanResult> {
+    scan_specific_tool(&toolId)
 }
 
 /// Tool info for frontend display

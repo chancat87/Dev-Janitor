@@ -12,18 +12,18 @@ pub fn get_ai_cli_tools_cmd() -> Vec<AiCliTool> {
 
 /// Install an AI CLI tool
 #[tauri::command]
-pub fn install_ai_tool_cmd(tool_id: String) -> Result<String, String> {
-    install_ai_tool(&tool_id)
+pub fn install_ai_tool_cmd(#[allow(non_snake_case)] toolId: String) -> Result<String, String> {
+    install_ai_tool(&toolId)
 }
 
 /// Update an AI CLI tool
 #[tauri::command]
-pub fn update_ai_tool_cmd(tool_id: String) -> Result<String, String> {
-    update_ai_tool(&tool_id)
+pub fn update_ai_tool_cmd(#[allow(non_snake_case)] toolId: String) -> Result<String, String> {
+    update_ai_tool(&toolId)
 }
 
 /// Uninstall an AI CLI tool
 #[tauri::command]
-pub fn uninstall_ai_tool_cmd(tool_id: String) -> Result<String, String> {
-    uninstall_ai_tool(&tool_id)
+pub fn uninstall_ai_tool_cmd(#[allow(non_snake_case)] toolId: String) -> Result<String, String> {
+    uninstall_ai_tool(&toolId)
 }

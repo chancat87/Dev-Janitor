@@ -162,7 +162,7 @@ pub fn get_dev_processes() -> Vec<ProcessInfo> {
                     _ => "Unknown",
                 };
 
-                let memory = process.memory().saturating_mul(1024);
+                let memory = process.memory();
 
                 Some(ProcessInfo {
                     pid: pid.as_u32(),
@@ -209,7 +209,7 @@ pub fn get_all_processes() -> Vec<ProcessInfo> {
                 _ => "Unknown",
             };
 
-            let memory = process.memory().saturating_mul(1024);
+            let memory = process.memory();
             let category = get_process_category(&name).unwrap_or_else(|| "Other".to_string());
 
             ProcessInfo {
