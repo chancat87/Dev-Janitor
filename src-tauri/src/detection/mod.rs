@@ -300,8 +300,8 @@ fn get_tool_rules() -> Vec<ToolRule> {
             name: "kubectl",
             category: "container",
             commands: &["kubectl"],
-            version_args: &["version", "--client", "--short"],
-            version_regex: Some(r"v(\d+\.\d+\.\d+)"),
+            version_args: &["version", "--client", "--output=yaml"],
+            version_regex: Some(r"gitVersion:\s*v(\d+\.\d+\.\d+)"),
         },
         ToolRule {
             id: "podman",
@@ -341,6 +341,38 @@ fn get_tool_rules() -> Vec<ToolRule> {
             name: "OpenCode",
             category: "ai_cli",
             commands: &["opencode"],
+            version_args: &["--version"],
+            version_regex: Some(r"(\d+\.\d+\.\d+)"),
+        },
+        ToolRule {
+            id: "aider",
+            name: "Aider",
+            category: "ai_cli",
+            commands: &["aider"],
+            version_args: &["--version"],
+            version_regex: Some(r"(\d+\.\d+\.\d+)"),
+        },
+        ToolRule {
+            id: "cody",
+            name: "Sourcegraph Cody",
+            category: "ai_cli",
+            commands: &["cody", "cody-agent"],
+            version_args: &["--version"],
+            version_regex: Some(r"(\d+\.\d+\.\d+)"),
+        },
+        ToolRule {
+            id: "cursor_cli",
+            name: "Cursor CLI",
+            category: "ai_cli",
+            commands: &["cursor-agent"],
+            version_args: &["--version"],
+            version_regex: Some(r"(\d+\.\d+\.\d+)"),
+        },
+        ToolRule {
+            id: "continue_cli",
+            name: "Continue CLI",
+            category: "ai_cli",
+            commands: &["cn", "continue"],
             version_args: &["--version"],
             version_regex: Some(r"(\d+\.\d+\.\d+)"),
         },
@@ -504,6 +536,10 @@ fn get_windows_extra_paths(tool_id: &str) -> Vec<PathBuf> {
             )));
             paths.push(PathBuf::from(format!(
                 "{}\\Python\\Python313",
+                local_app_data
+            )));
+            paths.push(PathBuf::from(format!(
+                "{}\\Python\\Python314",
                 local_app_data
             )));
             // Anaconda/Miniconda

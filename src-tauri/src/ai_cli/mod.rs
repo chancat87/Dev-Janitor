@@ -34,14 +34,18 @@ pub struct AiConfigFile {
 /// Get all supported AI CLI tools with their status
 pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
     let (claude_install_command, claude_uninstall_command) = if cfg!(target_os = "windows") {
-        // Get user profile path directly instead of relying on %USERPROFILE% expansion
         let user_profile = std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\Default".to_string());
         (
-            "curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd".to_string(),
+            "powershell -ExecutionPolicy ByPass -c \"irm https://claude.ai/install.ps1 | iex\"".to_string(),
             format!(
-                "del \"{}\\.local\\bin\\claude.exe\" & rmdir /s /q \"{}\\.local\\share\\claude\"",
+                "del \"{}\\.claude\\bin\\claude.exe\" & rmdir /s /q \"{}\\.claude\"",
                 user_profile, user_profile
             ),
+        )
+    } else if cfg!(target_os = "macos") {
+        (
+            "brew install --cask claude-code".to_string(),
+            "brew uninstall --cask claude-code || (rm -f ~/.local/bin/claude && rm -rf ~/.local/share/claude)".to_string(),
         )
     } else {
         (
@@ -66,11 +70,11 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
         check_tool(AiCliTool {
             id: "codex".to_string(),
             name: "OpenAI Codex CLI".to_string(),
-            description: "OpenAI's Codex coding assistant".to_string(),
+            description: "OpenAI's Codex coding assistant (Rust-based)".to_string(),
             installed: false,
             version: None,
             install_command: "npm i -g @openai/codex".to_string(),
-            update_command: "npm i -g @openai/codex@latest".to_string(),
+            update_command: "codex upgrade".to_string(),
             uninstall_command: "npm uninstall -g @openai/codex".to_string(),
             docs_url: "https://developers.openai.com/codex/cli".to_string(),
             config_paths: find_config_files("codex"),
@@ -82,9 +86,13 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
                 .to_string(),
             installed: false,
             version: None,
-            install_command: "npm install -g opencode-ai".to_string(),
-            update_command: "opencode upgrade".to_string(),
-            uninstall_command: "opencode uninstall".to_string(),
+            install_command: if cfg!(target_os = "windows") {
+                "npm install -g opencode-ai".to_string()
+            } else {
+                "curl -fsSL https://opencode.ai/install | bash".to_string()
+            },
+            update_command: "npm install -g opencode-ai@latest".to_string(),
+            uninstall_command: "npm uninstall -g opencode-ai".to_string(),
             docs_url: "https://opencode.ai/docs".to_string(),
             config_paths: find_config_files("opencode"),
         }),
@@ -106,10 +114,10 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             description: "AI pair programming in your terminal".to_string(),
             installed: false,
             version: None,
-            install_command: "pipx install aider-chat".to_string(),
-            update_command: "pipx upgrade aider-chat".to_string(),
-            uninstall_command: "pipx uninstall aider-chat".to_string(),
-            docs_url: "https://aider.chat".to_string(),
+            install_command: "python -m pip install aider-install && aider-install".to_string(),
+            update_command: "aider --upgrade".to_string(),
+            uninstall_command: "pipx uninstall aider-chat || uv tool uninstall aider-chat".to_string(),
+            docs_url: "https://aider.chat/docs/install".to_string(),
             config_paths: find_config_files("aider"),
         }),
         check_tool(AiCliTool {
@@ -130,9 +138,9 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             description: "Sourcegraph's AI coding assistant".to_string(),
             installed: false,
             version: None,
-            install_command: "npm install -g @sourcegraph/cody-agent".to_string(),
-            update_command: "npm update -g @sourcegraph/cody-agent".to_string(),
-            uninstall_command: "npm uninstall -g @sourcegraph/cody-agent".to_string(),
+            install_command: "npm install -g @sourcegraph/cody".to_string(),
+            update_command: "npm install -g @sourcegraph/cody@latest".to_string(),
+            uninstall_command: "npm uninstall -g @sourcegraph/cody".to_string(),
             docs_url: "https://sourcegraph.com/docs/cody/clients/install-cli".to_string(),
             config_paths: find_config_files("cody"),
         }),
@@ -142,7 +150,11 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             description: "Cursor AI editor command line interface".to_string(),
             installed: false,
             version: None,
-            install_command: "Download from https://docs.cursor.com/en/cli/installation (curl https://cursor.com/install -fsS | bash)".to_string(),
+            install_command: if cfg!(target_os = "windows") {
+                "powershell -ExecutionPolicy ByPass -c \"irm https://cursor.com/install | iex\"".to_string()
+            } else {
+                "curl https://cursor.com/install -fsS | bash".to_string()
+            },
             update_command: "cursor-agent update".to_string(),
             uninstall_command: "Manual uninstall required".to_string(),
             docs_url: "https://docs.cursor.com/en/cli/installation".to_string(),
@@ -167,7 +179,7 @@ impl ConfigDiscovery {
         match tool_id {
             "claude" => ConfigDiscovery {
                 directories: vec![".claude"],
-                single_files: vec![".claude.json"],
+                single_files: vec![".claude.json", ".claude/bin"],
                 config_extensions: vec!["json", "toml", "yaml", "yml"],
             },
             "codex" => ConfigDiscovery {
@@ -332,7 +344,7 @@ fn check_tool(mut tool: AiCliTool) -> AiCliTool {
         "gemini" => ("gemini", vec!["--version"]),
         "aider" => ("aider", vec!["--version"]),
         "continue" => ("cn", vec!["--version"]),
-        "cody" => ("cody-agent", vec!["--version"]),
+        "cody" => ("cody", vec!["--version"]),
         "cursor" => ("cursor-agent", vec!["--version"]),
         _ => return tool,
     };
@@ -342,6 +354,8 @@ fn check_tool(mut tool: AiCliTool) -> AiCliTool {
             .or_else(|| run_command_get_version("continue", &["--version"])),
         "cursor" => run_command_get_version(cmd, &args)
             .or_else(|| run_command_get_version("cursor", &["--version"])),
+        "cody" => run_command_get_version(cmd, &args)
+            .or_else(|| run_command_get_version("cody-agent", &["--version"])),
         _ => run_command_get_version(cmd, &args),
     };
 

@@ -54,12 +54,19 @@ const AI_TOOL_PATTERNS: &[(&str, &str)] = &[
     (".codex", "OpenAI Codex cache"),
     // Continue
     (".continue", "Continue AI cache"),
+    // OpenCode
+    (".opencode", "OpenCode AI cache"),
+    // Gemini
+    (".gemini", "Gemini CLI cache"),
     // Amazon Q / CodeWhisperer
     (".aws/amazonq", "Amazon Q cache"),
     (".aws/codewhisperer", "CodeWhisperer cache"),
+    // Kiro
+    (".kiro", "Kiro AI cache"),
     // Generic AI patterns
     (".ai_cache", "Generic AI cache"),
     (".llm_cache", "LLM cache directory"),
+    ("AGENTS.md", "AI agent instructions file"),
 ];
 
 /// Temporary file patterns
