@@ -7,6 +7,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [Semantic Ver
 
 ---
 
+## [2.3.2] - 2026-03-07
+
+### Updater Fix | 自动更新修复
+
+- Enable Tauri updater artifacts and release signing metadata so GitHub releases publish `latest.json` for in-app updates.  
+  启用 Tauri updater 产物和 release 签名元数据，让 GitHub release 正常发布 `latest.json`，供应用内更新使用。
+- Register the updater and process plugins in the desktop app and check for updates on startup.  
+  在桌面端接入 updater 和 process 插件，并在应用启动时检查更新。
+- Disable release symbol stripping that breaks Tauri bundle type detection required by the updater.  
+  关闭会破坏 Tauri bundle 类型检测的 release 符号裁剪，避免 updater 无法识别安装包类型。
+- Validate the fix with `pnpm lint`, `pnpm build`, `cargo check`, `cargo test`, and `cargo fmt --check`.  
+  使用 `pnpm lint`、`pnpm build`、`cargo check`、`cargo test`、`cargo fmt --check` 验证修复。
+
+---
+
 ## [2.3.1] - 2026-03-06
 
 ### Fixes & Validation | 修复与验证

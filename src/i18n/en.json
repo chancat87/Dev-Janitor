@@ -1,7 +1,7 @@
 {
     "app": {
         "name": "Dev Janitor",
-        "version": "v2.3.1"
+        "version": "v2.3.2"
     },
     "nav": {
         "tools": "Tools",
@@ -411,6 +411,11 @@
         "language_zh": "Simplified Chinese",
         "ai_endpoint": "Custom AI Endpoint",
         "ai_endpoint_placeholder": "https://api.openai.com/v1"
+    },
+    "updater": {
+        "available": "Version {{version}} is available. Install now?",
+        "installed": "Update installed. The app will restart.",
+        "failed": "Update installation failed."
     },
     "common": {
         "loading": "Loading...",

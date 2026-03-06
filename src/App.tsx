@@ -3,6 +3,7 @@ import type { ErrorInfo, ReactNode } from 'react';
 import { useAppStore } from './store';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { useAutoUpdater } from './hooks/useAutoUpdater';
 import './styles/index.css';
 
 // Lazy load views for better performance
@@ -90,6 +91,7 @@ function CurrentView() {
 
 function App() {
   const currentView = useAppStore((state) => state.currentView);
+  useAutoUpdater();
 
   return (
     <div className="app-container">

@@ -1,6 +1,6 @@
 [package]
 name = "dev-janitor-v2"
-version = "2.3.1"
+version = "2.3.2"
 description = "Developer environment cleanup and management tool"
 authors = ["Dev Janitor Team"]
 edition = "2021"
@@ -66,12 +66,16 @@ md5 = "0.7"
 # Date/time formatting
 chrono = "0.4"
 
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-process = "^2.3"
+tauri-plugin-updater = "^2.3"
+
 # ============ Release Profile Optimization ============
 # These settings significantly reduce binary size
 
 [profile.release]
-# Strip debug symbols
-strip = true
+# Updater needs the bundle marker symbol to stay in the binary.
+strip = false
 # Enable link-time optimization
 lto = true
 # Optimize for size
