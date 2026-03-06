@@ -90,21 +90,21 @@ We support AppImage, .deb, and .rpm. Check the [Releases](https://github.com/coc
 
 ## 🛠️ Development
 
-Built with ❤️ using **Tauri 2.0**, **React**, and **Rust**.
+Built with ❤️ using **Tauri 2.0**, **React 19**, and **Rust**.
 
 <details>
 <summary>Click to see development setup instructions</summary>
 
 ### Prerequisites
-- Node.js 20+
-- pnpm 8+
-- Rust 1.75+
+- Node.js 22+
+- pnpm 9+
+- Rust 1.80+
 
 ### Setup
 ```bash
 # Clone repo
-git clone https://github.com/cocojojo5213/dev-janitor.git
-cd dev-janitor/dev-janitor-v2
+git clone https://github.com/cocojojo5213/Dev-Janitor.git
+cd Dev-Janitor
 
 # Install
 pnpm install

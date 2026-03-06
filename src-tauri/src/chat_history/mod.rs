@@ -148,6 +148,22 @@ fn get_chat_history_patterns() -> Vec<ChatHistoryPattern> {
             ],
             file_type: "cache",
         },
+        // Windsurf
+        ChatHistoryPattern {
+            tool: "Windsurf",
+            patterns: vec![
+                ".windsurf", // Windsurf cache
+            ],
+            file_type: "cache",
+        },
+        // Amazon Q
+        ChatHistoryPattern {
+            tool: "Amazon Q",
+            patterns: vec![
+                ".amazonq", // Amazon Q Developer cache
+            ],
+            file_type: "cache",
+        },
         // Generic AI patterns
         ChatHistoryPattern {
             tool: "AI Tool",
@@ -386,21 +402,49 @@ pub fn delete_chat_file(path: &str) -> Result<String, String> {
 
             #[cfg(not(target_os = "windows"))]
             {
+                if chmod_and_delete(&path_buf).is_ok() {
+                    return Ok(format!("Deleted {} ({})", path, size_display));
+                }
                 Err(format!("Failed to delete {}: {}", path, e))
             }
         }
     }
 }
 
-/// Delete all chat history for a project
-pub fn delete_project_chat_history(project_path: &str) -> Result<(u32, u32, String), String> {
-    let projects = scan_chat_history(project_path, 1);
+#[cfg(unix)]
+fn chmod_and_delete(path: &PathBuf) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
 
-    if projects.is_empty() {
-        return Err("No chat history found in this project".to_string());
+    if let Ok(metadata) = fs::metadata(path) {
+        let mut perms = metadata.permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(path, perms)?;
     }
 
-    let project = &projects[0];
+    if path.is_dir() {
+        fs::remove_dir_all(path)
+    } else {
+        fs::remove_file(path)
+    }
+}
+
+/// Delete all chat history for a project
+pub fn delete_project_chat_history(project_path: &str) -> Result<(u32, u32, String), String> {
+    let canonical = PathBuf::from(project_path);
+    let canonical_str = canonical.to_string_lossy().to_string();
+
+    let projects = scan_chat_history(project_path, 1);
+
+    let project = projects
+        .iter()
+        .find(|p| p.project_path == canonical_str)
+        .or_else(|| projects.first());
+
+    let project = match project {
+        Some(p) => p,
+        None => return Err("No chat history found in this project".to_string()),
+    };
+
     let mut success_count = 0u32;
     let mut fail_count = 0u32;
     let mut total_freed = 0u64;
@@ -475,6 +519,8 @@ pub fn scan_global_chat_history() -> Vec<ChatHistoryFile> {
         (".sourcegraph", "Cody"),
         (".copilot", "GitHub Copilot"),
         (".codeium", "Codeium"),
+        (".windsurf", "Windsurf"),
+        (".amazonq", "Amazon Q"),
     ];
 
     for (dir_name, tool) in &global_patterns {
@@ -499,4 +545,36 @@ pub fn scan_global_chat_history() -> Vec<ChatHistoryFile> {
     // Sort by size
     global_files.sort_by(|a, b| b.size.cmp(&a.size));
     global_files
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_project(name: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("dev-janitor-chat-history-{name}-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn ignores_kiro_project_metadata() {
+        let project = temp_project("kiro");
+        fs::write(project.join("package.json"), "{}\n").unwrap();
+        fs::create_dir_all(project.join(".kiro/agents")).unwrap();
+        fs::write(project.join(".kiro/agents/reviewer.md"), "agent config").unwrap();
+
+        let results = scan_chat_history(project.to_str().unwrap(), 3);
+        assert!(
+            results.is_empty(),
+            ".kiro project metadata should not be treated as chat history"
+        );
+
+        fs::remove_dir_all(project).unwrap();
+    }
 }

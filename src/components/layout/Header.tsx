@@ -59,15 +59,17 @@ export function Header() {
                     className="btn-icon"
                     onClick={toggleLanguage}
                     title={t('settings.language')}
+                    aria-label={t('settings.language')}
                 >
                     <span style={{ fontSize: '14px', fontWeight: 500 }}>
-                        {i18n.language === 'en' ? '\u4e2d\u6587' : 'EN'}
+                        {i18n.language === 'en' ? t('settings.language_zh') : 'EN'}
                     </span>
                 </button>
                 <button
                     className="btn-icon"
                     onClick={cycleTheme}
                     title={t(`settings.theme_${theme}`)}
+                    aria-label={t(`settings.theme_${theme}`)}
                 >
                     {getThemeIcon()}
                 </button>

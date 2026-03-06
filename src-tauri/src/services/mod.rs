@@ -339,11 +339,14 @@ fn get_ports_unix() -> Vec<PortInfo> {
     let (stdout, used_lsof) = match output {
         Ok(o) if o.status.success() => (o.stdout, false),
         _ => {
-            let lsof_output =
-                match command_output_with_timeout("lsof", &["-i", "-P", "-n"], Duration::from_secs(5)) {
-                    Ok(o) => o,
-                    Err(_) => return Vec::new(),
-                };
+            let lsof_output = match command_output_with_timeout(
+                "lsof",
+                &["-i", "-P", "-n"],
+                Duration::from_secs(5),
+            ) {
+                Ok(o) => o,
+                Err(_) => return Vec::new(),
+            };
             (lsof_output.stdout, true)
         }
     };

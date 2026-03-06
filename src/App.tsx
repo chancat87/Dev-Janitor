@@ -1,4 +1,5 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Component, Suspense, lazy } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { useAppStore } from './store';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
@@ -18,10 +19,48 @@ const SecurityScanView = lazy(() => import('./components/views/SecurityScanView'
 
 function LoadingFallback() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }} aria-label="Loading">
       <div className="spinner" />
     </div>
   );
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('View crashed:', error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 32, textAlign: 'center' }}>
+          <h2 style={{ color: 'var(--color-danger)' }}>Something went wrong</h2>
+          <p style={{ color: 'var(--color-text-secondary)', marginTop: 8 }}>
+            {this.state.error?.message}
+          </p>
+          <button
+            className="btn btn-primary"
+            style={{ marginTop: 16 }}
+            onClick={() => this.setState({ hasError: false, error: null })}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function CurrentView() {
@@ -50,13 +89,17 @@ function CurrentView() {
 }
 
 function App() {
+  const currentView = useAppStore((state) => state.currentView);
+
   return (
     <div className="app-container">
       <Sidebar />
       <main className="main-content">
         <Header />
         <div className="content-area">
-          <CurrentView />
+          <ErrorBoundary key={currentView}>
+            <CurrentView />
+          </ErrorBoundary>
         </div>
       </main>
     </div>

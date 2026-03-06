@@ -66,8 +66,7 @@ pub fn scan_all_packages() -> Vec<PackageInfo> {
         all_packages.extend(packages);
     }
 
-    // Homebrew (macOS only)
-    #[cfg(target_os = "macos")]
+    // Homebrew (macOS and Linux)
     if let Some(packages) = homebrew::HomebrewManager::new().map(|m| m.list_packages()) {
         all_packages.extend(packages);
     }

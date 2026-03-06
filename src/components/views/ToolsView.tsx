@@ -2,6 +2,7 @@ import { useState, useCallback, Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { scanTools, uninstallTool } from '../../ipc/commands';
 import { useAppStore } from '../../store';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 export function ToolsView() {
     const { t } = useTranslation();
@@ -32,18 +33,24 @@ export function ToolsView() {
         }
     }, [setTools]);
 
-    const handleUninstall = async (toolId: string, toolName: string, path: string) => {
-        if (!confirm(t('tools.confirm_uninstall', { name: toolName }))) {
-            return;
-        }
+    const [pendingUninstall, setPendingUninstall] = useState<{ id: string; name: string; path: string } | null>(null);
 
-        setUninstallingTool(toolId);
+    const handleUninstall = (toolId: string, toolName: string, path: string) => {
+        setPendingUninstall({ id: toolId, name: toolName, path });
+    };
+
+    const confirmUninstall = async () => {
+        if (!pendingUninstall) return;
+        const { id, name, path } = pendingUninstall;
+        setPendingUninstall(null);
+
+        setUninstallingTool(id);
         setError(null);
         setSuccess(null);
 
         try {
-            await uninstallTool(toolId, path);
-            setSuccess(t('tools.success_uninstall', { name: toolName }));
+            await uninstallTool(id, path);
+            setSuccess(t('tools.success_uninstall', { name }));
             await handleScan();
         } catch (e) {
             setError(String(e));
@@ -56,9 +63,13 @@ export function ToolsView() {
         setExpandedTool(expandedTool === toolId ? null : toolId);
     };
 
+    const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
     const copyPath = async (path: string) => {
         try {
             await navigator.clipboard.writeText(path);
+            setCopyFeedback(path);
+            setTimeout(() => setCopyFeedback(null), 2000);
         } catch (e) {
             console.error('Failed to copy:', e);
         }
@@ -105,6 +116,12 @@ export function ToolsView() {
                     )}
                 </button>
             </div>
+
+            {copyFeedback && (
+                <div className="card message-card success-card" style={{ padding: '8px var(--spacing-md)' }}>
+                    <p style={{ margin: 0 }}>{t('tools.copied_path', { defaultValue: 'Copied!' })}</p>
+                </div>
+            )}
 
             {error && (
                 <div className="card message-card error-card">
@@ -222,6 +239,15 @@ export function ToolsView() {
                     ))}
                 </div>
             )}
+
+            <ConfirmDialog
+                open={pendingUninstall !== null}
+                title={t('tools.confirm_uninstall_title', { defaultValue: 'Uninstall Tool' })}
+                description={pendingUninstall ? t('tools.confirm_uninstall', { name: pendingUninstall.name }) : ''}
+                danger
+                onConfirm={confirmUninstall}
+                onCancel={() => setPendingUninstall(null)}
+            />
 
             <style>{`
         .view-container {

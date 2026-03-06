@@ -48,7 +48,6 @@ pub fn update_package(manager: String, name: String) -> Result<String, String> {
                 Err("conda is not available".to_string())
             }
         }
-        #[cfg(target_os = "macos")]
         "homebrew" => {
             use crate::package_manager::homebrew;
             if let Some(m) = homebrew::HomebrewManager::new() {
@@ -100,7 +99,6 @@ pub fn uninstall_package(manager: String, name: String) -> Result<String, String
                 Err("conda is not available".to_string())
             }
         }
-        #[cfg(target_os = "macos")]
         "homebrew" => {
             use crate::package_manager::homebrew;
             if let Some(m) = homebrew::HomebrewManager::new() {

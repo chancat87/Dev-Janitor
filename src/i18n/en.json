@@ -1,7 +1,7 @@
 {
     "app": {
         "name": "Dev Janitor",
-        "version": "v2.2.2"
+        "version": "v2.3.1"
     },
     "nav": {
         "tools": "Tools",
@@ -370,6 +370,10 @@
             "cursor": {
                 "name": "Cursor CLI",
                 "description": "Cursor AI editor command line interface"
+            },
+            "kiro": {
+                "name": "Kiro CLI",
+                "description": "AWS Kiro AI coding agent (successor to Amazon Q Developer CLI)"
             }
         }
     },

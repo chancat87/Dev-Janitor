@@ -141,6 +141,35 @@ fn get_package_manager_caches() -> Vec<(&'static str, &'static str, Vec<PathBuf>
             "Go Modules Cache",
             vec![PathBuf::from(format!("{}/go/pkg/mod/cache", home))],
         ),
+        // uv (Python)
+        (
+            "uv",
+            "uv Cache",
+            vec![
+                PathBuf::from(format!("{}/.cache/uv", home)),
+                PathBuf::from(format!("{}/Library/Caches/uv", home)),
+                PathBuf::from(format!("{}/uv/cache", local_app_data)),
+            ],
+        ),
+        // bun
+        (
+            "bun",
+            "Bun Cache",
+            vec![
+                PathBuf::from(format!("{}/.bun/install/cache", home)),
+                PathBuf::from(format!("{}/bun/install/cache", local_app_data)),
+            ],
+        ),
+        // deno
+        (
+            "deno",
+            "Deno Cache",
+            vec![
+                PathBuf::from(format!("{}/.cache/deno", home)),
+                PathBuf::from(format!("{}/Library/Caches/deno", home)),
+                PathBuf::from(format!("{}/deno", local_app_data)),
+            ],
+        ),
     ]
 }
 
@@ -186,6 +215,11 @@ const PROJECT_CACHE_PATTERNS: &[(&str, &str)] = &[
     ("venv", "Python Venv"),
     (".venv", "Python Venv"),
     ("vendor", "Vendor Directory"),
+    (".angular", "Angular Cache"),
+    (".parcel-cache", "Parcel Cache"),
+    (".svelte-kit", "SvelteKit Output"),
+    (".output", "Nitro/Nuxt Output"),
+    (".cache", "Generic Build Cache"),
 ];
 
 /// Scan a directory for project caches

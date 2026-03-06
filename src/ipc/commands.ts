@@ -1,5 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
 
+async function safeInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+    try {
+        return await invoke<T>(cmd, args);
+    } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        throw new Error(`[${cmd}] ${message}`);
+    }
+}
+
 // Types matching Rust backend
 export interface ToolVersion {
     version: string;
@@ -17,15 +26,15 @@ export interface ToolInfo {
 
 // Tool commands
 export async function scanTools(): Promise<ToolInfo[]> {
-    return invoke<ToolInfo[]>('scan_tools');
+    return safeInvoke<ToolInfo[]>('scan_tools');
 }
 
 export async function getToolInfo(toolId: string): Promise<ToolInfo | null> {
-    return invoke<ToolInfo | null>('get_tool_info', { toolId });
+    return safeInvoke<ToolInfo | null>('get_tool_info', { toolId });
 }
 
 export async function uninstallTool(toolId: string, path: string): Promise<string> {
-    return invoke<string>('uninstall_tool', { toolId, path });
+    return safeInvoke<string>('uninstall_tool', { toolId, path });
 }
 
 // ============ Package Management ============
@@ -41,15 +50,15 @@ export interface PackageInfo {
 
 // Package commands
 export async function scanPackages(): Promise<PackageInfo[]> {
-    return invoke<PackageInfo[]>('scan_packages');
+    return safeInvoke<PackageInfo[]>('scan_packages');
 }
 
 export async function updatePackage(manager: string, name: string): Promise<string> {
-    return invoke<string>('update_package', { manager, name });
+    return safeInvoke<string>('update_package', { manager, name });
 }
 
 export async function uninstallPackage(manager: string, name: string): Promise<string> {
-    return invoke<string>('uninstall_package', { manager, name });
+    return safeInvoke<string>('uninstall_package', { manager, name });
 }
 
 // ============ Cache Management ============
@@ -65,23 +74,23 @@ export interface CacheInfo {
 
 // Cache commands
 export async function scanCaches(): Promise<CacheInfo[]> {
-    return invoke<CacheInfo[]>('scan_caches');
+    return safeInvoke<CacheInfo[]>('scan_caches');
 }
 
 export async function scanProjectCaches(path: string, maxDepth: number): Promise<CacheInfo[]> {
-    return invoke<CacheInfo[]>('scan_project_caches_cmd', { path, maxDepth });
+    return safeInvoke<CacheInfo[]>('scan_project_caches_cmd', { path, maxDepth });
 }
 
 export async function cleanCache(path: string): Promise<string> {
-    return invoke<string>('clean_cache_cmd', { path });
+    return safeInvoke<string>('clean_cache_cmd', { path });
 }
 
 export async function cleanMultipleCaches(paths: string[]): Promise<Array<{ Ok?: string; Err?: string }>> {
-    return invoke<Array<{ Ok?: string; Err?: string }>>('clean_multiple_caches', { paths });
+    return safeInvoke<Array<{ Ok?: string; Err?: string }>>('clean_multiple_caches', { paths });
 }
 
 export async function getTotalCacheSize(paths: string[]): Promise<string> {
-    return invoke<string>('get_total_cache_size', { paths });
+    return safeInvoke<string>('get_total_cache_size', { paths });
 }
 
 // ============ AI Cleanup ============
@@ -98,15 +107,15 @@ export interface AiJunkFile {
 
 // AI Cleanup commands
 export async function scanAiJunk(path: string, maxDepth: number): Promise<AiJunkFile[]> {
-    return invoke<AiJunkFile[]>('scan_ai_junk_cmd', { path, maxDepth });
+    return safeInvoke<AiJunkFile[]>('scan_ai_junk_cmd', { path, maxDepth });
 }
 
 export async function deleteAiJunk(path: string): Promise<string> {
-    return invoke<string>('delete_ai_junk_cmd', { path });
+    return safeInvoke<string>('delete_ai_junk_cmd', { path });
 }
 
 export async function deleteMultipleAiJunk(paths: string[]): Promise<Array<{ Ok?: string; Err?: string }>> {
-    return invoke<Array<{ Ok?: string; Err?: string }>>('delete_multiple_ai_junk', { paths });
+    return safeInvoke<Array<{ Ok?: string; Err?: string }>>('delete_multiple_ai_junk', { paths });
 }
 
 // ============ Service Monitoring ============
@@ -133,23 +142,23 @@ export interface PortInfo {
 
 // Service commands
 export async function getDevProcesses(): Promise<ProcessInfo[]> {
-    return invoke<ProcessInfo[]>('get_dev_processes_cmd');
+    return safeInvoke<ProcessInfo[]>('get_dev_processes_cmd');
 }
 
 export async function getAllProcesses(): Promise<ProcessInfo[]> {
-    return invoke<ProcessInfo[]>('get_all_processes_cmd');
+    return safeInvoke<ProcessInfo[]>('get_all_processes_cmd');
 }
 
 export async function killProcess(pid: number): Promise<string> {
-    return invoke<string>('kill_process_cmd', { pid });
+    return safeInvoke<string>('kill_process_cmd', { pid });
 }
 
 export async function getPorts(): Promise<PortInfo[]> {
-    return invoke<PortInfo[]>('get_ports_cmd');
+    return safeInvoke<PortInfo[]>('get_ports_cmd');
 }
 
 export async function getCommonDevPorts(): Promise<PortInfo[]> {
-    return invoke<PortInfo[]>('get_common_dev_ports_cmd');
+    return safeInvoke<PortInfo[]>('get_common_dev_ports_cmd');
 }
 
 // ============ Environment Config ============
@@ -187,19 +196,19 @@ export interface EnvDiagnosis {
 
 // Config commands
 export async function analyzePath(): Promise<PathEntry[]> {
-    return invoke<PathEntry[]>('analyze_path_cmd');
+    return safeInvoke<PathEntry[]>('analyze_path_cmd');
 }
 
 export async function getShellConfigs(): Promise<ShellConfig[]> {
-    return invoke<ShellConfig[]>('get_shell_configs_cmd');
+    return safeInvoke<ShellConfig[]>('get_shell_configs_cmd');
 }
 
 export async function diagnoseEnv(): Promise<EnvDiagnosis> {
-    return invoke<EnvDiagnosis>('diagnose_env_cmd');
+    return safeInvoke<EnvDiagnosis>('diagnose_env_cmd');
 }
 
 export async function getPathSuggestions(): Promise<string[]> {
-    return invoke<string[]>('get_path_suggestions_cmd');
+    return safeInvoke<string[]>('get_path_suggestions_cmd');
 }
 
 // ============ AI CLI Tools ============
@@ -225,17 +234,17 @@ export interface AiCliTool {
 
 // AI CLI commands
 export async function getAiCliTools(): Promise<AiCliTool[]> {
-    return invoke<AiCliTool[]>('get_ai_cli_tools_cmd');
+    return safeInvoke<AiCliTool[]>('get_ai_cli_tools_cmd');
 }
 
 export async function installAiTool(toolId: string): Promise<string> {
-    return invoke<string>('install_ai_tool_cmd', { toolId });
+    return safeInvoke<string>('install_ai_tool_cmd', { toolId });
 }
 
 export async function updateAiTool(toolId: string): Promise<string> {
-    return invoke<string>('update_ai_tool_cmd', { toolId });
+    return safeInvoke<string>('update_ai_tool_cmd', { toolId });
 }
 
 export async function uninstallAiTool(toolId: string): Promise<string> {
-    return invoke<string>('uninstall_ai_tool_cmd', { toolId });
+    return safeInvoke<string>('uninstall_ai_tool_cmd', { toolId });
 }

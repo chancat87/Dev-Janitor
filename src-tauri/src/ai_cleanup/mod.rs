@@ -21,7 +21,6 @@ pub struct AiJunkFile {
 }
 
 /// Scan mode for AI junk detection
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ScanMode {
     FullDisk,
@@ -58,15 +57,15 @@ const AI_TOOL_PATTERNS: &[(&str, &str)] = &[
     (".opencode", "OpenCode AI cache"),
     // Gemini
     (".gemini", "Gemini CLI cache"),
+    // Windsurf
+    (".windsurf", "Windsurf AI cache"),
     // Amazon Q / CodeWhisperer
     (".aws/amazonq", "Amazon Q cache"),
     (".aws/codewhisperer", "CodeWhisperer cache"),
-    // Kiro
-    (".kiro", "Kiro AI cache"),
+    (".amazonq", "Amazon Q Developer cache"),
     // Generic AI patterns
     (".ai_cache", "Generic AI cache"),
     (".llm_cache", "LLM cache directory"),
-    ("AGENTS.md", "AI agent instructions file"),
 ];
 
 /// Temporary file patterns
@@ -258,7 +257,9 @@ fn user_home_dir() -> Option<PathBuf> {
         if let Some(profile) = std::env::var_os("USERPROFILE") {
             return Some(PathBuf::from(profile));
         }
-        if let (Some(drive), Some(path)) = (std::env::var_os("HOMEDRIVE"), std::env::var_os("HOMEPATH")) {
+        if let (Some(drive), Some(path)) =
+            (std::env::var_os("HOMEDRIVE"), std::env::var_os("HOMEPATH"))
+        {
             let combined = format!("{}{}", drive.to_string_lossy(), path.to_string_lossy());
             return Some(PathBuf::from(combined));
         }
@@ -401,9 +402,10 @@ pub fn delete_ai_junk(path: &str) -> Result<String, String> {
             .file_name()
             .map(|n| n.to_string_lossy().to_lowercase())
             .unwrap_or_default();
-        let reserved = ["con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", 
-                        "com5", "com6", "com7", "com8", "com9", "lpt1", "lpt2", "lpt3", 
-                        "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9"];
+        let reserved = [
+            "con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7",
+            "com8", "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
+        ];
         let name_without_ext = name.split('.').next().unwrap_or(&name);
         if reserved.contains(&name_without_ext) {
             return Err(format!("Cannot delete Windows reserved name: {}", path));
@@ -452,6 +454,38 @@ pub fn delete_ai_junk(path: &str) -> Result<String, String> {
 
             Err(format!("Failed to delete {}: {}", path, e))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_project(name: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("dev-janitor-ai-cleanup-{name}-{nanos}"));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn ignores_kiro_project_metadata() {
+        let project = temp_project("kiro");
+        fs::write(project.join("package.json"), "{}\n").unwrap();
+        fs::create_dir_all(project.join(".kiro/steering")).unwrap();
+        fs::write(project.join(".kiro/steering/product.md"), "project rules").unwrap();
+
+        let results = scan_ai_junk(project.to_str().unwrap(), 3);
+        assert!(
+            !results.iter().any(|f| f.path.contains(".kiro")),
+            ".kiro project metadata should not be treated as AI junk"
+        );
+
+        fs::remove_dir_all(project).unwrap();
     }
 }
 

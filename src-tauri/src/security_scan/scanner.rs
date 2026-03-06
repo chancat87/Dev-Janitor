@@ -5,6 +5,7 @@
 
 use crate::services::{get_ports_in_use, PortInfo};
 use chrono::Local;
+use glob::Pattern;
 use std::collections::HashSet;
 use std::env;
 use std::fs;
@@ -12,11 +13,10 @@ use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use sysinfo::System;
-use glob::Pattern;
 
 use super::definitions::{
-    AiToolSecurityRule, ConfigCheckType, RiskLevel, SecurityFinding,
-    SecurityScanResult, SecuritySummary, get_rules,
+    get_rules, AiToolSecurityRule, ConfigCheckType, RiskLevel, SecurityFinding, SecurityScanResult,
+    SecuritySummary,
 };
 
 /// Check if a port is actively listening and potentially exposed
@@ -117,10 +117,7 @@ pub fn check_exposed_ports(
                 findings.push(SecurityFinding {
                     tool_id: tool.id.clone(),
                     tool_name: tool.name.clone(),
-                    issue: format!(
-                        "Port {} ({}) is active",
-                        port_rule.port, port_rule.name
-                    ),
+                    issue: format!("Port {} ({}) is active", port_rule.port, port_rule.name),
                     description: port_rule.description.clone(),
                     risk_level: if port_rule.risk_if_exposed == RiskLevel::Critical {
                         RiskLevel::High
@@ -150,7 +147,10 @@ pub fn check_config_files(tool: &AiToolSecurityRule) -> Vec<SecurityFinding> {
 
     for config_rule in &tool.configs {
         match &config_rule.check {
-            ConfigCheckType::FileContains { path_pattern, pattern } => {
+            ConfigCheckType::FileContains {
+                path_pattern,
+                pattern,
+            } => {
                 let files = collect_matching_files(&home, &tool.config_paths, path_pattern);
                 for file_path in files {
                     if let Ok(content) = fs::read_to_string(&file_path) {
@@ -186,7 +186,10 @@ pub fn check_config_files(tool: &AiToolSecurityRule) -> Vec<SecurityFinding> {
                     });
                 }
             }
-            ConfigCheckType::FileMissing { path_pattern, pattern } => {
+            ConfigCheckType::FileMissing {
+                path_pattern,
+                pattern,
+            } => {
                 let files = collect_matching_files(&home, &tool.config_paths, path_pattern);
                 if files.is_empty() {
                     continue;
@@ -208,11 +211,7 @@ pub fn check_config_files(tool: &AiToolSecurityRule) -> Vec<SecurityFinding> {
 
                 if !found && !missing_files.is_empty() {
                     let detail = if missing_files.len() == 1 {
-                        format!(
-                            "Missing '{}' in: {}",
-                            pattern,
-                            missing_files[0].display()
-                        )
+                        format!("Missing '{}' in: {}", pattern, missing_files[0].display())
                     } else {
                         format!(
                             "Missing '{}' in {} files (e.g., {})",
@@ -233,7 +232,10 @@ pub fn check_config_files(tool: &AiToolSecurityRule) -> Vec<SecurityFinding> {
                     });
                 }
             }
-            ConfigCheckType::EnvVar { name, insecure_value } => {
+            ConfigCheckType::EnvVar {
+                name,
+                insecure_value,
+            } => {
                 if let Ok(value) = env::var(name) {
                     if let Some(insecure) = insecure_value {
                         if value == *insecure {
@@ -393,10 +395,7 @@ pub fn scan_ai_tool_security() -> SecurityScanResult {
             .count(),
     };
 
-    let tools_scanned: Vec<String> = rules
-        .iter()
-        .map(|t| t.name.clone())
-        .collect();
+    let tools_scanned: Vec<String> = rules.iter().map(|t| t.name.clone()).collect();
 
     SecurityScanResult {
         scan_time: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
@@ -409,9 +408,7 @@ pub fn scan_ai_tool_security() -> SecurityScanResult {
 /// Scan a specific tool only
 pub fn scan_specific_tool(tool_id: &str) -> Option<SecurityScanResult> {
     let rules = get_rules();
-    let tool = rules
-        .iter()
-        .find(|t| t.id == tool_id)?;
+    let tool = rules.iter().find(|t| t.id == tool_id)?;
 
     let ports_info = get_ports_in_use();
     let mut findings = Vec::new();

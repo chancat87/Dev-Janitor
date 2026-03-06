@@ -7,6 +7,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [Semantic Ver
 
 ---
 
+## [2.3.1] - 2026-03-06
+
+### Fixes & Validation | 修复与验证
+
+- Stop treating `.kiro` project metadata as deletable chat history or AI junk, preventing accidental deletion of Kiro project rules and agents.  
+  不再将 `.kiro` 项目元数据识别为可删除的聊天记录或 AI 垃圾，避免误删 Kiro 项目规则与 agents。
+- Restore Cursor CLI update/detection to `cursor-agent`, and make Kiro CLI manual-action handling platform-safe.  
+  将 Cursor CLI 的更新与探测恢复为 `cursor-agent`，并让 Kiro CLI 的手动安装/更新/卸载逻辑在不同平台上更安全。
+- Reset the view error boundary when switching pages so one crashed screen does not block the whole main content area.  
+  切换页面时重置视图错误边界，避免单个页面崩溃后阻塞整个主内容区。
+- Validate the release candidate with `pnpm lint`, `pnpm build`, `cargo check`, `cargo test`, and `cargo clippy`.  
+  使用 `pnpm lint`、`pnpm build`、`cargo check`、`cargo test`、`cargo clippy` 完成发布前验证。
+
+---
+
 ## [2.2.9] - 2026-02-05
 
 ### Build Fix | 构建修复

@@ -52,8 +52,9 @@ export function SettingsView() {
 
                 {/* AI Endpoint */}
                 <div className="setting-item">
-                    <label className="setting-label">{t('settings.ai_endpoint')}</label>
+                    <label className="setting-label" htmlFor="ai-endpoint-input">{t('settings.ai_endpoint')}</label>
                     <input
+                        id="ai-endpoint-input"
                         type="text"
                         className="setting-input"
                         placeholder={t('settings.ai_endpoint_placeholder')}

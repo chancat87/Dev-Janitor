@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getDevProcesses, getPorts, killProcess } from '../../ipc/commands';
 import { useAppStore } from '../../store';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 export function ServicesView() {
     const { t } = useTranslation();
@@ -47,10 +48,16 @@ export function ServicesView() {
         }
     }, [setPorts]);
 
-    const handleKillProcess = async (pid: number, name: string) => {
-        if (!confirm(t('services.confirm_kill', { name, pid }))) {
-            return;
-        }
+    const [pendingKill, setPendingKill] = useState<{ pid: number; name: string } | null>(null);
+
+    const handleKillProcess = (pid: number, name: string) => {
+        setPendingKill({ pid, name });
+    };
+
+    const confirmKill = async () => {
+        if (!pendingKill) return;
+        const { pid, name } = pendingKill;
+        setPendingKill(null);
 
         setError(null);
         setSuccess(null);
@@ -162,14 +169,20 @@ export function ServicesView() {
             </div>
 
             {/* Tabs */}
-            <div className="tabs">
+            <div className="tabs" role="tablist">
                 <button
+                    role="tab"
+                    aria-selected={activeTab === 'processes'}
+                    aria-controls="panel-processes"
                     className={`tab ${activeTab === 'processes' ? 'active' : ''}`}
                     onClick={() => setActiveTab('processes')}
                 >
                     {t('services.tab_processes')}
                 </button>
                 <button
+                    role="tab"
+                    aria-selected={activeTab === 'ports'}
+                    aria-controls="panel-ports"
                     className={`tab ${activeTab === 'ports' ? 'active' : ''}`}
                     onClick={() => setActiveTab('ports')}
                 >
@@ -219,6 +232,12 @@ export function ServicesView() {
                             </select>
                         )}
                     </div>
+
+                    {filteredProcesses.length === 0 && !isLoading && (
+                        <div className="card" style={{ padding: 'var(--spacing-lg)', textAlign: 'center' }}>
+                            <p className="text-secondary">{t('services.no_processes', { defaultValue: 'No dev processes found. Click Refresh to scan.' })}</p>
+                        </div>
+                    )}
 
                     {filteredProcesses.length > 0 && (
                         <div className="card">
@@ -288,6 +307,12 @@ export function ServicesView() {
                         </button>
                     </div>
 
+                    {ports.length === 0 && !isLoading && (
+                        <div className="card" style={{ padding: 'var(--spacing-lg)', textAlign: 'center' }}>
+                            <p className="text-secondary">{t('services.no_ports', { defaultValue: 'No ports in use. Click Refresh to scan.' })}</p>
+                        </div>
+                    )}
+
                     {ports.length > 0 && (
                         <div className="card">
                             <div className="table-container">
@@ -309,13 +334,13 @@ export function ServicesView() {
                                                     <span className="port-number">{port.port}</span>
                                                 </td>
                                                 <td>
-                                                    <span className={`protocol-badge ${port.protocol.toLowerCase()}`}>
-                                                        {port.protocol}
+                                                    <span className={`protocol-badge ${port.protocol?.toLowerCase() ?? ''}`}>
+                                                        {port.protocol ?? 'N/A'}
                                                     </span>
                                                 </td>
                                                 <td><strong>{port.process_name}</strong></td>
                                                 <td><code>{port.pid}</code></td>
-                                                <td>{portStateLabels[port.state.toUpperCase()] || port.state}</td>
+                                                <td>{portStateLabels[port.state?.toUpperCase() ?? ''] || port.state || 'N/A'}</td>
                                                 <td>
                                                     <button
                                                         className="btn btn-danger btn-small"
@@ -333,6 +358,15 @@ export function ServicesView() {
                     )}
                 </div>
             )}
+
+            <ConfirmDialog
+                open={pendingKill !== null}
+                title={t('services.confirm_kill_title', { defaultValue: 'Kill Process' })}
+                description={pendingKill ? t('services.confirm_kill', { name: pendingKill.name, pid: pendingKill.pid }) : ''}
+                danger
+                onConfirm={confirmKill}
+                onCancel={() => setPendingKill(null)}
+            />
 
             <style>{`
         .view-container {

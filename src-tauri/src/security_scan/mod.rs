@@ -6,5 +6,5 @@
 mod definitions;
 pub mod scanner;
 
-pub use definitions::{SecurityScanResult, get_rules};
+pub use definitions::{get_rules, SecurityScanResult};
 pub use scanner::{scan_ai_tool_security, scan_specific_tool};

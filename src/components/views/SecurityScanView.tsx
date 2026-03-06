@@ -51,7 +51,7 @@ export function SecurityScanView() {
     useEffect(() => {
         invoke<SecurityToolInfo[]>('get_security_tools_cmd')
             .then(setTools)
-            .catch(console.error);
+            .catch((e) => setError(String(e)));
     }, []);
 
     const handleScan = useCallback(async () => {
@@ -125,14 +125,20 @@ export function SecurityScanView() {
             </div>
 
             {/* Tabs */}
-            <div className="tabs">
+            <div className="tabs" role="tablist">
                 <button
+                    role="tab"
+                    aria-selected={activeTab === 'scan'}
+                    aria-controls="panel-scan"
                     className={`tab ${activeTab === 'scan' ? 'active' : ''}`}
                     onClick={() => setActiveTab('scan')}
                 >
                     {t('security.tab_scan')}
                 </button>
                 <button
+                    role="tab"
+                    aria-selected={activeTab === 'tools'}
+                    aria-controls="panel-tools"
                     className={`tab ${activeTab === 'tools' ? 'active' : ''}`}
                     onClick={() => setActiveTab('tools')}
                 >
@@ -193,6 +199,13 @@ export function SecurityScanView() {
                             </select>
                         )}
                     </div>
+
+                    {/* Pre-scan guide */}
+                    {!scanResult && !isLoading && (
+                        <div className="card" style={{ padding: 'var(--spacing-lg)', textAlign: 'center' }}>
+                            <p className="text-secondary">{t('security.pre_scan_guide', { defaultValue: 'Click "Scan All" to check your AI tools for security issues.' })}</p>
+                        </div>
+                    )}
 
                     {/* Summary Cards */}
                     {scanResult && (

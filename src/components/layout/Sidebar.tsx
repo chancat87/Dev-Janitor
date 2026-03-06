@@ -90,7 +90,7 @@ export function Sidebar() {
     const { currentView, setCurrentView } = useAppStore();
 
     return (
-        <aside className="sidebar">
+        <aside className="sidebar" role="navigation" aria-label="Main navigation">
             <div className="sidebar-logo">
                 <svg viewBox="0 0 40 40" fill="none">
                     <rect width="40" height="40" rx="8" fill="#1890FF" />
@@ -104,6 +104,8 @@ export function Sidebar() {
                     className={`nav-item ${currentView === item.id ? 'active' : ''}`}
                     onClick={() => setCurrentView(item.id)}
                     title={t(`nav.${item.id}`)}
+                    aria-label={t(`nav.${item.id}`)}
+                    aria-current={currentView === item.id ? 'page' : undefined}
                 >
                     {item.icon}
                 </button>
@@ -115,6 +117,8 @@ export function Sidebar() {
                 className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
                 onClick={() => setCurrentView('settings')}
                 title={t('nav.settings')}
+                aria-label={t('nav.settings')}
+                aria-current={currentView === 'settings' ? 'page' : undefined}
             >
                 {Icons.settings}
             </button>

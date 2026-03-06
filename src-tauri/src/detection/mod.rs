@@ -364,7 +364,15 @@ fn get_tool_rules() -> Vec<ToolRule> {
             id: "cursor_cli",
             name: "Cursor CLI",
             category: "ai_cli",
-            commands: &["cursor-agent"],
+            commands: &["cursor-agent", "cursor"],
+            version_args: &["--version"],
+            version_regex: Some(r"(\d+\.\d+\.\d+)"),
+        },
+        ToolRule {
+            id: "kiro_cli",
+            name: "Kiro CLI",
+            category: "ai_cli",
+            commands: &["kiro-cli"],
             version_args: &["--version"],
             version_regex: Some(r"(\d+\.\d+\.\d+)"),
         },
@@ -601,5 +609,15 @@ mod tests {
         for tool in &tools {
             println!("{}: {:?}", tool.name, tool.versions);
         }
+    }
+
+    #[test]
+    fn test_ai_cli_command_rules() {
+        let rules = get_tool_rules();
+        let cursor = rules.iter().find(|rule| rule.id == "cursor_cli").unwrap();
+        assert_eq!(cursor.commands, ["cursor-agent", "cursor"]);
+
+        let kiro = rules.iter().find(|rule| rule.id == "kiro_cli").unwrap();
+        assert_eq!(kiro.commands, ["kiro-cli"]);
     }
 }

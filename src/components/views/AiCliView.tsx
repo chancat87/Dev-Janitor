@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAiCliTools, installAiTool, updateAiTool, uninstallAiTool } from '../../ipc/commands';
 import { useAppStore, AiCliToolStore } from '../../store';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 export function AiCliView() {
     const { t } = useTranslation();
@@ -35,24 +36,50 @@ export function AiCliView() {
         }
     }, [setTools]);
 
-    const handleInstall = async (tool: AiCliToolStore) => {
+    const [pendingAction, setPendingAction] = useState<{
+        type: 'install' | 'update' | 'uninstall';
+        tool: AiCliToolStore;
+    } | null>(null);
+
+    const handleInstall = (tool: AiCliToolStore) => {
         if (tool.install_command.startsWith('Download')) {
             window.open(tool.docs_url, '_blank');
             return;
         }
+        setPendingAction({ type: 'install', tool });
+    };
 
+    const handleUpdate = (tool: AiCliToolStore) => {
+        setPendingAction({ type: 'update', tool });
+    };
+
+    const handleUninstall = (tool: AiCliToolStore) => {
+        setPendingAction({ type: 'uninstall', tool });
+    };
+
+    const confirmAction = async () => {
+        if (!pendingAction) return;
+        const { type, tool } = pendingAction;
         const toolName = getToolDisplayName(tool);
-        if (!confirm(t('ai_cli.confirm_install', { name: toolName, command: tool.install_command }))) {
-            return;
-        }
+        setPendingAction(null);
 
-        setIsOperating(`install-${tool.id}`);
+        setIsOperating(`${type}-${tool.id}`);
         setError(null);
         setSuccess(null);
 
         try {
-            const result = await installAiTool(tool.id);
-            const message = t('ai_cli.success_install', { name: toolName });
+            let result: string;
+            let message: string;
+            if (type === 'install') {
+                result = await installAiTool(tool.id);
+                message = t('ai_cli.success_install', { name: toolName });
+            } else if (type === 'update') {
+                result = await updateAiTool(tool.id);
+                message = t('ai_cli.success_update', { name: toolName });
+            } else {
+                result = await uninstallAiTool(tool.id);
+                message = t('ai_cli.success_uninstall', { name: toolName });
+            }
             setSuccess(result.trim() ? `${message}\n${result}` : message);
             await handleRefresh();
         } catch (e) {
@@ -62,48 +89,15 @@ export function AiCliView() {
         }
     };
 
-    const handleUpdate = async (tool: AiCliToolStore) => {
-        const toolName = getToolDisplayName(tool);
-        if (!confirm(t('ai_cli.confirm_update', { name: toolName }))) {
-            return;
-        }
-
-        setIsOperating(`update-${tool.id}`);
-        setError(null);
-        setSuccess(null);
-
-        try {
-            const result = await updateAiTool(tool.id);
-            const message = t('ai_cli.success_update', { name: toolName });
-            setSuccess(result.trim() ? `${message}\n${result}` : message);
-            await handleRefresh();
-        } catch (e) {
-            setError(String(e));
-        } finally {
-            setIsOperating(null);
-        }
-    };
-
-    const handleUninstall = async (tool: AiCliToolStore) => {
-        const toolName = getToolDisplayName(tool);
-        if (!confirm(t('ai_cli.confirm_uninstall', { name: toolName }))) {
-            return;
-        }
-
-        setIsOperating(`uninstall-${tool.id}`);
-        setError(null);
-        setSuccess(null);
-
-        try {
-            const result = await uninstallAiTool(tool.id);
-            const message = t('ai_cli.success_uninstall', { name: toolName });
-            setSuccess(result.trim() ? `${message}\n${result}` : message);
-            await handleRefresh();
-        } catch (e) {
-            setError(String(e));
-        } finally {
-            setIsOperating(null);
-        }
+    const getPendingDescription = () => {
+        if (!pendingAction) return '';
+        const { type, tool } = pendingAction;
+        const name = getToolDisplayName(tool);
+        if (type === 'install')
+            return t('ai_cli.confirm_install', { name, command: tool.install_command });
+        if (type === 'update')
+            return t('ai_cli.confirm_update', { name });
+        return t('ai_cli.confirm_uninstall', { name });
     };
 
     const installedCount = tools.filter(t => t.installed).length;
@@ -240,6 +234,20 @@ export function AiCliView() {
                     <p>{t('ai_cli.empty')}</p>
                 </div>
             )}
+
+            <ConfirmDialog
+                open={pendingAction !== null}
+                title={pendingAction?.type === 'uninstall'
+                    ? t('ai_cli.confirm_uninstall_title', { defaultValue: 'Uninstall Tool' })
+                    : pendingAction?.type === 'update'
+                    ? t('ai_cli.confirm_update_title', { defaultValue: 'Update Tool' })
+                    : t('ai_cli.confirm_install_title', { defaultValue: 'Install Tool' })
+                }
+                description={getPendingDescription()}
+                danger={pendingAction?.type === 'uninstall'}
+                onConfirm={confirmAction}
+                onCancel={() => setPendingAction(null)}
+            />
 
             <style>{`
         .view-container {

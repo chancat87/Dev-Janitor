@@ -1,7 +1,7 @@
 //! Tauri commands for AI tool security scanning
 
 use crate::security_scan::{
-    scan_ai_tool_security, scan_specific_tool, get_rules, SecurityScanResult,
+    get_rules, scan_ai_tool_security, scan_specific_tool, SecurityScanResult,
 };
 
 /// Perform a full security scan of all AI tools
@@ -28,7 +28,9 @@ pub fn get_security_tools_cmd() -> Vec<SecurityToolInfo> {
 
 /// Scan a specific tool only
 #[tauri::command]
-pub fn scan_tool_security_cmd(#[allow(non_snake_case)] toolId: String) -> Option<SecurityScanResult> {
+pub fn scan_tool_security_cmd(
+    #[allow(non_snake_case)] toolId: String,
+) -> Option<SecurityScanResult> {
     scan_specific_tool(&toolId)
 }
 

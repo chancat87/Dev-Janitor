@@ -1,7 +1,7 @@
 {
     "app": {
         "name": "开发清道夫",
-        "version": "v2.2.2"
+        "version": "v2.3.1"
     },
     "nav": {
         "tools": "工具",
@@ -370,6 +370,10 @@
             "cursor": {
                 "name": "Cursor CLI",
                 "description": "Cursor 编辑器命令行工具"
+            },
+            "kiro": {
+                "name": "Kiro CLI",
+                "description": "AWS Kiro AI 编程代理（Amazon Q Developer CLI 后继者）"
             }
         }
     },

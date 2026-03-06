@@ -6,7 +6,7 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use crate::utils::command::{command_no_window, command_output_with_timeout};
+use crate::utils::command::command_output_with_timeout;
 
 /// Represents an AI CLI tool
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,9 +34,11 @@ pub struct AiConfigFile {
 /// Get all supported AI CLI tools with their status
 pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
     let (claude_install_command, claude_uninstall_command) = if cfg!(target_os = "windows") {
-        let user_profile = std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\Default".to_string());
+        let user_profile =
+            std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\Default".to_string());
         (
-            "powershell -ExecutionPolicy ByPass -c \"irm https://claude.ai/install.ps1 | iex\"".to_string(),
+            "powershell -ExecutionPolicy ByPass -c \"irm https://claude.ai/install.ps1 | iex\""
+                .to_string(),
             format!(
                 "del \"{}\\.claude\\bin\\claude.exe\" & rmdir /s /q \"{}\\.claude\"",
                 user_profile, user_profile
@@ -74,7 +76,7 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             installed: false,
             version: None,
             install_command: "npm i -g @openai/codex".to_string(),
-            update_command: "codex upgrade".to_string(),
+            update_command: "npm install -g @openai/codex@latest".to_string(),
             uninstall_command: "npm uninstall -g @openai/codex".to_string(),
             docs_url: "https://developers.openai.com/codex/cli".to_string(),
             config_paths: find_config_files("codex"),
@@ -114,9 +116,15 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             description: "AI pair programming in your terminal".to_string(),
             installed: false,
             version: None,
-            install_command: "python -m pip install aider-install && aider-install".to_string(),
+            install_command: if cfg!(target_os = "windows") {
+                "powershell -ExecutionPolicy ByPass -c \"irm https://aider.chat/install.ps1 | iex\""
+                    .to_string()
+            } else {
+                "curl -LsSf https://aider.chat/install.sh | sh".to_string()
+            },
             update_command: "aider --upgrade".to_string(),
-            uninstall_command: "pipx uninstall aider-chat || uv tool uninstall aider-chat".to_string(),
+            uninstall_command: "uv tool uninstall aider-chat || pipx uninstall aider-chat"
+                .to_string(),
             docs_url: "https://aider.chat/docs/install".to_string(),
             config_paths: find_config_files("aider"),
         }),
@@ -126,10 +134,14 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             description: "Open-source AI code assistant".to_string(),
             installed: false,
             version: None,
-            install_command: "npm install -g @continuedev/cli".to_string(),
+            install_command: if cfg!(target_os = "windows") {
+                "npm install -g @continuedev/cli".to_string()
+            } else {
+                "curl -fsSL https://raw.githubusercontent.com/continuedev/continue/main/extensions/cli/scripts/install.sh | bash".to_string()
+            },
             update_command: "npm install -g @continuedev/cli@latest".to_string(),
             uninstall_command: "npm uninstall -g @continuedev/cli".to_string(),
-            docs_url: "https://docs.continue.dev/cli/install".to_string(),
+            docs_url: "https://docs.continue.dev/cli/quickstart".to_string(),
             config_paths: find_config_files("continue"),
         }),
         check_tool(AiCliTool {
@@ -145,13 +157,35 @@ pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
             config_paths: find_config_files("cody"),
         }),
         check_tool(AiCliTool {
+            id: "kiro".to_string(),
+            name: "Kiro CLI".to_string(),
+            description: "AWS Kiro AI coding agent (successor to Amazon Q Developer CLI)"
+                .to_string(),
+            installed: false,
+            version: None,
+            install_command: if cfg!(target_os = "windows") {
+                "Download Kiro from https://kiro.dev/downloads/ . Kiro CLI currently supports macOS and Linux; use WSL if needed.".to_string()
+            } else {
+                "curl -fsSL https://cli.kiro.dev/install | bash".to_string()
+            },
+            update_command: if cfg!(target_os = "windows") {
+                "Manual update required".to_string()
+            } else {
+                "curl -fsSL https://cli.kiro.dev/install | bash".to_string()
+            },
+            uninstall_command: "Manual uninstall required".to_string(),
+            docs_url: "https://kiro.dev/docs/cli/installation/".to_string(),
+            config_paths: find_config_files("kiro"),
+        }),
+        check_tool(AiCliTool {
             id: "cursor".to_string(),
             name: "Cursor CLI".to_string(),
             description: "Cursor AI editor command line interface".to_string(),
             installed: false,
             version: None,
             install_command: if cfg!(target_os = "windows") {
-                "powershell -ExecutionPolicy ByPass -c \"irm https://cursor.com/install | iex\"".to_string()
+                "powershell -ExecutionPolicy ByPass -c \"irm https://cursor.com/install | iex\""
+                    .to_string()
             } else {
                 "curl https://cursor.com/install -fsS | bash".to_string()
             },
@@ -219,6 +253,11 @@ impl ConfigDiscovery {
                 directories: vec![".sourcegraph"],
                 single_files: vec![],
                 config_extensions: vec!["json"],
+            },
+            "kiro" => ConfigDiscovery {
+                directories: vec![".kiro"],
+                single_files: vec![],
+                config_extensions: vec!["json", "toml", "yaml", "yml"],
             },
             "cursor" => ConfigDiscovery {
                 directories: vec![".cursor"],
@@ -335,6 +374,15 @@ fn capitalize_tool_id(tool_id: &str) -> String {
     }
 }
 
+fn is_manual_action(command: &str) -> bool {
+    let normalized = command.trim().to_ascii_lowercase();
+    normalized.starts_with("download")
+        || normalized.starts_with("manual")
+        || normalized.starts_with("unsupported")
+        || normalized.starts_with("visit")
+        || normalized.starts_with("wsl required")
+}
+
 /// Check if a tool is installed and get its version
 fn check_tool(mut tool: AiCliTool) -> AiCliTool {
     let (cmd, args) = match tool.id.as_str() {
@@ -345,6 +393,7 @@ fn check_tool(mut tool: AiCliTool) -> AiCliTool {
         "aider" => ("aider", vec!["--version"]),
         "continue" => ("cn", vec!["--version"]),
         "cody" => ("cody", vec!["--version"]),
+        "kiro" => ("kiro-cli", vec!["--version"]),
         "cursor" => ("cursor-agent", vec!["--version"]),
         _ => return tool,
     };
@@ -356,6 +405,7 @@ fn check_tool(mut tool: AiCliTool) -> AiCliTool {
             .or_else(|| run_command_get_version("cursor", &["--version"])),
         "cody" => run_command_get_version(cmd, &args)
             .or_else(|| run_command_get_version("cody-agent", &["--version"])),
+        "kiro" => run_command_get_version(cmd, &args),
         _ => run_command_get_version(cmd, &args),
     };
 
@@ -408,7 +458,7 @@ pub fn install_ai_tool(tool_id: &str) -> Result<String, String> {
         .find(|t| t.id == tool_id)
         .ok_or_else(|| format!("Tool not found: {}", tool_id))?;
 
-    if tool.install_command.starts_with("Download") {
+    if is_manual_action(&tool.install_command) {
         return Err(format!(
             "{} requires manual installation. Visit: {}",
             tool.name, tool.docs_url
@@ -426,6 +476,13 @@ pub fn update_ai_tool(tool_id: &str) -> Result<String, String> {
         .find(|t| t.id == tool_id)
         .ok_or_else(|| format!("Tool not found: {}", tool_id))?;
 
+    if is_manual_action(&tool.update_command) {
+        return Err(format!(
+            "{} requires manual update. Visit: {}",
+            tool.name, tool.docs_url
+        ));
+    }
+
     run_install_command(&tool.update_command)
 }
 
@@ -437,20 +494,36 @@ pub fn uninstall_ai_tool(tool_id: &str) -> Result<String, String> {
         .find(|t| t.id == tool_id)
         .ok_or_else(|| format!("Tool not found: {}", tool_id))?;
 
-    if tool.uninstall_command.contains("Manual") {
-        return Err(format!("{} requires manual uninstallation", tool.name));
+    if is_manual_action(&tool.uninstall_command) {
+        return Err(format!(
+            "{} requires manual uninstallation. Visit: {}",
+            tool.name, tool.docs_url
+        ));
     }
 
     run_install_command(&tool.uninstall_command)
 }
 
-/// Run an installation command
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recognizes_manual_actions() {
+        assert!(is_manual_action("Download from vendor site"));
+        assert!(is_manual_action("Manual uninstall required"));
+        assert!(is_manual_action("Unsupported on this platform"));
+        assert!(!is_manual_action("npm install -g @openai/codex"));
+    }
+}
+
+/// Run an installation/update/uninstall command (with 300s timeout)
 fn run_install_command(command: &str) -> Result<String, String> {
     #[cfg(target_os = "windows")]
-    let output = command_no_window("cmd").args(["/C", command]).output();
+    let output = command_output_with_timeout("cmd", &["/C", command], Duration::from_secs(300));
 
     #[cfg(not(target_os = "windows"))]
-    let output = command_no_window("sh").args(["-c", command]).output();
+    let output = command_output_with_timeout("sh", &["-c", command], Duration::from_secs(300));
 
     match output {
         Ok(out) => {

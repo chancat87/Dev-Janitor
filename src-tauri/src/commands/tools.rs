@@ -2,8 +2,9 @@
 
 use crate::detection::{scan_all_tools, ToolInfo};
 
-use crate::utils::command::command_no_window;
 use crate::ai_cli;
+use crate::utils::command::command_output_with_timeout;
+use std::time::Duration;
 
 /// Scan for all development tools
 #[tauri::command]
@@ -20,17 +21,22 @@ pub fn get_tool_info(#[allow(non_snake_case)] toolId: String) -> Option<ToolInfo
 
 /// Uninstall a tool
 #[tauri::command]
-pub fn uninstall_tool(#[allow(non_snake_case)] toolId: String, path: String) -> Result<String, String> {
+pub fn uninstall_tool(
+    #[allow(non_snake_case)] toolId: String,
+    path: String,
+) -> Result<String, String> {
     // Get uninstall command based on tool type
     let uninstall_result = match toolId.as_str() {
         // Package managers installed via npm
         "pnpm" | "yarn" => run_command("npm", &["uninstall", "-g", &toolId]),
 
         // Python tools
-        "pip" | "pipx" | "poetry" | "uv" => {
-            // pipx-installed tools
-            run_command("pipx", &["uninstall", &toolId])
-        }
+        "pipx" => run_command("python3", &["-m", "pip", "uninstall", "-y", "pipx"]),
+        "poetry" => run_command("pipx", &["uninstall", "poetry"])
+            .or_else(|_| run_command("pip", &["uninstall", "-y", "poetry"])),
+        "uv" => run_command("pipx", &["uninstall", "uv"])
+            .or_else(|_| run_command("pip", &["uninstall", "-y", "uv"])),
+        "pip" => Err("pip is part of Python and should not be uninstalled separately".to_string()),
 
         // Rust tools
         "cargo" | "rustup" => Err(
@@ -65,9 +71,7 @@ pub fn uninstall_tool(#[allow(non_snake_case)] toolId: String, path: String) -> 
         }
 
         // AI CLI tools - defer to dedicated module (handles latest install methods)
-        "codex" | "claude" | "gemini" | "opencode" => {
-            ai_cli::uninstall_ai_tool(&toolId)
-        }
+        "codex" | "claude" | "gemini" | "opencode" => ai_cli::uninstall_ai_tool(&toolId),
         // AI CLI tool (npm-based)
         "iflow" => run_command("npm", &["uninstall", "-g", "@iflow-ai/iflow-cli"]),
 
@@ -120,7 +124,7 @@ pub fn uninstall_tool(#[allow(non_snake_case)] toolId: String, path: String) -> 
     uninstall_result
 }
 
-/// Run a command and return result
+/// Run a command and return result (with 120s timeout)
 fn run_command(cmd: &str, args: &[&str]) -> Result<String, String> {
     #[cfg(target_os = "windows")]
     let output = {
@@ -131,11 +135,11 @@ fn run_command(cmd: &str, args: &[&str]) -> Result<String, String> {
             full.push_str(&args.join(" "));
         }
         let cmd_args = ["/C", full.as_str()];
-        command_no_window("cmd").args(cmd_args).output()
+        command_output_with_timeout("cmd", &cmd_args, Duration::from_secs(120))
     };
 
     #[cfg(not(target_os = "windows"))]
-    let output = command_no_window(cmd).args(args).output();
+    let output = command_output_with_timeout(cmd, args, Duration::from_secs(120));
 
     match output {
         Ok(output) => {

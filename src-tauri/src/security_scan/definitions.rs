@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 /// Risk level classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RiskLevel {
-    Critical,  // Immediate action required - exposed API keys, RCE risk
-    High,      // Serious issue - exposed admin interface, auth bypass
-    Medium,    // Should fix - insecure default config
-    Low,       // Informational - best practice recommendation
+    Critical, // Immediate action required - exposed API keys, RCE risk
+    High,     // Serious issue - exposed admin interface, auth bypass
+    Medium,   // Should fix - insecure default config
+    Low,      // Informational - best practice recommendation
 }
 
 impl RiskLevel {
@@ -40,11 +40,20 @@ pub enum ConfigCheckType {
     /// Check if file exists (presence = bad)
     FileExists { path_pattern: String },
     /// Check if file contains a pattern
-    FileContains { path_pattern: String, pattern: String },
+    FileContains {
+        path_pattern: String,
+        pattern: String,
+    },
     /// Check if file does NOT contain expected secure pattern
-    FileMissing { path_pattern: String, pattern: String },
+    FileMissing {
+        path_pattern: String,
+        pattern: String,
+    },
     /// Check environment variable
-    EnvVar { name: String, insecure_value: Option<String> },
+    EnvVar {
+        name: String,
+        insecure_value: Option<String>,
+    },
 }
 
 /// Port exposure rule
@@ -179,7 +188,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                 ".config/clawdbot/".into(),
             ],
         },
-        
+
         // =====================================
         // OpenCode - Terminal AI coding assistant
         // CVE-2026-22812: Unauthenticated HTTP server with wildcard CORS
@@ -230,7 +239,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                 ".config/opencode/".into(),
             ],
         },
-        
+
         // =====================================
         // Aider - AI pair programming
         // =====================================
@@ -266,7 +275,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                 ".aider/".into(),
             ],
         },
-        
+
         // =====================================
         // Claude Code (claude-code) - Anthropic official CLI
         // =====================================
@@ -290,7 +299,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                 ".claude/".into(),
             ],
         },
-        
+
         // =====================================
         // Codex CLI - OpenAI
         // =====================================
@@ -318,7 +327,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                 ".config/codex/".into(),
             ],
         },
-        
+
         // =====================================
         // Continue.dev - VS Code AI extension with local server
         // =====================================
@@ -342,7 +351,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                 ".continue/".into(),
             ],
         },
-        
+
         // =====================================
         // Cursor - AI-powered code editor
         // Supply chain attack via .vscode/tasks.json (Jan 2026)
@@ -379,7 +388,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                 ".vscode/".into(),
             ],
         },
-        
+
         // =====================================
         // Windsurf - AI coding assistant
         // =====================================
@@ -403,7 +412,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                 ".windsurf/".into(),
             ],
         },
-        
+
         // =====================================
         // MCP Servers - Model Context Protocol
         // 66% of MCP servers have credential leakage (Jan 2026)
@@ -447,7 +456,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                 ".config/mcp/".into(),
             ],
         },
-        
+
         // =====================================
         // Gemini CLI - Google AI
         // =====================================
@@ -485,10 +494,7 @@ pub fn ai_tool_security_rules() -> &'static Vec<AiToolSecurityRule> {
     RULES.get_or_init(get_ai_tool_rules)
 }
 
-/// Alias for backward compatibility
-pub static AI_TOOL_SECURITY_RULES: &[AiToolSecurityRule] = &[];
-
-/// Get the actual rules (use this instead of the static)
+/// Get the actual rules
 pub fn get_rules() -> &'static Vec<AiToolSecurityRule> {
     ai_tool_security_rules()
 }

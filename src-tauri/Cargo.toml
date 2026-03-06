@@ -1,11 +1,11 @@
 [package]
 name = "dev-janitor-v2"
-version = "2.2.9"
+version = "2.3.1"
 description = "Developer environment cleanup and management tool"
 authors = ["Dev Janitor Team"]
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/YOUR_USERNAME/dev-janitor"
+repository = "https://github.com/cocojojo5213/Dev-Janitor"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -35,7 +35,7 @@ tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["json"] }
 
 # System info & process monitoring
-sysinfo = "0.33"
+sysinfo = "0.38"
 
 # File system operations
 walkdir = "2"
@@ -80,4 +80,3 @@ opt-level = "s"
 codegen-units = 1
 # Abort on panic (smaller than unwinding)
 panic = "abort"
-
