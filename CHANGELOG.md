@@ -7,6 +7,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [Semantic Ver
 
 ---
 
+## [2.3.3] - 2026-03-07
+
+### Release Fix | 发布修复
+
+- Align `@tauri-apps/plugin-updater` with the Rust updater crate on `2.9.x` so Tauri's release build passes package version checks on macOS CI.  
+  将 `@tauri-apps/plugin-updater` 与 Rust 侧 updater crate 对齐到 `2.9.x`，修复 macOS CI 中 Tauri 版本检查导致的发布失败。
+
+---
+
 ## [2.3.2] - 2026-03-07
 
 ### Updater Fix | 自动更新修复
