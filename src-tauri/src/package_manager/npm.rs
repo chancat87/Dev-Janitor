@@ -110,20 +110,6 @@ impl PackageManager for NpmManager {
 }
 
 fn run_npm_command(args: &[&str]) -> Option<String> {
-    // On Windows, npm is a .cmd file, so we need to run it via cmd /C
-    #[cfg(target_os = "windows")]
-    let output = {
-        let npm_args = std::iter::once("npm")
-            .chain(args.iter().copied())
-            .collect::<Vec<_>>()
-            .join(" ");
-        {
-            let cmd_args = ["/C", npm_args.as_str()];
-            command_output_with_timeout("cmd", &cmd_args, Duration::from_secs(30)).ok()?
-        }
-    };
-
-    #[cfg(not(target_os = "windows"))]
     let output = command_output_with_timeout("npm", args, Duration::from_secs(30)).ok()?;
 
     if output.status.success() {

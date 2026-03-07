@@ -1,7 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { scanAiJunk, deleteAiJunk, deleteMultipleAiJunk, AiJunkFile } from '../../ipc/commands';
 import { useAppStore } from '../../store';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
+
+type PendingAiCleanupDeleteAction =
+    | { kind: 'selected'; paths: string[]; count: number }
+    | { kind: 'single'; file: AiJunkFile };
 
 export function AiCleanupView() {
     const { t } = useTranslation();
@@ -23,22 +28,25 @@ export function AiCleanupView() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [pendingDelete, setPendingDelete] = useState<PendingAiCleanupDeleteAction | null>(null);
 
     // Convert array to Set for easier manipulation
-    const selectedFiles = new Set(selectedFilesArray);
-    const setSelectedFiles = (newSet: Set<string>) => {
+    const selectedFiles = useMemo(() => new Set(selectedFilesArray), [selectedFilesArray]);
+    const setSelectedFiles = useCallback((newSet: Set<string>) => {
         setSelectedFilesArray([...newSet]);
-    };
+    }, [setSelectedFilesArray]);
 
-    const handleScan = useCallback(async () => {
+    const scanJunkFiles = useCallback(async ({ preserveMessages = false }: { preserveMessages?: boolean } = {}) => {
         if (!scanPath.trim()) {
             setError(t('ai_cleanup.error_no_path'));
             return;
         }
 
         setIsScanning(true);
-        setError(null);
-        setSuccess(null);
+        if (!preserveMessages) {
+            setError(null);
+            setSuccess(null);
+        }
         setSelectedFiles(new Set());
 
         try {
@@ -53,6 +61,10 @@ export function AiCleanupView() {
             setIsScanning(false);
         }
     }, [scanPath, scanDepth, t, setJunkFiles]);
+
+    const handleScan = useCallback(() => {
+        void scanJunkFiles();
+    }, [scanJunkFiles]);
 
     const toggleFileSelection = (path: string) => {
         const newSelected = new Set(selectedFiles);
@@ -78,31 +90,53 @@ export function AiCleanupView() {
             return;
         }
 
-        if (!confirm(t('ai_cleanup.confirm_delete', { count: selectedFiles.size }))) {
+        setPendingDelete({
+            kind: 'selected',
+            paths: [...selectedFiles],
+            count: selectedFiles.size,
+        });
+    };
+
+    const handleDeleteSingle = (file: AiJunkFile) => {
+        setPendingDelete({ kind: 'single', file });
+    };
+
+    const confirmDelete = async () => {
+        if (!pendingDelete) {
             return;
         }
 
+        const action = pendingDelete;
+        setPendingDelete(null);
         setIsDeleting(true);
         setError(null);
         setSuccess(null);
 
         try {
-            const results = await deleteMultipleAiJunk([...selectedFiles]);
-            const successCount = results.filter(r => r.Ok).length;
-            const failCount = results.filter(r => r.Err).length;
+            if (action.kind === 'selected') {
+                const results = await deleteMultipleAiJunk(action.paths);
+                const successCount = results.filter(r => r.Ok).length;
+                const failCount = results.filter(r => r.Err).length;
 
-            if (failCount > 0) {
-                const errors = results.filter(r => r.Err).map(r => r.Err).slice(0, 3).join('\n');
-                setError(t('ai_cleanup.partial_failed', { count: failCount, errors }));
-            }
+                if (failCount > 0) {
+                    const errors = results.filter(r => r.Err).map(r => r.Err).slice(0, 3).join('\n');
+                    setError(t('ai_cleanup.partial_failed', { count: failCount, errors }));
+                }
 
-            if (successCount > 0) {
-                setSuccess(t('ai_cleanup.success_deleted', { count: successCount }));
+                if (successCount > 0) {
+                    setSuccess(t('ai_cleanup.success_deleted', { count: successCount }));
+                }
+            } else {
+                await deleteAiJunk(action.file.path);
+                setSuccess(t('ai_cleanup.success_deleted_single', {
+                    name: action.file.name,
+                    size: action.file.size_display,
+                }));
             }
 
             // Refresh
             setSelectedFiles(new Set());
-            await handleScan();
+            await scanJunkFiles({ preserveMessages: true });
         } catch (e) {
             setError(String(e));
         } finally {
@@ -110,41 +144,34 @@ export function AiCleanupView() {
         }
     };
 
-    const handleDeleteSingle = async (file: AiJunkFile) => {
-        if (!confirm(t('ai_cleanup.confirm_delete_single', { name: file.name }))) {
-            return;
+    const { filteredFiles, typeStats, totalSize, selectedSize } = useMemo(() => {
+        const nextFilteredFiles: AiJunkFile[] = [];
+        const nextTypeStats: Record<string, number> = {};
+        let nextTotalSize = 0;
+        let nextSelectedSize = 0;
+
+        for (const file of junkFiles) {
+            nextTypeStats[file.junk_type] = (nextTypeStats[file.junk_type] || 0) + 1;
+
+            if (filterType !== 'all' && file.junk_type !== filterType) {
+                continue;
+            }
+
+            nextFilteredFiles.push(file);
+            nextTotalSize += file.size;
+
+            if (selectedFiles.has(file.path)) {
+                nextSelectedSize += file.size;
+            }
         }
 
-        setIsDeleting(true);
-        setError(null);
-
-        try {
-            await deleteAiJunk(file.path);
-            setSuccess(t('ai_cleanup.success_deleted_single', { name: file.name, size: file.size_display }));
-            await handleScan();
-        } catch (e) {
-            setError(String(e));
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
-    // Filter files
-    const filteredFiles = junkFiles.filter(f => {
-        if (filterType === 'all') return true;
-        return f.junk_type === filterType;
-    });
-
-    // Group by type
-    const typeStats = junkFiles.reduce((acc, f) => {
-        acc[f.junk_type] = (acc[f.junk_type] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
-
-    const totalSize = filteredFiles.reduce((sum, f) => sum + f.size, 0);
-    const selectedSize = filteredFiles
-        .filter(f => selectedFiles.has(f.path))
-        .reduce((sum, f) => sum + f.size, 0);
+        return {
+            filteredFiles: nextFilteredFiles,
+            typeStats: nextTypeStats,
+            totalSize: nextTotalSize,
+            selectedSize: nextSelectedSize,
+        };
+    }, [junkFiles, filterType, selectedFiles]);
 
     const formatSize = (bytes: number): string => {
         const KB = 1024;
@@ -156,13 +183,13 @@ export function AiCleanupView() {
         return `${bytes} B`;
     };
 
-    const typeLabels: Record<string, string> = {
+    const typeLabels = useMemo<Record<string, string>>(() => ({
         ai_tool: t('ai_cleanup.type_ai_tool'),
         temp_file: t('ai_cleanup.type_temp_file'),
         anomalous: t('ai_cleanup.type_anomalous'),
-    };
+    }), [t]);
 
-    const reasonDetails: Record<string, string> = {
+    const reasonDetails = useMemo<Record<string, string>>(() => ({
         'Aider AI assistant cache': t('ai_cleanup.reasons.aider_cache'),
         'Aider chat history': t('ai_cleanup.reasons.aider_chat_history'),
         'Aider input history': t('ai_cleanup.reasons.aider_input_history'),
@@ -196,14 +223,14 @@ export function AiCleanupView() {
         'Zero-byte file': t('ai_cleanup.reasons.zero_byte'),
         'Suspicious single-character name': t('ai_cleanup.reasons.suspicious_char'),
         'Name contains only special characters': t('ai_cleanup.reasons.special_chars'),
-    };
+    }), [t]);
 
-    const reasonPrefixes: Record<string, string> = {
+    const reasonPrefixes = useMemo<Record<string, string>>(() => ({
         'AI Tool': t('ai_cleanup.reason_prefix_ai_tool'),
         'Temp': t('ai_cleanup.reason_prefix_temp'),
-    };
+    }), [t]);
 
-    const translateReason = (reason: string) => {
+    const translateReason = useCallback((reason: string) => {
         const match = reason.match(/^(AI Tool|Temp):\s*(.+?)\s*-\s*(.+)$/);
         if (match) {
             const [, prefix, pattern, detail] = match;
@@ -213,21 +240,21 @@ export function AiCleanupView() {
         }
 
         return reasonDetails[reason] || reason;
-    };
+    }, [reasonDetails, reasonPrefixes]);
 
     return (
-        <div className="view-container">
+        <div className="view-container ai-cleanup-view">
             <div className="view-header">
                 <div>
                     <p className="text-secondary">{t('ai_cleanup.description')}</p>
                     {junkFiles.length > 0 && (
-                        <p className="text-tertiary" style={{ marginTop: 4 }}>
+                        <p className="text-tertiary mt-4">
                             {t('ai_cleanup.found_summary', {
                                 count: junkFiles.length,
                                 size: formatSize(totalSize),
                             })}
                             {selectedFiles.size > 0 && (
-                                <span className="badge badge-primary" style={{ marginLeft: 8 }}>
+                                <span className="badge badge-primary ml-8">
                                     {t('ai_cleanup.selected_summary', {
                                         count: selectedFiles.size,
                                         size: formatSize(selectedSize),
@@ -244,7 +271,7 @@ export function AiCleanupView() {
                         disabled={isDeleting}
                     >
                         {isDeleting ? (
-                            <span className="spinner" style={{ width: 14, height: 14 }} />
+                            <span className="spinner spinner-sm" />
                         ) : (
                             t('ai_cleanup.delete_selected')
                         )}
@@ -279,7 +306,7 @@ export function AiCleanupView() {
                     >
                         {isScanning ? (
                             <>
-                                <span className="spinner" style={{ width: 14, height: 14 }} />
+                                <span className="spinner spinner-sm" />
                                 {t('ai_cleanup.scanning')}
                             </>
                         ) : (
@@ -339,12 +366,12 @@ export function AiCleanupView() {
                         <table className="table">
                             <thead>
                                 <tr>
-                                    <th style={{ width: '5%' }}></th>
-                                    <th style={{ width: '20%' }}>{t('ai_cleanup.filename')}</th>
-                                    <th style={{ width: '35%' }}>{t('ai_cleanup.path')}</th>
-                                    <th style={{ width: '10%' }}>{t('ai_cleanup.size')}</th>
-                                    <th style={{ width: '20%' }}>{t('ai_cleanup.reason')}</th>
-                                    <th style={{ width: '10%' }}>{t('tools.actions')}</th>
+                                    <th className="col-w-5"></th>
+                                    <th className="col-w-20">{t('ai_cleanup.filename')}</th>
+                                    <th className="col-w-35">{t('ai_cleanup.path')}</th>
+                                    <th className="col-w-10">{t('ai_cleanup.size')}</th>
+                                    <th className="col-w-20">{t('ai_cleanup.reason')}</th>
+                                    <th className="col-w-10">{t('tools.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -383,135 +410,20 @@ export function AiCleanupView() {
                 </div>
             )}
 
-            <style>{`
-        .view-container {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .view-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-        .scan-controls {
-          padding: var(--spacing-md);
-        }
-        .scan-row {
-          display: flex;
-          gap: var(--spacing-md);
-          align-items: center;
-          flex-wrap: wrap;
-        }
-        .path-input {
-          flex: 1;
-          min-width: 300px;
-          padding: var(--spacing-sm) var(--spacing-md);
-          border: 1px solid var(--color-border);
-          border-radius: var(--border-radius-sm);
-          background: var(--color-bg-primary);
-          color: var(--color-text-primary);
-          font-size: var(--font-size-sm);
-        }
-        .depth-select {
-          padding: var(--spacing-sm) var(--spacing-md);
-          border: 1px solid var(--color-border);
-          border-radius: var(--border-radius-sm);
-          background: var(--color-bg-primary);
-          color: var(--color-text-primary);
-        }
-        .filter-bar {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: var(--spacing-md);
-        }
-        .filter-buttons {
-          display: flex;
-          gap: var(--spacing-xs);
-          flex-wrap: wrap;
-        }
-        .filter-btn {
-          padding: var(--spacing-xs) var(--spacing-md);
-          border: 1px solid var(--color-border);
-          border-radius: var(--border-radius-sm);
-          background: var(--color-bg-secondary);
-          color: var(--color-text-secondary);
-          cursor: pointer;
-          font-size: var(--font-size-sm);
-        }
-        .filter-btn.active {
-          background: var(--color-primary);
-          color: white;
-          border-color: var(--color-primary);
-        }
-        .select-actions {
-          display: flex;
-          gap: var(--spacing-sm);
-        }
-        .path-cell {
-          font-family: 'Consolas', 'Monaco', monospace;
-          font-size: 11px;
-          color: var(--color-text-secondary);
-          max-width: 300px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .size-cell {
-          font-weight: 600;
-          color: var(--color-warning);
-        }
-        .reason-cell {
-          font-size: 12px;
-          color: var(--color-text-tertiary);
-        }
-        .type-badge {
-          display: inline-block;
-          margin-left: 8px;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-size: 10px;
-          text-transform: uppercase;
-        }
-        .type-badge.ai_tool {
-          background: rgba(114, 46, 209, 0.2);
-          color: #722ed1;
-        }
-        .type-badge.temp_file {
-          background: rgba(250, 173, 20, 0.2);
-          color: #faad14;
-        }
-        .type-badge.anomalous {
-          background: rgba(255, 77, 79, 0.2);
-          color: #ff4d4f;
-        }
-        .selected-row {
-          background: rgba(24, 144, 255, 0.1) !important;
-        }
-        .btn-small {
-          padding: 4px 8px;
-          font-size: 12px;
-        }
-        .btn-danger {
-          background: var(--color-danger);
-          color: white;
-        }
-        .message-card {
-          padding: var(--spacing-md);
-        }
-        .error-card {
-          border-color: var(--color-danger);
-          background-color: rgba(255, 77, 79, 0.1);
-          color: var(--color-danger);
-        }
-        .success-card {
-          border-color: var(--color-success);
-          background-color: rgba(82, 196, 26, 0.1);
-          color: var(--color-success);
-        }
-      `}</style>
+            <ConfirmDialog
+                open={pendingDelete !== null}
+                title={pendingDelete?.kind === 'single'
+                    ? t('ai_cleanup.confirm_delete_single_title', { defaultValue: 'Delete File' })
+                    : t('ai_cleanup.confirm_delete_title', { defaultValue: 'Delete Files' })}
+                description={pendingDelete
+                    ? pendingDelete.kind === 'single'
+                        ? t('ai_cleanup.confirm_delete_single', { name: pendingDelete.file.name })
+                        : t('ai_cleanup.confirm_delete', { count: pendingDelete.count })
+                    : ''}
+                danger
+                onConfirm={confirmDelete}
+                onCancel={() => setPendingDelete(null)}
+            />
         </div>
     );
 }

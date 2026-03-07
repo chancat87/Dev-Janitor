@@ -8,6 +8,7 @@ pub mod homebrew;
 pub mod npm;
 pub mod pip;
 
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Represents a global package from any package manager
@@ -42,39 +43,53 @@ pub trait PackageManager {
     fn uninstall_package(&self, name: &str) -> Result<String, String>;
 }
 
+type PackageScanFn = fn() -> Vec<PackageInfo>;
+
+fn scan_npm_packages() -> Vec<PackageInfo> {
+    npm::NpmManager::new().map_or_else(Vec::new, |manager| manager.list_packages())
+}
+
+fn scan_pip_packages() -> Vec<PackageInfo> {
+    pip::PipManager::new().map_or_else(Vec::new, |manager| manager.list_packages())
+}
+
+fn scan_cargo_packages() -> Vec<PackageInfo> {
+    cargo::CargoManager::new().map_or_else(Vec::new, |manager| manager.list_packages())
+}
+
+fn scan_composer_packages() -> Vec<PackageInfo> {
+    composer::ComposerManager::new().map_or_else(Vec::new, |manager| manager.list_packages())
+}
+
+fn scan_homebrew_packages() -> Vec<PackageInfo> {
+    homebrew::HomebrewManager::new().map_or_else(Vec::new, |manager| manager.list_packages())
+}
+
+fn scan_conda_packages() -> Vec<PackageInfo> {
+    conda::CondaManager::new().map_or_else(Vec::new, |manager| manager.list_packages())
+}
+
 /// Scan all available package managers and list their packages
 pub fn scan_all_packages() -> Vec<PackageInfo> {
-    let mut all_packages = Vec::new();
+    let package_scanners: [PackageScanFn; 6] = [
+        scan_npm_packages,
+        scan_pip_packages,
+        scan_cargo_packages,
+        scan_composer_packages,
+        scan_homebrew_packages,
+        scan_conda_packages,
+    ];
 
-    // npm
-    if let Some(packages) = npm::NpmManager::new().map(|m| m.list_packages()) {
-        all_packages.extend(packages);
-    }
+    let mut all_packages: Vec<PackageInfo> = package_scanners
+        .par_iter()
+        .flat_map(|scan| scan())
+        .collect();
 
-    // pip
-    if let Some(packages) = pip::PipManager::new().map(|m| m.list_packages()) {
-        all_packages.extend(packages);
-    }
-
-    // Cargo
-    if let Some(packages) = cargo::CargoManager::new().map(|m| m.list_packages()) {
-        all_packages.extend(packages);
-    }
-
-    // Composer
-    if let Some(packages) = composer::ComposerManager::new().map(|m| m.list_packages()) {
-        all_packages.extend(packages);
-    }
-
-    // Homebrew (macOS and Linux)
-    if let Some(packages) = homebrew::HomebrewManager::new().map(|m| m.list_packages()) {
-        all_packages.extend(packages);
-    }
-
-    // Conda
-    if let Some(packages) = conda::CondaManager::new().map(|m| m.list_packages()) {
-        all_packages.extend(packages);
-    }
+    all_packages.sort_by(|left, right| {
+        left.manager
+            .cmp(&right.manager)
+            .then_with(|| left.name.cmp(&right.name))
+    });
 
     all_packages
 }

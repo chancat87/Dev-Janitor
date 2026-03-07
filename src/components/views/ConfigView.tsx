@@ -31,19 +31,15 @@ export function ConfigView() {
 
     const existingShellConfigs = diagnosis?.shell_configs.filter(c => c.exists) || [];
 
-    const severityColors: Record<string, string> = {
-        error: '#ff4d4f',
-        warning: '#faad14',
-        info: '#1890ff',
-    };
+    const getSeverityClass = (severity: string) => `severity-${severity}`;
 
     return (
-        <div className="view-container">
+        <div className="view-container config-view">
             <div className="view-header">
                 <div>
                     <p className="text-secondary">{t('config.description')}</p>
                     {diagnosis && (
-                        <p className="text-tertiary" style={{ marginTop: 4 }}>
+                        <p className="text-tertiary mt-4">
                             {t('config.summary', {
                                 paths: diagnosis.path_entries.length,
                                 configs: existingShellConfigs.length,
@@ -58,7 +54,7 @@ export function ConfigView() {
                 >
                     {isLoading ? (
                         <>
-                            <span className="spinner" style={{ width: 14, height: 14 }} />
+                            <span className="spinner spinner-sm" />
                             {t('config.diagnosing')}
                         </>
                     ) : (
@@ -123,11 +119,11 @@ export function ConfigView() {
                             <table className="table">
                                 <thead>
                                     <tr>
-                                        <th style={{ width: '5%' }}>{t('config.table_index')}</th>
-                                        <th style={{ width: '45%' }}>{t('config.table_path')}</th>
-                                        <th style={{ width: '15%' }}>{t('config.table_category')}</th>
-                                        <th style={{ width: '10%' }}>{t('config.table_exists')}</th>
-                                        <th style={{ width: '25%' }}>{t('config.table_issues')}</th>
+                                        <th className="col-w-5">{t('config.table_index')}</th>
+                                        <th className="col-w-45">{t('config.table_path')}</th>
+                                        <th className="col-w-15">{t('config.table_category')}</th>
+                                        <th className="col-w-10">{t('config.table_exists')}</th>
+                                        <th className="col-w-25">{t('config.table_issues')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -217,10 +213,7 @@ export function ConfigView() {
                                     <div className="issues-list">
                                         {diagnosis.issues.map((issue, idx) => (
                                             <div key={idx} className="issue-item">
-                                                <span
-                                                    className="severity-badge"
-                                                    style={{ backgroundColor: severityColors[issue.severity] }}
-                                                >
+                                                <span className={`severity-badge ${getSeverityClass(issue.severity)}`}>
                                                     {issue.severity}
                                                 </span>
                                                 <div className="issue-content">
@@ -252,218 +245,6 @@ export function ConfigView() {
                     )}
                 </div>
             )}
-
-            <style>{`
-        .view-container {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .view-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-        .tabs {
-          display: flex;
-          border-bottom: 1px solid var(--color-border);
-        }
-        .tab {
-          padding: var(--spacing-sm) var(--spacing-lg);
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          font-size: var(--font-size-sm);
-          color: var(--color-text-secondary);
-          border-bottom: 2px solid transparent;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .tab:hover {
-          color: var(--color-primary);
-        }
-        .tab.active {
-          color: var(--color-primary);
-          border-bottom-color: var(--color-primary);
-        }
-        .tab-count {
-          background: var(--color-bg-tertiary);
-          padding: 2px 8px;
-          border-radius: 12px;
-          font-size: 11px;
-        }
-        .tab-count.warning {
-          background: rgba(250, 173, 20, 0.2);
-          color: #faad14;
-        }
-        .tab-content {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .filter-bar {
-          display: flex;
-          gap: var(--spacing-md);
-        }
-        .filter-checkbox {
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-xs);
-          font-size: var(--font-size-sm);
-          cursor: pointer;
-        }
-        .path-cell {
-          font-family: 'Consolas', monospace;
-          font-size: 12px;
-          max-width: 400px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .category-badge {
-          display: inline-block;
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-        }
-        .category-badge.dev {
-          background: rgba(82, 196, 26, 0.2);
-          color: #52c41a;
-        }
-        .category-badge.system {
-          background: var(--color-bg-tertiary);
-          color: var(--color-text-tertiary);
-        }
-        .status-ok {
-          color: #52c41a;
-          font-weight: bold;
-        }
-        .status-error {
-          color: #ff4d4f;
-          font-weight: bold;
-        }
-        .issue-row {
-          background: rgba(250, 173, 20, 0.05) !important;
-        }
-        .issue-text {
-          font-size: 11px;
-          color: #faad14;
-        }
-        .shell-configs {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .shell-config {
-          padding: var(--spacing-md);
-        }
-        .config-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: var(--spacing-md);
-        }
-        .config-header h4 {
-          margin: 0;
-          color: var(--color-primary);
-        }
-        .config-path {
-          font-family: 'Consolas', monospace;
-          font-size: 11px;
-          color: var(--color-text-tertiary);
-        }
-        .exports-section h5 {
-          margin: 0 0 8px 0;
-          font-size: var(--font-size-sm);
-          color: var(--color-text-secondary);
-        }
-        .exports-code {
-          background: var(--color-bg-tertiary);
-          padding: var(--spacing-sm);
-          border-radius: var(--border-radius-sm);
-          font-family: 'Consolas', monospace;
-          font-size: 11px;
-          overflow-x: auto;
-          margin: 0;
-        }
-        .config-issues {
-          margin-top: var(--spacing-sm);
-          display: flex;
-          flex-wrap: wrap;
-          gap: var(--spacing-xs);
-        }
-        .issue-badge {
-          background: rgba(250, 173, 20, 0.2);
-          color: #faad14;
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-        }
-        .section-title {
-          margin: 0 0 var(--spacing-md) 0;
-          font-size: var(--font-size-md);
-        }
-        .issues-list {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .issue-item {
-          display: flex;
-          gap: var(--spacing-md);
-          padding: var(--spacing-sm);
-          background: var(--color-bg-secondary);
-          border-radius: var(--border-radius-sm);
-        }
-        .severity-badge {
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          color: white;
-          text-transform: uppercase;
-          flex-shrink: 0;
-          height: fit-content;
-        }
-        .issue-content {
-          flex: 1;
-        }
-        .issue-category {
-          font-size: var(--font-size-sm);
-        }
-        .issue-message {
-          margin: 4px 0;
-          font-size: var(--font-size-sm);
-          color: var(--color-text-secondary);
-        }
-        .issue-suggestion {
-          margin: 4px 0 0 0;
-          font-size: 12px;
-          color: var(--color-text-tertiary);
-        }
-        .suggestions-list {
-          margin: 0;
-          padding-left: var(--spacing-lg);
-        }
-        .suggestions-list li {
-          margin-bottom: var(--spacing-sm);
-          color: var(--color-text-secondary);
-        }
-        .message-card {
-          padding: var(--spacing-md);
-        }
-        .error-card {
-          border-color: var(--color-danger);
-          background-color: rgba(255, 77, 79, 0.1);
-          color: var(--color-danger);
-        }
-        .success-card {
-          border-color: var(--color-success);
-          background-color: rgba(82, 196, 26, 0.1);
-          color: var(--color-success);
-        }
-      `}</style>
         </div>
     );
 }

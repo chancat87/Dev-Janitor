@@ -18,10 +18,12 @@ export function ToolsView() {
     const [expandedTool, setExpandedTool] = useState<string | null>(null);
     const [uninstallingTool, setUninstallingTool] = useState<string | null>(null);
 
-    const handleScan = useCallback(async () => {
+    const scanToolsData = useCallback(async ({ preserveMessages = false }: { preserveMessages?: boolean } = {}) => {
         setIsScanning(true);
-        setError(null);
-        setSuccess(null);
+        if (!preserveMessages) {
+            setError(null);
+            setSuccess(null);
+        }
 
         try {
             const detected = await scanTools();
@@ -32,6 +34,10 @@ export function ToolsView() {
             setIsScanning(false);
         }
     }, [setTools]);
+
+    const handleScan = useCallback(() => {
+        void scanToolsData();
+    }, [scanToolsData]);
 
     const [pendingUninstall, setPendingUninstall] = useState<{ id: string; name: string; path: string } | null>(null);
 
@@ -51,7 +57,7 @@ export function ToolsView() {
         try {
             await uninstallTool(id, path);
             setSuccess(t('tools.success_uninstall', { name }));
-            await handleScan();
+            await scanToolsData({ preserveMessages: true });
         } catch (e) {
             setError(String(e));
         } finally {
@@ -95,12 +101,12 @@ export function ToolsView() {
     };
 
     return (
-        <div className="view-container">
+        <div className="view-container tools-view">
             <div className="view-header">
                 <div>
                     <p className="text-secondary">{t('tools.description')}</p>
                     {tools.length > 0 && (
-                        <p className="text-tertiary" style={{ marginTop: 4 }}>
+                        <p className="text-tertiary mt-4">
                             {t('tools.total_found', { count: tools.length })}
                         </p>
                     )}
@@ -108,7 +114,7 @@ export function ToolsView() {
                 <button className="btn btn-primary" onClick={handleScan} disabled={isScanning}>
                     {isScanning ? (
                         <>
-                            <span className="spinner" style={{ width: 14, height: 14 }} />
+                            <span className="spinner spinner-sm" />
                             {t('tools.scanning')}
                         </>
                     ) : (
@@ -118,8 +124,8 @@ export function ToolsView() {
             </div>
 
             {copyFeedback && (
-                <div className="card message-card success-card" style={{ padding: '8px var(--spacing-md)' }}>
-                    <p style={{ margin: 0 }}>{t('tools.copied_path', { defaultValue: 'Copied!' })}</p>
+                <div className="card message-card success-card message-card-compact">
+                    <p className="m-0">{t('tools.copied_path', { defaultValue: 'Copied!' })}</p>
                 </div>
             )}
 
@@ -156,17 +162,21 @@ export function ToolsView() {
                                 <table className="table">
                                     <thead>
                                         <tr>
-                                            <th style={{ width: '25%' }}>{t('tools.name')}</th>
-                                            <th style={{ width: '20%' }}>{t('tools.version')}</th>
-                                            <th style={{ width: '30%' }}>{t('tools.path')}</th>
-                                            <th style={{ width: '10%' }}>{t('tools.status')}</th>
-                                            <th style={{ width: '15%' }}>{t('tools.actions')}</th>
+                                            <th className="col-w-25">{t('tools.name')}</th>
+                                            <th className="col-w-20">{t('tools.version')}</th>
+                                            <th className="col-w-30">{t('tools.path')}</th>
+                                            <th className="col-w-10">{t('tools.status')}</th>
+                                            <th className="col-w-15">{t('tools.actions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {categoryTools.map((tool) => (
                                             <Fragment key={tool.id}>
-                                                <tr key={tool.id} onClick={() => tool.versions.length > 1 && toggleExpand(tool.id)} style={{ cursor: tool.versions.length > 1 ? 'pointer' : 'default' }}>
+                                                <tr
+                                                    key={tool.id}
+                                                    className={`tool-row ${tool.versions.length > 1 ? 'is-expandable' : ''}`}
+                                                    onClick={() => tool.versions.length > 1 && toggleExpand(tool.id)}
+                                                >
                                                     <td>
                                                         <strong>{tool.name}</strong>
                                                         {tool.versions.length > 1 && (
@@ -182,7 +192,7 @@ export function ToolsView() {
                                                             tool.versions[0]?.version || '-'
                                                         )}
                                                     </td>
-                                                    <td className="path-cell" onClick={(e) => { e.stopPropagation(); copyPath(tool.versions[0]?.path || ''); }}>
+                                                    <td className="path-cell clickable-path" onClick={(e) => { e.stopPropagation(); copyPath(tool.versions[0]?.path || ''); }}>
                                                         {tool.versions[0]?.path || '-'}
                                                     </td>
                                                     <td>
@@ -197,7 +207,7 @@ export function ToolsView() {
                                                             disabled={uninstallingTool === tool.id}
                                                         >
                                                             {uninstallingTool === tool.id ? (
-                                                                <span className="spinner" style={{ width: 12, height: 12 }} />
+                                                                <span className="spinner spinner-xs" />
                                                             ) : (
                                                                 t('tools.uninstall')
                                                             )}
@@ -210,12 +220,12 @@ export function ToolsView() {
                                                         <td>
                                                             {ver.version}
                                                             {ver.is_active && (
-                                                                <span className="badge badge-success" style={{ marginLeft: 8 }}>
+                                                                <span className="badge badge-success ml-8">
                                                                     {t('tools.active')}
                                                                 </span>
                                                             )}
                                                         </td>
-                                                        <td className="path-cell" onClick={() => copyPath(ver.path)}>
+                                                        <td className="path-cell clickable-path" onClick={() => copyPath(ver.path)}>
                                                             {ver.path}
                                                         </td>
                                                         <td></td>
@@ -248,76 +258,6 @@ export function ToolsView() {
                 onConfirm={confirmUninstall}
                 onCancel={() => setPendingUninstall(null)}
             />
-
-            <style>{`
-        .view-container {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .view-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: var(--spacing-sm);
-        }
-        .tools-grid {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .tools-category {
-          padding: var(--spacing-md);
-        }
-        .category-title {
-          font-size: var(--font-size-md);
-          font-weight: 600;
-          margin-bottom: var(--spacing-md);
-          color: var(--color-primary);
-        }
-        .path-cell {
-          font-family: 'Consolas', 'Monaco', monospace;
-          font-size: 12px;
-          color: var(--color-text-secondary);
-          cursor: pointer;
-          max-width: 250px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .path-cell:hover {
-          color: var(--color-primary);
-        }
-        .expand-icon {
-          margin-left: 8px;
-          font-size: 10px;
-          color: var(--color-text-tertiary);
-        }
-        .version-row {
-          background-color: var(--color-bg-tertiary) !important;
-        }
-        .version-row td {
-          padding-left: var(--spacing-lg) !important;
-        }
-        .btn-small {
-          padding: 4px 8px;
-          font-size: 12px;
-        }
-        .message-card {
-          padding: var(--spacing-md);
-          margin-bottom: var(--spacing-sm);
-        }
-        .error-card {
-          border-color: var(--color-danger);
-          background-color: rgba(255, 77, 79, 0.1);
-          color: var(--color-danger);
-        }
-        .success-card {
-          border-color: var(--color-success);
-          background-color: rgba(82, 196, 26, 0.1);
-          color: var(--color-success);
-        }
-      `}</style>
         </div>
     );
 }

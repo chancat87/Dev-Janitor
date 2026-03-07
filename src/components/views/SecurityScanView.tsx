@@ -87,19 +87,14 @@ export function SecurityScanView() {
         }
     }, []);
 
-    const riskColors: Record<string, string> = {
-        Critical: '#ff4d4f',
-        High: '#fa8c16',
-        Medium: '#fadb14',
-        Low: '#1890ff',
-    };
-
     const riskEmojis: Record<string, string> = {
         Critical: '[C]',
         High: '[H]',
         Medium: '[M]',
         Low: '[L]',
     };
+
+    const getRiskClass = (level: string) => `risk-${level.toLowerCase()}`;
 
     // Translate risk level from backend (English) to current locale
     const translateRiskLevel = (level: string): string => {
@@ -112,12 +107,12 @@ export function SecurityScanView() {
     ) || [];
 
     return (
-        <div className="view-container">
+        <div className="view-container security-view">
             <div className="view-header">
                 <div>
                     <p className="text-secondary">{t('security.description')}</p>
                     {scanResult && (
-                        <p className="text-tertiary" style={{ marginTop: 4 }}>
+                        <p className="text-tertiary mt-4">
                             {t('security.last_scan')}: {scanResult.scan_time}
                         </p>
                     )}
@@ -162,7 +157,7 @@ export function SecurityScanView() {
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <span className="spinner" style={{ width: 14, height: 14 }} />
+                                <span className="spinner spinner-sm" />
                             ) : (
                                 t('security.scan_all')
                             )}
@@ -202,7 +197,7 @@ export function SecurityScanView() {
 
                     {/* Pre-scan guide */}
                     {!scanResult && !isLoading && (
-                        <div className="card" style={{ padding: 'var(--spacing-lg)', textAlign: 'center' }}>
+                        <div className="card card-centered">
                             <p className="text-secondary">{t('security.pre_scan_guide', { defaultValue: 'Click "Scan All" to check your AI tools for security issues.' })}</p>
                         </div>
                     )}
@@ -210,26 +205,26 @@ export function SecurityScanView() {
                     {/* Summary Cards */}
                     {scanResult && (
                         <div className="summary-grid">
-                            <div className="summary-card" style={{ borderColor: riskColors.Critical }}>
-                                <span className="summary-count" style={{ color: riskColors.Critical }}>
+                            <div className={`summary-card ${getRiskClass('Critical')}`}>
+                                <span className="summary-count">
                                     {scanResult.summary.critical}
                                 </span>
                                 <span className="summary-label">{t('security.risk_levels.critical')}</span>
                             </div>
-                            <div className="summary-card" style={{ borderColor: riskColors.High }}>
-                                <span className="summary-count" style={{ color: riskColors.High }}>
+                            <div className={`summary-card ${getRiskClass('High')}`}>
+                                <span className="summary-count">
                                     {scanResult.summary.high}
                                 </span>
                                 <span className="summary-label">{t('security.risk_levels.high')}</span>
                             </div>
-                            <div className="summary-card" style={{ borderColor: riskColors.Medium }}>
-                                <span className="summary-count" style={{ color: riskColors.Medium }}>
+                            <div className={`summary-card ${getRiskClass('Medium')}`}>
+                                <span className="summary-count">
                                     {scanResult.summary.medium}
                                 </span>
                                 <span className="summary-label">{t('security.risk_levels.medium')}</span>
                             </div>
-                            <div className="summary-card" style={{ borderColor: riskColors.Low }}>
-                                <span className="summary-count" style={{ color: riskColors.Low }}>
+                            <div className={`summary-card ${getRiskClass('Low')}`}>
+                                <span className="summary-count">
                                     {scanResult.summary.low}
                                 </span>
                                 <span className="summary-label">{t('security.risk_levels.low')}</span>
@@ -239,8 +234,8 @@ export function SecurityScanView() {
 
                     {/* No issues found */}
                     {scanResult && scanResult.findings.length === 0 && (
-                        <div className="card success-card" style={{ padding: 'var(--spacing-lg)', textAlign: 'center' }}>
-                            <span style={{ fontSize: 32 }}>OK</span>
+                        <div className="card success-card card-centered">
+                            <span className="security-ok">OK</span>
                             <h3>{t('security.no_issues')}</h3>
                             <p className="text-secondary">{t('security.no_issues_desc')}</p>
                         </div>
@@ -252,11 +247,10 @@ export function SecurityScanView() {
                             {filteredFindings.map((finding, idx) => (
                                 <div
                                     key={`${finding.tool_id}-${idx}`}
-                                    className="finding-card"
-                                    style={{ borderLeftColor: riskColors[finding.risk_level] }}
+                                    className={`finding-card ${getRiskClass(finding.risk_level)}`}
                                 >
                                     <div className="finding-header">
-                                        <span className="risk-badge" style={{ backgroundColor: riskColors[finding.risk_level] }}>
+                                        <span className={`risk-badge ${getRiskClass(finding.risk_level)}`}>
                                             {riskEmojis[finding.risk_level]} {translateRiskLevel(finding.risk_level)}
                                         </span>
                                         <span className="tool-name">{finding.tool_name}</span>
@@ -280,7 +274,7 @@ export function SecurityScanView() {
             {/* Tools Tab */}
             {activeTab === 'tools' && (
                 <div className="tab-content">
-                    <p className="text-secondary" style={{ marginBottom: 'var(--spacing-md)' }}>
+                    <p className="text-secondary mb-md">
                         {t('security.tools_description')}
                     </p>
                     <div className="tools-grid">
@@ -314,195 +308,6 @@ export function SecurityScanView() {
                     </div>
                 </div>
             )}
-
-            <style>{`
-        .view-container {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .view-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-        .tabs {
-          display: flex;
-          border-bottom: 1px solid var(--color-border);
-        }
-        .tab {
-          padding: var(--spacing-sm) var(--spacing-lg);
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          font-size: var(--font-size-sm);
-          color: var(--color-text-secondary);
-          border-bottom: 2px solid transparent;
-          transition: all 0.2s;
-        }
-        .tab:hover {
-          color: var(--color-primary);
-        }
-        .tab.active {
-          color: var(--color-primary);
-          border-bottom-color: var(--color-primary);
-        }
-        .tab-content {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .action-bar {
-          display: flex;
-          gap: var(--spacing-md);
-          align-items: center;
-        }
-        .filter-select {
-          padding: var(--spacing-sm) var(--spacing-md);
-          border: 1px solid var(--color-border);
-          border-radius: var(--border-radius-sm);
-          background: var(--color-bg-primary);
-          color: var(--color-text-primary);
-        }
-        .summary-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: var(--spacing-md);
-        }
-        .summary-card {
-          background: var(--color-bg-secondary);
-          border: 1px solid var(--color-border);
-          border-left-width: 4px;
-          border-radius: var(--border-radius-md);
-          padding: var(--spacing-md);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        .summary-count {
-          font-size: 2rem;
-          font-weight: 700;
-        }
-        .summary-label {
-          font-size: var(--font-size-sm);
-          color: var(--color-text-secondary);
-        }
-        .findings-list {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .finding-card {
-          background: var(--color-bg-secondary);
-          border: 1px solid var(--color-border);
-          border-left-width: 4px;
-          border-radius: var(--border-radius-md);
-          padding: var(--spacing-md);
-        }
-        .finding-header {
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-sm);
-          margin-bottom: var(--spacing-sm);
-        }
-        .risk-badge {
-          display: inline-block;
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          color: white;
-          font-weight: 600;
-        }
-        .tool-name {
-          font-size: var(--font-size-sm);
-          color: var(--color-text-secondary);
-        }
-        .finding-issue {
-          margin: 0 0 var(--spacing-xs) 0;
-          color: var(--color-text-primary);
-        }
-        .finding-description {
-          margin: 0 0 var(--spacing-sm) 0;
-          color: var(--color-text-secondary);
-          font-size: var(--font-size-sm);
-        }
-        .finding-details {
-          background: var(--color-bg-tertiary);
-          padding: var(--spacing-sm);
-          border-radius: var(--border-radius-sm);
-          margin-bottom: var(--spacing-sm);
-        }
-        .finding-details code {
-          font-size: 12px;
-          color: var(--color-text-secondary);
-          word-break: break-all;
-        }
-        .finding-remediation {
-          display: flex;
-          gap: var(--spacing-sm);
-          font-size: var(--font-size-sm);
-          color: var(--color-success);
-        }
-        .tools-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: var(--spacing-md);
-        }
-        .tool-card {
-          background: var(--color-bg-secondary);
-          border: 1px solid var(--color-border);
-          border-radius: var(--border-radius-md);
-          padding: var(--spacing-md);
-        }
-        .tool-card h4 {
-          margin: 0 0 var(--spacing-xs) 0;
-        }
-        .tool-card p {
-          margin: 0 0 var(--spacing-sm) 0;
-          font-size: var(--font-size-sm);
-        }
-        .tool-meta {
-          display: flex;
-          gap: var(--spacing-md);
-          font-size: var(--font-size-sm);
-          color: var(--color-text-tertiary);
-          margin-bottom: var(--spacing-sm);
-        }
-        .tool-actions {
-          display: flex;
-          gap: var(--spacing-sm);
-        }
-        .btn-small {
-          padding: 4px 8px;
-          font-size: 12px;
-        }
-        .btn-secondary {
-          background: var(--color-bg-tertiary);
-          color: var(--color-text-primary);
-          border: 1px solid var(--color-border);
-        }
-        .btn-ghost {
-          background: transparent;
-          color: var(--color-text-secondary);
-          text-decoration: none;
-        }
-        .btn-ghost:hover {
-          color: var(--color-primary);
-        }
-        .message-card {
-          padding: var(--spacing-md);
-        }
-        .error-card {
-          border-color: var(--color-danger);
-          background-color: rgba(255, 77, 79, 0.1);
-          color: var(--color-danger);
-        }
-        .success-card {
-          border-color: var(--color-success);
-          background-color: rgba(82, 196, 26, 0.1);
-          color: var(--color-success);
-        }
-      `}</style>
         </div>
     );
 }

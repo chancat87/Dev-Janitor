@@ -1,8 +1,10 @@
 import React, { Component, Suspense, lazy } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from './store';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { ConfirmDialog } from './components/shared/ConfirmDialog';
 import { useAutoUpdater } from './hooks/useAutoUpdater';
 import './styles/index.css';
 
@@ -20,7 +22,7 @@ const SecurityScanView = lazy(() => import('./components/views/SecurityScanView'
 
 function LoadingFallback() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }} aria-label="Loading">
+    <div className="app-loading" aria-label="Loading">
       <div className="spinner" />
     </div>
   );
@@ -45,14 +47,13 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 32, textAlign: 'center' }}>
-          <h2 style={{ color: 'var(--color-danger)' }}>Something went wrong</h2>
-          <p style={{ color: 'var(--color-text-secondary)', marginTop: 8 }}>
+        <div className="app-error">
+          <h2 className="app-error-title">Something went wrong</h2>
+          <p className="app-error-message">
             {this.state.error?.message}
           </p>
           <button
-            className="btn btn-primary"
-            style={{ marginTop: 16 }}
+            className="btn btn-primary app-error-action"
             onClick={() => this.setState({ hasError: false, error: null })}
           >
             Retry
@@ -90,8 +91,9 @@ function CurrentView() {
 }
 
 function App() {
+  const { t } = useTranslation();
   const currentView = useAppStore((state) => state.currentView);
-  useAutoUpdater();
+  const { pendingUpdate, confirmInstall, cancelInstall } = useAutoUpdater();
 
   return (
     <div className="app-container">
@@ -104,6 +106,13 @@ function App() {
           </ErrorBoundary>
         </div>
       </main>
+      <ConfirmDialog
+        open={pendingUpdate !== null}
+        title={t('updater.confirm_install_title', { defaultValue: 'Install Update' })}
+        description={pendingUpdate ? t('updater.available', { version: pendingUpdate.version }) : ''}
+        onConfirm={confirmInstall}
+        onCancel={cancelInstall}
+      />
     </div>
   );
 }

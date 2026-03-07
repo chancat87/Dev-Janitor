@@ -1,7 +1,23 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { scanCaches, scanProjectCaches, cleanCache, cleanMultipleCaches } from '../../ipc/commands';
 import { useAppStore, CacheInfoStore } from '../../store';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
+
+type PendingCacheCleanAction =
+    | {
+        kind: 'selected';
+        tab: 'package' | 'project';
+        paths: string[];
+        count: number;
+        sizeDisplay: string;
+    }
+    | {
+        kind: 'single';
+        tab: 'package' | 'project';
+        cache: CacheInfoStore;
+        displayName: string;
+    };
 
 export function CacheView() {
     const { t } = useTranslation();
@@ -22,11 +38,14 @@ export function CacheView() {
     const [selectedPackageCaches, setSelectedPackageCaches] = useState<Set<string>>(new Set());
     const [selectedProjectCaches, setSelectedProjectCaches] = useState<Set<string>>(new Set());
     const [activeTab, setActiveTab] = useState<'package' | 'project'>('package');
+    const [pendingCleanAction, setPendingCleanAction] = useState<PendingCacheCleanAction | null>(null);
 
-    const handleScanPackageCaches = useCallback(async () => {
+    const scanPackageCachesData = useCallback(async ({ preserveMessages = false }: { preserveMessages?: boolean } = {}) => {
         setIsScanning(true);
-        setError(null);
-        setSuccess(null);
+        if (!preserveMessages) {
+            setError(null);
+            setSuccess(null);
+        }
 
         try {
             const caches = await scanCaches();
@@ -38,15 +57,21 @@ export function CacheView() {
         }
     }, [setPackageCaches]);
 
-    const handleScanProjectCaches = useCallback(async () => {
+    const handleScanPackageCaches = useCallback(() => {
+        void scanPackageCachesData();
+    }, [scanPackageCachesData]);
+
+    const scanProjectCachesData = useCallback(async ({ preserveMessages = false }: { preserveMessages?: boolean } = {}) => {
         if (!projectPath.trim()) {
             setError(t('cache.error_no_project_path'));
             return;
         }
 
         setIsScanning(true);
-        setError(null);
-        setSuccess(null);
+        if (!preserveMessages) {
+            setError(null);
+            setSuccess(null);
+        }
 
         try {
             const caches = await scanProjectCaches(projectPath, 5);
@@ -57,6 +82,10 @@ export function CacheView() {
             setIsScanning(false);
         }
     }, [projectPath, setProjectCaches, t]);
+
+    const handleScanProjectCaches = useCallback(() => {
+        void scanProjectCachesData();
+    }, [scanProjectCachesData]);
 
     const toggleCacheSelection = (path: string) => {
         const selectedCaches = activeTab === 'package' ? selectedPackageCaches : selectedProjectCaches;
@@ -97,70 +126,70 @@ export function CacheView() {
             return;
         }
 
-        const totalSize = currentCaches
-            .filter(c => selectedCaches.has(c.path))
-            .reduce((sum, c) => sum + c.size, 0);
-
-        const sizeDisplay = formatSize(totalSize);
-
-        const selectedPaths = [...selectedCaches];
-
-        if (!confirm(t('cache.confirm_clean', { count: selectedPaths.length, size: sizeDisplay }))) {
-            return;
-        }
-
-        setIsCleaning(true);
-        setError(null);
-        setSuccess(null);
-
-        try {
-            const results = await cleanMultipleCaches(selectedPaths);
-            const successCount = results.filter(r => r.Ok).length;
-            const failCount = results.filter(r => r.Err).length;
-
-            if (failCount > 0) {
-                const errors = results.filter(r => r.Err).map(r => r.Err).join('\n');
-                setError(t('cache.partial_failed', { count: failCount, errors }));
-            }
-
-            if (successCount > 0) {
-                setSuccess(t('cache.success_cleaned', { count: successCount }));
-            }
-
-            // Refresh
-            if (activeTab === 'package') {
-                setSelectedPackageCaches(new Set());
-                await handleScanPackageCaches();
-            } else {
-                setSelectedProjectCaches(new Set());
-                await handleScanProjectCaches();
-            }
-        } catch (e) {
-            setError(String(e));
-        } finally {
-            setIsCleaning(false);
-        }
+        const sizeDisplay = formatSize(selectedSize);
+        setPendingCleanAction({
+            kind: 'selected',
+            tab: activeTab,
+            paths: [...selectedCaches],
+            count: selectedCaches.size,
+            sizeDisplay,
+        });
     };
 
-    const handleCleanSingle = async (cache: CacheInfoStore) => {
-        const displayName = getCacheDisplayName(cache);
-        if (!confirm(t('cache.confirm_clean_single', { name: displayName, size: cache.size_display }))) {
+    const handleCleanSingle = (cache: CacheInfoStore) => {
+        setPendingCleanAction({
+            kind: 'single',
+            tab: activeTab,
+            cache,
+            displayName: getCacheDisplayName(cache),
+        });
+    };
+
+    const confirmClean = async () => {
+        if (!pendingCleanAction) {
             return;
         }
 
+        const action = pendingCleanAction;
+        setPendingCleanAction(null);
         setIsCleaning(true);
         setError(null);
         setSuccess(null);
 
         try {
-            await cleanCache(cache.path);
-            setSuccess(t('cache.success_clean_single', { name: displayName, size: cache.size_display }));
+            if (action.kind === 'selected') {
+                const results = await cleanMultipleCaches(action.paths);
+                const successCount = results.filter(r => r.Ok).length;
+                const failCount = results.filter(r => r.Err).length;
 
-            // Refresh
-            if (activeTab === 'package') {
-                await handleScanPackageCaches();
+                if (failCount > 0) {
+                    const errors = results.filter(r => r.Err).map(r => r.Err).join('\n');
+                    setError(t('cache.partial_failed', { count: failCount, errors }));
+                }
+
+                if (successCount > 0) {
+                    setSuccess(t('cache.success_cleaned', { count: successCount }));
+                }
+
+                if (action.tab === 'package') {
+                    setSelectedPackageCaches(new Set());
+                    await scanPackageCachesData({ preserveMessages: true });
+                } else {
+                    setSelectedProjectCaches(new Set());
+                    await scanProjectCachesData({ preserveMessages: true });
+                }
             } else {
-                await handleScanProjectCaches();
+                await cleanCache(action.cache.path);
+                setSuccess(t('cache.success_clean_single', {
+                    name: action.displayName,
+                    size: action.cache.size_display,
+                }));
+
+                if (action.tab === 'package') {
+                    await scanPackageCachesData({ preserveMessages: true });
+                } else {
+                    await scanProjectCachesData({ preserveMessages: true });
+                }
             }
         } catch (e) {
             setError(String(e));
@@ -180,14 +209,29 @@ export function CacheView() {
         return `${bytes} B`;
     };
 
-    const currentCaches = activeTab === 'package' ? packageCaches : projectCaches;
-    const selectedCaches = activeTab === 'package' ? selectedPackageCaches : selectedProjectCaches;
-    const totalSize = currentCaches.reduce((sum, c) => sum + c.size, 0);
-    const selectedSize = currentCaches
-        .filter(c => selectedCaches.has(c.path))
-        .reduce((sum, c) => sum + c.size, 0);
+    const { currentCaches, selectedCaches, totalSize, selectedSize } = useMemo(() => {
+        const nextCurrentCaches = activeTab === 'package' ? packageCaches : projectCaches;
+        const nextSelectedCaches = activeTab === 'package' ? selectedPackageCaches : selectedProjectCaches;
+        let nextTotalSize = 0;
+        let nextSelectedSize = 0;
 
-    const cacheNameMap: Record<string, string> = {
+        for (const cache of nextCurrentCaches) {
+            nextTotalSize += cache.size;
+
+            if (nextSelectedCaches.has(cache.path)) {
+                nextSelectedSize += cache.size;
+            }
+        }
+
+        return {
+            currentCaches: nextCurrentCaches,
+            selectedCaches: nextSelectedCaches,
+            totalSize: nextTotalSize,
+            selectedSize: nextSelectedSize,
+        };
+    }, [activeTab, packageCaches, projectCaches, selectedPackageCaches, selectedProjectCaches]);
+
+    const cacheNameMap = useMemo<Record<string, string>>(() => ({
         'npm Cache': t('cache.names.npm'),
         'Yarn Cache': t('cache.names.yarn'),
         'pnpm Cache': t('cache.names.pnpm'),
@@ -210,20 +254,20 @@ export function CacheView() {
         'Turbo Cache': t('cache.names.turbo_cache'),
         'Python Venv': t('cache.names.python_venv'),
         'Vendor Directory': t('cache.names.vendor_directory'),
-    };
+    }), [t]);
 
-    const getCacheDisplayName = (cache: CacheInfoStore) => cacheNameMap[cache.name] || cache.name;
+    const getCacheDisplayName = useCallback((cache: CacheInfoStore) => cacheNameMap[cache.name] || cache.name, [cacheNameMap]);
 
     return (
-        <div className="view-container">
+        <div className="view-container cache-view">
             <div className="view-header">
                 <div>
                     <p className="text-secondary">{t('cache.description')}</p>
                     {currentCaches.length > 0 && (
-                        <p className="text-tertiary" style={{ marginTop: 4 }}>
+                        <p className="text-tertiary mt-4">
                             {t('cache.total_size', { size: formatSize(totalSize) })}
                             {selectedCaches.size > 0 && (
-                                <span className="badge badge-primary" style={{ marginLeft: 8 }}>
+                                <span className="badge badge-primary ml-8">
                                     {t('cache.selected_summary', {
                                         count: selectedCaches.size,
                                         size: formatSize(selectedSize),
@@ -241,7 +285,7 @@ export function CacheView() {
                             disabled={isCleaning}
                         >
                             {isCleaning ? (
-                                <span className="spinner" style={{ width: 14, height: 14 }} />
+                                <span className="spinner spinner-sm" />
                             ) : (
                                 t('cache.clean_selected')
                             )}
@@ -289,7 +333,7 @@ export function CacheView() {
                         >
                             {isScanning ? (
                                 <>
-                                    <span className="spinner" style={{ width: 14, height: 14 }} />
+                                    <span className="spinner spinner-sm" />
                                     {t('common.loading')}
                                 </>
                             ) : (
@@ -314,11 +358,11 @@ export function CacheView() {
                                 <table className="table">
                                     <thead>
                                         <tr>
-                                            <th style={{ width: '5%' }}></th>
-                                            <th style={{ width: '20%' }}>{t('cache.name')}</th>
-                                            <th style={{ width: '50%' }}>{t('cache.path')}</th>
-                                            <th style={{ width: '15%' }}>{t('cache.size')}</th>
-                                            <th style={{ width: '10%' }}>{t('tools.actions')}</th>
+                                            <th className="col-w-5"></th>
+                                            <th className="col-w-20">{t('cache.name')}</th>
+                                            <th className="col-w-50">{t('cache.path')}</th>
+                                            <th className="col-w-15">{t('cache.size')}</th>
+                                            <th className="col-w-10">{t('tools.actions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -371,7 +415,7 @@ export function CacheView() {
                         >
                             {isScanning ? (
                                 <>
-                                    <span className="spinner" style={{ width: 14, height: 14 }} />
+                                    <span className="spinner spinner-sm" />
                                     {t('common.loading')}
                                 </>
                             ) : (
@@ -395,11 +439,11 @@ export function CacheView() {
                                     <table className="table">
                                         <thead>
                                             <tr>
-                                                <th style={{ width: '5%' }}></th>
-                                                <th style={{ width: '15%' }}>{t('cache.name')}</th>
-                                                <th style={{ width: '55%' }}>{t('cache.path')}</th>
-                                                <th style={{ width: '15%' }}>{t('cache.size')}</th>
-                                                <th style={{ width: '10%' }}>{t('tools.actions')}</th>
+                                                <th className="col-w-5"></th>
+                                                <th className="col-w-15">{t('cache.name')}</th>
+                                                <th className="col-w-55">{t('cache.path')}</th>
+                                                <th className="col-w-15">{t('cache.size')}</th>
+                                                <th className="col-w-10">{t('tools.actions')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -435,107 +479,26 @@ export function CacheView() {
                 </div>
             )}
 
-            <style>{`
-        .view-container {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .view-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-        .header-actions {
-          display: flex;
-          gap: var(--spacing-sm);
-        }
-        .tabs {
-          display: flex;
-          border-bottom: 1px solid var(--color-border);
-        }
-        .tab {
-          padding: var(--spacing-sm) var(--spacing-lg);
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          font-size: var(--font-size-sm);
-          color: var(--color-text-secondary);
-          border-bottom: 2px solid transparent;
-          transition: all 0.2s;
-        }
-        .tab:hover {
-          color: var(--color-primary);
-        }
-        .tab.active {
-          color: var(--color-primary);
-          border-bottom-color: var(--color-primary);
-        }
-        .tab-content {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .scan-bar {
-          display: flex;
-          gap: var(--spacing-md);
-          align-items: center;
-        }
-        .project-scan {
-          flex-wrap: wrap;
-        }
-        .path-input {
-          flex: 1;
-          min-width: 300px;
-          padding: var(--spacing-sm) var(--spacing-md);
-          border: 1px solid var(--color-border);
-          border-radius: var(--border-radius-sm);
-          background: var(--color-bg-primary);
-          color: var(--color-text-primary);
-          font-size: var(--font-size-sm);
-        }
-        .select-actions {
-          display: flex;
-          gap: var(--spacing-sm);
-        }
-        .path-cell {
-          font-family: 'Consolas', 'Monaco', monospace;
-          font-size: 12px;
-          color: var(--color-text-secondary);
-          max-width: 400px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .size-cell {
-          font-weight: 600;
-          color: var(--color-warning);
-        }
-        .btn-small {
-          padding: 4px 8px;
-          font-size: 12px;
-        }
-        .btn-danger {
-          background: var(--color-danger);
-          color: white;
-        }
-        .btn-danger:hover {
-          background: #ff6b6b;
-        }
-        .message-card {
-          padding: var(--spacing-md);
-        }
-        .error-card {
-          border-color: var(--color-danger);
-          background-color: rgba(255, 77, 79, 0.1);
-          color: var(--color-danger);
-        }
-        .success-card {
-          border-color: var(--color-success);
-          background-color: rgba(82, 196, 26, 0.1);
-          color: var(--color-success);
-        }
-      `}</style>
+            <ConfirmDialog
+                open={pendingCleanAction !== null}
+                title={pendingCleanAction?.kind === 'single'
+                    ? t('cache.confirm_clean_single_title', { defaultValue: 'Clean Cache' })
+                    : t('cache.confirm_clean_title', { defaultValue: 'Clean Caches' })}
+                description={pendingCleanAction
+                    ? pendingCleanAction.kind === 'single'
+                        ? t('cache.confirm_clean_single', {
+                            name: pendingCleanAction.displayName,
+                            size: pendingCleanAction.cache.size_display,
+                        })
+                        : t('cache.confirm_clean', {
+                            count: pendingCleanAction.count,
+                            size: pendingCleanAction.sizeDisplay,
+                        })
+                    : ''}
+                danger
+                onConfirm={confirmClean}
+                onCancel={() => setPendingCleanAction(null)}
+            />
         </div>
     );
 }

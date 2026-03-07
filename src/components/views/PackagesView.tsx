@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { scanPackages, updatePackage, uninstallPackage } from '../../ipc/commands';
 import { useAppStore, PackageInfoStore } from '../../store';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 export function PackagesView() {
     const { t } = useTranslation();
@@ -19,11 +20,14 @@ export function PackagesView() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [operatingPackage, setOperatingPackage] = useState<string | null>(null);
+    const [pendingUninstall, setPendingUninstall] = useState<{ manager: string; name: string } | null>(null);
 
-    const handleScan = useCallback(async () => {
+    const scanPackagesData = useCallback(async ({ preserveMessages = false }: { preserveMessages?: boolean } = {}) => {
         setIsScanning(true);
-        setError(null);
-        setSuccess(null);
+        if (!preserveMessages) {
+            setError(null);
+            setSuccess(null);
+        }
 
         try {
             const detected = await scanPackages();
@@ -35,6 +39,10 @@ export function PackagesView() {
         }
     }, [setPackages]);
 
+    const handleScan = useCallback(() => {
+        void scanPackagesData();
+    }, [scanPackagesData]);
+
     const handleUpdate = async (manager: string, name: string) => {
         setOperatingPackage(`update-${manager}-${name}`);
         setError(null);
@@ -43,7 +51,7 @@ export function PackagesView() {
         try {
             await updatePackage(manager, name);
             setSuccess(t('packages.success_update', { name }));
-            await handleScan();
+            await scanPackagesData({ preserveMessages: true });
         } catch (e) {
             setError(String(e));
         } finally {
@@ -51,11 +59,17 @@ export function PackagesView() {
         }
     };
 
-    const handleUninstall = async (manager: string, name: string) => {
-        if (!confirm(t('packages.confirm_uninstall', { name }))) {
+    const handleUninstall = (manager: string, name: string) => {
+        setPendingUninstall({ manager, name });
+    };
+
+    const confirmUninstall = async () => {
+        if (!pendingUninstall) {
             return;
         }
 
+        const { manager, name } = pendingUninstall;
+        setPendingUninstall(null);
         setOperatingPackage(`uninstall-${manager}-${name}`);
         setError(null);
         setSuccess(null);
@@ -63,7 +77,7 @@ export function PackagesView() {
         try {
             await uninstallPackage(manager, name);
             setSuccess(t('packages.success_uninstall', { name }));
-            await handleScan();
+            await scanPackagesData({ preserveMessages: true });
         } catch (e) {
             setError(String(e));
         } finally {
@@ -71,46 +85,59 @@ export function PackagesView() {
         }
     };
 
-    // Get unique managers for filter
-    const managers = [...new Set(packages.map(p => p.manager))];
-
-    // Filter packages
-    const filteredPackages = packages.filter(pkg => {
-        if (filterManager !== 'all' && pkg.manager !== filterManager) return false;
-        if (filterOutdated && !pkg.is_outdated) return false;
-        return true;
-    });
-
-    // Group by manager
-    const groupedPackages = filteredPackages.reduce((acc, pkg) => {
-        if (!acc[pkg.manager]) {
-            acc[pkg.manager] = [];
-        }
-        acc[pkg.manager].push(pkg);
-        return acc;
-    }, {} as Record<string, PackageInfoStore[]>);
-
-    const managerDisplayNames: Record<string, string> = {
+    const managerDisplayNames = useMemo<Record<string, string>>(() => ({
         npm: t('packages.managers.npm'),
         pip: t('packages.managers.pip'),
         cargo: t('packages.managers.cargo'),
         composer: t('packages.managers.composer'),
         homebrew: t('packages.managers.homebrew'),
         conda: t('packages.managers.conda'),
-    };
+    }), [t]);
 
-    const outdatedCount = packages.filter(p => p.is_outdated).length;
+    const { managers, groupedPackages, outdatedCount } = useMemo(() => {
+        const managerSet = new Set<string>();
+        const grouped: Record<string, PackageInfoStore[]> = {};
+        let nextOutdatedCount = 0;
+
+        for (const pkg of packages) {
+            managerSet.add(pkg.manager);
+
+            if (pkg.is_outdated) {
+                nextOutdatedCount += 1;
+            }
+
+            if (filterManager !== 'all' && pkg.manager !== filterManager) {
+                continue;
+            }
+
+            if (filterOutdated && !pkg.is_outdated) {
+                continue;
+            }
+
+            if (!grouped[pkg.manager]) {
+                grouped[pkg.manager] = [];
+            }
+
+            grouped[pkg.manager].push(pkg);
+        }
+
+        return {
+            managers: [...managerSet],
+            groupedPackages: grouped,
+            outdatedCount: nextOutdatedCount,
+        };
+    }, [packages, filterManager, filterOutdated]);
 
     return (
-        <div className="view-container">
+        <div className="view-container packages-view">
             <div className="view-header">
                 <div>
                     <p className="text-secondary">{t('packages.description')}</p>
                     {packages.length > 0 && (
-                        <p className="text-tertiary" style={{ marginTop: 4 }}>
+                        <p className="text-tertiary mt-4">
                             {t('packages.summary', { packages: packages.length, managers: managers.length })}
                             {outdatedCount > 0 && (
-                                <span className="badge badge-warning" style={{ marginLeft: 8 }}>
+                                <span className="badge badge-warning ml-8">
                                     {outdatedCount} {t('packages.outdated')}
                                 </span>
                             )}
@@ -120,7 +147,7 @@ export function PackagesView() {
                 <button className="btn btn-primary" onClick={handleScan} disabled={isScanning}>
                     {isScanning ? (
                         <>
-                            <span className="spinner" style={{ width: 14, height: 14 }} />
+                            <span className="spinner spinner-sm" />
                             {t('common.loading')}
                         </>
                     ) : (
@@ -191,11 +218,11 @@ export function PackagesView() {
                                 <table className="table">
                                     <thead>
                                         <tr>
-                                            <th style={{ width: '35%' }}>{t('packages.name')}</th>
-                                            <th style={{ width: '15%' }}>{t('packages.version')}</th>
-                                            <th style={{ width: '15%' }}>{t('packages.latest')}</th>
-                                            <th style={{ width: '15%' }}>{t('packages.status')}</th>
-                                            <th style={{ width: '20%' }}>{t('tools.actions')}</th>
+                                            <th className="col-w-35">{t('packages.name')}</th>
+                                            <th className="col-w-15">{t('packages.version')}</th>
+                                            <th className="col-w-15">{t('packages.latest')}</th>
+                                            <th className="col-w-15">{t('packages.status')}</th>
+                                            <th className="col-w-20">{t('tools.actions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -225,7 +252,7 @@ export function PackagesView() {
                                                                 disabled={operatingPackage !== null}
                                                             >
                                                                 {operatingPackage === `update-${pkg.manager}-${pkg.name}` ? (
-                                                                    <span className="spinner" style={{ width: 12, height: 12 }} />
+                                                                    <span className="spinner spinner-xs" />
                                                                 ) : (
                                                                     t('packages.update')
                                                                 )}
@@ -237,7 +264,7 @@ export function PackagesView() {
                                                             disabled={operatingPackage !== null}
                                                         >
                                                             {operatingPackage === `uninstall-${pkg.manager}-${pkg.name}` ? (
-                                                                <span className="spinner" style={{ width: 12, height: 12 }} />
+                                                                <span className="spinner spinner-xs" />
                                                             ) : (
                                                                 t('packages.uninstall')
                                                             )}
@@ -254,95 +281,14 @@ export function PackagesView() {
                 </div>
             )}
 
-            <style>{`
-        .view-container {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .view-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: var(--spacing-sm);
-        }
-        .filter-bar {
-          display: flex;
-          gap: var(--spacing-md);
-          align-items: center;
-          padding: var(--spacing-sm) var(--spacing-md);
-          background: var(--color-bg-secondary);
-          border-radius: var(--border-radius-md);
-        }
-        .filter-select {
-          padding: var(--spacing-sm) var(--spacing-md);
-          border: 1px solid var(--color-border);
-          border-radius: var(--border-radius-sm);
-          background: var(--color-bg-primary);
-          color: var(--color-text-primary);
-          font-size: var(--font-size-sm);
-        }
-        .filter-checkbox {
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-xs);
-          font-size: var(--font-size-sm);
-          color: var(--color-text-secondary);
-          cursor: pointer;
-        }
-        .packages-grid {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .packages-category {
-          padding: var(--spacing-md);
-        }
-        .category-title {
-          font-size: var(--font-size-md);
-          font-weight: 600;
-          margin-bottom: var(--spacing-md);
-          color: var(--color-primary);
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-sm);
-        }
-        .category-count {
-          background: var(--color-bg-tertiary);
-          padding: 2px 8px;
-          border-radius: 12px;
-          font-size: var(--font-size-xs);
-          color: var(--color-text-tertiary);
-        }
-        .pkg-description {
-          display: block;
-          font-size: 11px;
-          color: var(--color-text-tertiary);
-          margin-top: 2px;
-        }
-        .action-buttons {
-          display: flex;
-          gap: var(--spacing-xs);
-        }
-        .btn-small {
-          padding: 4px 8px;
-          font-size: 12px;
-        }
-        .message-card {
-          padding: var(--spacing-md);
-          margin-bottom: var(--spacing-sm);
-        }
-        .error-card {
-          border-color: var(--color-danger);
-          background-color: rgba(255, 77, 79, 0.1);
-          color: var(--color-danger);
-        }
-        .success-card {
-          border-color: var(--color-success);
-          background-color: rgba(82, 196, 26, 0.1);
-          color: var(--color-success);
-        }
-      `}</style>
+            <ConfirmDialog
+                open={pendingUninstall !== null}
+                title={t('packages.confirm_uninstall_title', { defaultValue: 'Uninstall Package' })}
+                description={pendingUninstall ? t('packages.confirm_uninstall', { name: pendingUninstall.name }) : ''}
+                danger
+                onConfirm={confirmUninstall}
+                onCancel={() => setPendingUninstall(null)}
+            />
         </div>
     );
 }

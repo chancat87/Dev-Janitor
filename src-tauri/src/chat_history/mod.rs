@@ -266,6 +266,56 @@ fn is_dev_project(path: &Path) -> bool {
     false
 }
 
+fn user_home_dir() -> Option<PathBuf> {
+    std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .ok()
+        .map(PathBuf::from)
+}
+
+fn is_root_path(path: &Path) -> bool {
+    path.parent().is_none()
+}
+
+fn canonicalize_existing_path(path: &Path) -> Result<PathBuf, String> {
+    let metadata =
+        fs::symlink_metadata(path).map_err(|error| format!("Failed to inspect {}: {}", path.display(), error))?;
+    if metadata.file_type().is_symlink() {
+        return Err(format!("Refusing to delete symlink path: {}", path.display()));
+    }
+
+    path.canonicalize()
+        .map_err(|error| format!("Failed to resolve {}: {}", path.display(), error))
+}
+
+fn is_root_or_home_path(path: &Path) -> bool {
+    if is_root_path(path) {
+        return true;
+    }
+
+    user_home_dir()
+        .and_then(|home| home.canonicalize().ok())
+        .map(|home| home == path)
+        .unwrap_or(false)
+}
+
+fn validate_chat_history_delete_target(path: &Path) -> Result<PathBuf, String> {
+    let canonical = canonicalize_existing_path(path)?;
+
+    if is_root_or_home_path(&canonical) {
+        return Err(format!("Refusing to delete unsafe path: {}", canonical.display()));
+    }
+
+    if check_chat_history_pattern(&canonical).is_some() {
+        Ok(canonical)
+    } else {
+        Err(format!(
+            "Path is not a recognized chat history target: {}",
+            canonical.display()
+        ))
+    }
+}
+
 /// Scan a directory for projects with AI chat history
 pub fn scan_chat_history(root_path: &str, max_depth: usize) -> Vec<ProjectChatHistory> {
     let root = PathBuf::from(root_path);
@@ -379,6 +429,8 @@ pub fn delete_chat_file(path: &str) -> Result<String, String> {
         return Err(format!("Path does not exist: {}", path));
     }
 
+    let path_buf = validate_chat_history_delete_target(&path_buf)?;
+
     let size = get_size(&path_buf);
     let size_display = format_size(size);
 
@@ -430,10 +482,16 @@ fn chmod_and_delete(path: &PathBuf) -> std::io::Result<()> {
 
 /// Delete all chat history for a project
 pub fn delete_project_chat_history(project_path: &str) -> Result<(u32, u32, String), String> {
-    let canonical = PathBuf::from(project_path);
+    let canonical = canonicalize_existing_path(Path::new(project_path))?;
+    if is_root_or_home_path(&canonical) {
+        return Err(format!(
+            "Refusing to scan unsafe project path: {}",
+            canonical.display()
+        ));
+    }
     let canonical_str = canonical.to_string_lossy().to_string();
 
-    let projects = scan_chat_history(project_path, 1);
+    let projects = scan_chat_history(&canonical_str, 1);
 
     let project = projects
         .iter()

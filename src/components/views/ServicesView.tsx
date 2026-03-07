@@ -93,21 +93,6 @@ export function ServicesView() {
         return `${(bytes / 1024).toFixed(2)} KB`;
     };
 
-    const categoryColors: Record<string, string> = {
-        'Runtime': '#52c41a',
-        'Package Manager': '#1890ff',
-        'Build Tool': '#faad14',
-        'Server': '#722ed1',
-        'Database': '#eb2f96',
-        'Container': '#13c2c2',
-        'IDE': '#2f54eb',
-        'Editor': '#2f54eb',
-        'AI Tool': '#ff4d4f',
-        'Version Control': '#595959',
-        'Dev Server': '#fa541c',
-        'Other': '#8c8c8c',
-    };
-
     const categoryLabels: Record<string, string> = {
         'Runtime': t('services.categories.runtime'),
         'Package Manager': t('services.categories.package_manager'),
@@ -147,13 +132,15 @@ export function ServicesView() {
         'N/A': t('services.state.na'),
     };
 
+    const getCategoryClass = (category: string) => `category-${category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+
     return (
-        <div className="view-container">
+        <div className="view-container services-view">
             <div className="view-header">
                 <div>
                     <p className="text-secondary">{t('services.description')}</p>
                     {activeTab === 'processes' && processes.length > 0 && (
-                        <p className="text-tertiary" style={{ marginTop: 4 }}>
+                        <p className="text-tertiary mt-4">
                             {t('services.summary_processes', {
                                 count: processes.length,
                                 memory: formatMemory(totalMemory),
@@ -161,7 +148,7 @@ export function ServicesView() {
                         </p>
                     )}
                     {activeTab === 'ports' && ports.length > 0 && (
-                        <p className="text-tertiary" style={{ marginTop: 4 }}>
+                        <p className="text-tertiary mt-4">
                             {t('services.summary_ports', { count: ports.length })}
                         </p>
                     )}
@@ -212,7 +199,7 @@ export function ServicesView() {
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <span className="spinner" style={{ width: 14, height: 14 }} />
+                                <span className="spinner spinner-sm" />
                             ) : (
                                 t('common.refresh')
                             )}
@@ -234,7 +221,7 @@ export function ServicesView() {
                     </div>
 
                     {filteredProcesses.length === 0 && !isLoading && (
-                        <div className="card" style={{ padding: 'var(--spacing-lg)', textAlign: 'center' }}>
+                        <div className="card card-centered">
                             <p className="text-secondary">{t('services.no_processes', { defaultValue: 'No dev processes found. Click Refresh to scan.' })}</p>
                         </div>
                     )}
@@ -245,14 +232,14 @@ export function ServicesView() {
                                 <table className="table">
                                     <thead>
                                         <tr>
-                                            <th style={{ width: '8%' }}>{t('services.table_pid')}</th>
-                                            <th style={{ width: '20%' }}>{t('services.table_name')}</th>
-                                            <th style={{ width: '15%' }}>{t('services.table_category')}</th>
-                                            <th style={{ width: '12%' }}>{t('services.table_memory')}</th>
-                                            <th style={{ width: '10%' }}>{t('services.table_cpu')}</th>
-                                            <th style={{ width: '10%' }}>{t('services.table_status')}</th>
-                                            <th style={{ width: '15%' }}>{t('services.table_path')}</th>
-                                            <th style={{ width: '10%' }}>{t('services.table_action')}</th>
+                                            <th className="col-w-8">{t('services.table_pid')}</th>
+                                            <th className="col-w-20">{t('services.table_name')}</th>
+                                            <th className="col-w-15">{t('services.table_category')}</th>
+                                            <th className="col-w-12">{t('services.table_memory')}</th>
+                                            <th className="col-w-10">{t('services.table_cpu')}</th>
+                                            <th className="col-w-10">{t('services.table_status')}</th>
+                                            <th className="col-w-15">{t('services.table_path')}</th>
+                                            <th className="col-w-10">{t('services.table_action')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -261,10 +248,7 @@ export function ServicesView() {
                                                 <td><code>{proc.pid}</code></td>
                                                 <td><strong>{proc.name}</strong></td>
                                                 <td>
-                                                    <span
-                                                        className="category-badge"
-                                                        style={{ backgroundColor: categoryColors[proc.category] || '#8c8c8c' }}
-                                                    >
+                                                    <span className={`category-badge ${getCategoryClass(proc.category)}`}>
                                                         {categoryLabels[proc.category] || proc.category}
                                                     </span>
                                                 </td>
@@ -300,7 +284,7 @@ export function ServicesView() {
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <span className="spinner" style={{ width: 14, height: 14 }} />
+                                <span className="spinner spinner-sm" />
                             ) : (
                                 t('common.refresh')
                             )}
@@ -308,7 +292,7 @@ export function ServicesView() {
                     </div>
 
                     {ports.length === 0 && !isLoading && (
-                        <div className="card" style={{ padding: 'var(--spacing-lg)', textAlign: 'center' }}>
+                        <div className="card card-centered">
                             <p className="text-secondary">{t('services.no_ports', { defaultValue: 'No ports in use. Click Refresh to scan.' })}</p>
                         </div>
                     )}
@@ -319,12 +303,12 @@ export function ServicesView() {
                                 <table className="table">
                                     <thead>
                                         <tr>
-                                            <th style={{ width: '15%' }}>{t('services.table_port')}</th>
-                                            <th style={{ width: '15%' }}>{t('services.table_protocol')}</th>
-                                            <th style={{ width: '25%' }}>{t('services.table_process')}</th>
-                                            <th style={{ width: '15%' }}>{t('services.table_pid')}</th>
-                                            <th style={{ width: '20%' }}>{t('services.table_state')}</th>
-                                            <th style={{ width: '10%' }}>{t('services.table_action')}</th>
+                                            <th className="col-w-15">{t('services.table_port')}</th>
+                                            <th className="col-w-15">{t('services.table_protocol')}</th>
+                                            <th className="col-w-25">{t('services.table_process')}</th>
+                                            <th className="col-w-15">{t('services.table_pid')}</th>
+                                            <th className="col-w-20">{t('services.table_state')}</th>
+                                            <th className="col-w-10">{t('services.table_action')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -367,118 +351,6 @@ export function ServicesView() {
                 onConfirm={confirmKill}
                 onCancel={() => setPendingKill(null)}
             />
-
-            <style>{`
-        .view-container {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .view-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-        .tabs {
-          display: flex;
-          border-bottom: 1px solid var(--color-border);
-        }
-        .tab {
-          padding: var(--spacing-sm) var(--spacing-lg);
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          font-size: var(--font-size-sm);
-          color: var(--color-text-secondary);
-          border-bottom: 2px solid transparent;
-          transition: all 0.2s;
-        }
-        .tab:hover {
-          color: var(--color-primary);
-        }
-        .tab.active {
-          color: var(--color-primary);
-          border-bottom-color: var(--color-primary);
-        }
-        .tab-content {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .action-bar {
-          display: flex;
-          gap: var(--spacing-md);
-          align-items: center;
-        }
-        .filter-select {
-          padding: var(--spacing-sm) var(--spacing-md);
-          border: 1px solid var(--color-border);
-          border-radius: var(--border-radius-sm);
-          background: var(--color-bg-primary);
-          color: var(--color-text-primary);
-        }
-        .category-badge {
-          display: inline-block;
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          color: white;
-        }
-        .port-number {
-          font-family: 'Consolas', monospace;
-          font-weight: 600;
-          color: var(--color-primary);
-        }
-        .protocol-badge {
-          display: inline-block;
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          text-transform: uppercase;
-        }
-        .protocol-badge.tcp {
-          background: rgba(82, 196, 26, 0.2);
-          color: #52c41a;
-        }
-        .protocol-badge.udp {
-          background: rgba(24, 144, 255, 0.2);
-          color: #1890ff;
-        }
-        .memory-cell {
-          font-weight: 600;
-          color: var(--color-warning);
-        }
-        .path-cell {
-          font-family: 'Consolas', monospace;
-          font-size: 11px;
-          color: var(--color-text-tertiary);
-          max-width: 150px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .btn-small {
-          padding: 4px 8px;
-          font-size: 12px;
-        }
-        .btn-danger {
-          background: var(--color-danger);
-          color: white;
-        }
-        .message-card {
-          padding: var(--spacing-md);
-        }
-        .error-card {
-          border-color: var(--color-danger);
-          background-color: rgba(255, 77, 79, 0.1);
-          color: var(--color-danger);
-        }
-        .success-card {
-          border-color: var(--color-success);
-          background-color: rgba(82, 196, 26, 0.1);
-          color: var(--color-success);
-        }
-      `}</style>
         </div>
     );
 }

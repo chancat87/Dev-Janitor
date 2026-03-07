@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { check } from '@tauri-apps/plugin-updater';
@@ -7,9 +7,13 @@ function isTauriRuntime() {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
+type AvailableUpdate = NonNullable<Awaited<ReturnType<typeof check>>>;
+
 export function useAutoUpdater() {
   const { t } = useTranslation();
   const hasCheckedRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const [pendingUpdate, setPendingUpdate] = useState<AvailableUpdate | null>(null);
 
   useEffect(() => {
     if (hasCheckedRef.current || import.meta.env.DEV || !isTauriRuntime()) {
@@ -17,41 +21,57 @@ export function useAutoUpdater() {
     }
 
     hasCheckedRef.current = true;
-    let cancelled = false;
-    let installStarted = false;
+    cancelledRef.current = false;
 
     void (async () => {
       try {
         const update = await check();
-        if (!update || cancelled) {
+        if (!update || cancelledRef.current) {
           return;
         }
 
-        const shouldInstall = window.confirm(
-          t('updater.available', { version: update.version })
-        );
-        if (!shouldInstall || cancelled) {
-          return;
-        }
-
-        installStarted = true;
-        await update.downloadAndInstall();
-        if (cancelled) {
-          return;
-        }
-
-        window.alert(t('updater.installed'));
-        await relaunch();
+        setPendingUpdate(update);
       } catch (error) {
         console.error('Auto updater failed:', error);
-        if (!cancelled && installStarted) {
-          window.alert(t('updater.failed'));
-        }
       }
     })();
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
     };
-  }, [t]);
+  }, []);
+
+  const cancelInstall = useCallback(() => {
+    setPendingUpdate(null);
+  }, []);
+
+  const confirmInstall = useCallback(async () => {
+    if (!pendingUpdate) {
+      return;
+    }
+
+    const update = pendingUpdate;
+    setPendingUpdate(null);
+
+    try {
+      await update.downloadAndInstall();
+      if (cancelledRef.current) {
+        return;
+      }
+
+      window.alert(t('updater.installed'));
+      await relaunch();
+    } catch (error) {
+      console.error('Auto updater failed:', error);
+      if (!cancelledRef.current) {
+        window.alert(t('updater.failed'));
+      }
+    }
+  }, [pendingUpdate, t]);
+
+  return {
+    pendingUpdate,
+    confirmInstall,
+    cancelInstall,
+  };
 }

@@ -11,7 +11,7 @@
 
 **Keep Your Development Environment Sparkling Clean ✨**
 
-[Download](#-installation) • [Features](#-features) • [Screenshots](#-screenshots) • [Contributing](#-contributing) • [简体中文](README.zh-CN.md)
+[Download](#-installation) • [Features](#-features) • [Screenshots](#-screenshots) • [Development](#-development) • [Contributing](#-contributing) • [简体中文](README.zh-CN.md)
 
 </div>
 
@@ -79,7 +79,9 @@ Developers love creating, but we hate the mess left behind. `node_modules`, `tar
 ## 📥 Installation
 
 ### Windows
-Download the latest `.msi` installer from [Releases](https://github.com/cocojojo5213/dev-janitor/releases).
+Download the latest files from [Releases](https://github.com/cocojojo5213/dev-janitor/releases):
+- **Installer**: `.msi`
+- **Portable**: `*_portable.zip`
 
 ### MacOS
 Download the `.dmg` from [Releases](https://github.com/cocojojo5213/dev-janitor/releases).
@@ -96,9 +98,9 @@ Built with ❤️ using **Tauri 2.0**, **React 19**, and **Rust**.
 <summary>Click to see development setup instructions</summary>
 
 ### Prerequisites
-- Node.js 22+
-- pnpm 9+
-- Rust 1.80+
+- Node.js 24 LTS+
+- pnpm 10.30.3+
+- Rust 1.94.0
 
 ### Setup
 ```bash
@@ -106,11 +108,19 @@ Built with ❤️ using **Tauri 2.0**, **React 19**, and **Rust**.
 git clone https://github.com/cocojojo5213/Dev-Janitor.git
 cd Dev-Janitor
 
+# Enable pnpm via Corepack (recommended)
+corepack enable pnpm
+
 # Install
 pnpm install
 
 # Run dev
 pnpm tauri dev
+
+# Optional checks
+pnpm lint
+pnpm build
+cargo test
 ```
 
 </details>

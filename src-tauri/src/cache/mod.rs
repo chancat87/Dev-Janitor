@@ -4,7 +4,7 @@
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 /// Represents a cache entry that can be cleaned
@@ -173,6 +173,69 @@ fn get_package_manager_caches() -> Vec<(&'static str, &'static str, Vec<PathBuf>
     ]
 }
 
+fn user_home_dir() -> Option<PathBuf> {
+    std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .ok()
+        .map(PathBuf::from)
+}
+
+fn canonicalize_existing_path(path: &Path) -> Result<PathBuf, String> {
+    let metadata =
+        fs::symlink_metadata(path).map_err(|error| format!("Failed to inspect {}: {}", path.display(), error))?;
+    if metadata.file_type().is_symlink() {
+        return Err(format!("Refusing to clean symlink path: {}", path.display()));
+    }
+
+    path.canonicalize()
+        .map_err(|error| format!("Failed to resolve {}: {}", path.display(), error))
+}
+
+fn is_root_or_home_path(path: &Path) -> bool {
+    if path.parent().is_none() {
+        return true;
+    }
+
+    user_home_dir()
+        .and_then(|home| home.canonicalize().ok())
+        .map(|home| home == path)
+        .unwrap_or(false)
+}
+
+fn is_known_package_manager_cache(path: &Path) -> bool {
+    get_package_manager_caches()
+        .into_iter()
+        .flat_map(|(_, _, paths)| paths)
+        .filter_map(|candidate| candidate.canonicalize().ok())
+        .any(|candidate| candidate == path)
+}
+
+fn is_known_project_cache(path: &Path) -> bool {
+    path.is_dir()
+        && path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|name| PROJECT_CACHE_PATTERNS.iter().any(|(pattern, _)| name == *pattern))
+            .unwrap_or(false)
+}
+
+fn validate_cache_cleanup_target(path: &Path) -> Result<PathBuf, String> {
+    let canonical = canonicalize_existing_path(path)?;
+
+    if is_root_or_home_path(&canonical) {
+        return Err(format!("Refusing to clean unsafe path: {}", canonical.display()));
+    }
+
+    if is_known_package_manager_cache(&canonical) || is_known_project_cache(&canonical) {
+        Ok(canonical)
+    } else {
+        Err(format!(
+            "Path is not a recognized cache target: {}",
+            canonical.display()
+        ))
+    }
+}
+
 /// Scan all package manager caches
 pub fn scan_package_manager_caches() -> Vec<CacheInfo> {
     let caches_config = get_package_manager_caches();
@@ -272,6 +335,8 @@ pub fn clean_cache(path: &str) -> Result<String, String> {
     if !cache_path.exists() {
         return Err(format!("Path does not exist: {}", path));
     }
+
+    let cache_path = validate_cache_cleanup_target(&cache_path)?;
 
     // Get size before deletion
     let size_before = get_dir_size(&cache_path);

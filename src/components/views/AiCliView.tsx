@@ -22,9 +22,12 @@ export function AiCliView() {
     const getToolDescription = (tool: AiCliToolStore) =>
         t(`ai_cli.tools.${tool.id}.description`, { defaultValue: tool.description });
 
-    const handleRefresh = useCallback(async () => {
+    const refreshToolsData = useCallback(async ({ preserveMessages = false }: { preserveMessages?: boolean } = {}) => {
         setIsLoading(true);
-        setError(null);
+        if (!preserveMessages) {
+            setError(null);
+            setSuccess(null);
+        }
 
         try {
             const result = await getAiCliTools();
@@ -35,6 +38,10 @@ export function AiCliView() {
             setIsLoading(false);
         }
     }, [setTools]);
+
+    const handleRefresh = useCallback(() => {
+        void refreshToolsData();
+    }, [refreshToolsData]);
 
     const [pendingAction, setPendingAction] = useState<{
         type: 'install' | 'update' | 'uninstall';
@@ -81,7 +88,7 @@ export function AiCliView() {
                 message = t('ai_cli.success_uninstall', { name: toolName });
             }
             setSuccess(result.trim() ? `${message}\n${result}` : message);
-            await handleRefresh();
+            await refreshToolsData({ preserveMessages: true });
         } catch (e) {
             setError(String(e));
         } finally {
@@ -103,12 +110,12 @@ export function AiCliView() {
     const installedCount = tools.filter(t => t.installed).length;
 
     return (
-        <div className="view-container">
+        <div className="view-container ai-cli-view">
             <div className="view-header">
                 <div>
                     <p className="text-secondary">{t('ai_cli.description')}</p>
                     {tools.length > 0 && (
-                        <p className="text-tertiary" style={{ marginTop: 4 }}>
+                        <p className="text-tertiary mt-4">
                             {t('ai_cli.installed_summary', { installed: installedCount, total: tools.length })}
                         </p>
                     )}
@@ -120,7 +127,7 @@ export function AiCliView() {
                 >
                     {isLoading ? (
                         <>
-                            <span className="spinner" style={{ width: 14, height: 14 }} />
+                            <span className="spinner spinner-sm" />
                             {t('ai_cli.scanning')}
                         </>
                     ) : (
@@ -137,7 +144,7 @@ export function AiCliView() {
 
             {success && (
                 <div className="card message-card success-card">
-                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{success}</pre>
+                    <pre className="m-0 pre-wrap">{success}</pre>
                 </div>
             )}
 
@@ -166,7 +173,7 @@ export function AiCliView() {
                                             disabled={isOperating !== null}
                                         >
                                             {isOperating === `update-${tool.id}` ? (
-                                                <span className="spinner" style={{ width: 12, height: 12 }} />
+                                                <span className="spinner spinner-xs" />
                                             ) : (
                                                 t('ai_cli.update')
                                             )}
@@ -177,7 +184,7 @@ export function AiCliView() {
                                             disabled={isOperating !== null}
                                         >
                                             {isOperating === `uninstall-${tool.id}` ? (
-                                                <span className="spinner" style={{ width: 12, height: 12 }} />
+                                                <span className="spinner spinner-xs" />
                                             ) : (
                                                 t('ai_cli.uninstall')
                                             )}
@@ -190,7 +197,7 @@ export function AiCliView() {
                                         disabled={isOperating !== null}
                                     >
                                         {isOperating === `install-${tool.id}` ? (
-                                            <span className="spinner" style={{ width: 12, height: 12 }} />
+                                            <span className="spinner spinner-xs" />
                                         ) : (
                                             t('ai_cli.install')
                                         )}
@@ -248,149 +255,6 @@ export function AiCliView() {
                 onConfirm={confirmAction}
                 onCancel={() => setPendingAction(null)}
             />
-
-            <style>{`
-        .view-container {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .view-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-        .tools-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: var(--spacing-md);
-        }
-        .tool-card {
-          padding: var(--spacing-md);
-          transition: all 0.2s;
-        }
-        .tool-card.installed {
-          border-color: var(--color-success);
-        }
-        .tool-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: var(--spacing-sm);
-        }
-        .tool-header h4 {
-          margin: 0;
-          font-size: var(--font-size-md);
-        }
-        .status-badge {
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-        }
-        .status-badge.installed {
-          background: rgba(82, 196, 26, 0.2);
-          color: #52c41a;
-        }
-        .status-badge.not-installed {
-          background: var(--color-bg-tertiary);
-          color: var(--color-text-tertiary);
-        }
-        .tool-description {
-          font-size: var(--font-size-sm);
-          color: var(--color-text-secondary);
-          margin: 0 0 var(--spacing-sm) 0;
-        }
-        .tool-version {
-          font-family: 'Consolas', monospace;
-          font-size: 12px;
-          color: var(--color-text-tertiary);
-          margin: 0 0 var(--spacing-md) 0;
-        }
-        .tool-actions {
-          display: flex;
-          gap: var(--spacing-xs);
-        }
-        .btn-small {
-          padding: 4px 12px;
-          font-size: 12px;
-        }
-        .btn-danger {
-          background: var(--color-danger);
-          color: white;
-        }
-        .message-card {
-          padding: var(--spacing-md);
-        }
-        .error-card {
-          border-color: var(--color-danger);
-          background-color: rgba(255, 77, 79, 0.1);
-          color: var(--color-danger);
-        }
-        .success-card {
-          border-color: var(--color-success);
-          background-color: rgba(82, 196, 26, 0.1);
-          color: var(--color-success);
-        }
-        .empty-state {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 200px;
-          color: var(--color-text-tertiary);
-        }
-        .config-section {
-          margin-top: var(--spacing-md);
-          padding-top: var(--spacing-md);
-          border-top: 1px solid var(--color-border);
-        }
-        .config-section h5 {
-          margin: 0 0 var(--spacing-sm) 0;
-          font-size: 12px;
-          color: var(--color-text-secondary);
-        }
-        .config-list {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .config-item {
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-xs);
-          font-size: 11px;
-          padding: 4px 8px;
-          border-radius: 4px;
-          background: var(--color-bg-secondary);
-        }
-        .config-item.exists {
-          background: rgba(82, 196, 26, 0.1);
-        }
-        .config-item.missing {
-          background: var(--color-bg-tertiary);
-        }
-        .config-name {
-          font-weight: 500;
-          min-width: 100px;
-        }
-        .config-path {
-          flex: 1;
-          font-family: 'Consolas', monospace;
-          color: var(--color-text-tertiary);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          cursor: pointer;
-        }
-        .config-path:hover {
-          color: var(--color-primary);
-        }
-        .config-status.exists {
-          color: #52c41a;
-        }
-        .config-status.missing {
-          color: var(--color-text-tertiary);
-        }
-      `}</style>
         </div>
     );
 }

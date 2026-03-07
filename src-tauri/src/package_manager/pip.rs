@@ -3,7 +3,7 @@
 use super::{PackageInfo, PackageManager};
 use serde::Deserialize;
 
-use crate::utils::command::command_output_with_timeout;
+use crate::utils::command::command_output_with_timeout_vec;
 use std::time::Duration;
 
 pub struct PipManager {
@@ -162,24 +162,9 @@ fn run_pip_command(command: &PipCommand, args: &[&str]) -> Option<String> {
     full_args.extend(command.prefix_args.iter().cloned());
     full_args.extend(args.iter().map(|s| s.to_string()));
 
-    // On Windows, pip may need to run via cmd /C
-    #[cfg(target_os = "windows")]
-    let output = {
-        let mut pip_args = Vec::with_capacity(1 + full_args.len());
-        pip_args.push(command.program.clone());
-        pip_args.extend(full_args.iter().cloned());
-        let pip_args = pip_args.join(" ");
-        {
-            let cmd_args = ["/C", pip_args.as_str()];
-            command_output_with_timeout("cmd", &cmd_args, Duration::from_secs(30)).ok()?
-        }
-    };
-
-    #[cfg(not(target_os = "windows"))]
-    let output = {
-        let arg_refs: Vec<&str> = full_args.iter().map(|s| s.as_str()).collect();
-        command_output_with_timeout(&command.program, &arg_refs, Duration::from_secs(30)).ok()?
-    };
+    let output =
+        command_output_with_timeout_vec(&command.program, &full_args, Duration::from_secs(30))
+            .ok()?;
 
     if output.status.success() {
         Some(String::from_utf8_lossy(&output.stdout).to_string())

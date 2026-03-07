@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useTranslation } from 'react-i18next';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 // Types for chat history
 interface ChatHistoryFile {
@@ -24,6 +25,20 @@ interface ProjectChatHistory {
     ai_tools_detected: string[];
 }
 
+type PendingChatDeleteAction =
+    | {
+        kind: 'selected';
+        paths: string[];
+        count: number;
+        sizeDisplay: string;
+        tab: 'projects' | 'global';
+    }
+    | {
+        kind: 'single';
+        file: ChatHistoryFile;
+        tab: 'projects' | 'global';
+    };
+
 export function ChatHistoryView() {
     const { t } = useTranslation();
 
@@ -35,20 +50,41 @@ export function ChatHistoryView() {
     const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
     const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
     const [isScanning, setIsScanning] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [activeTab, setActiveTab] = useState<'projects' | 'global'>('projects');
     const [error, setError] = useState<string | null>(null);
+    const [pendingDelete, setPendingDelete] = useState<PendingChatDeleteAction | null>(null);
 
-    // Calculate totals
-    const totalProjectSize = projects.reduce((sum, p) => sum + p.total_size, 0);
-    const totalGlobalSize = globalFiles.reduce((sum, f) => sum + f.size, 0);
-    const selectedFilesArray = Array.from(selectedFiles);
-    const selectedSize = projects
-        .flatMap(p => p.chat_files)
-        .filter(f => selectedFiles.has(f.path))
-        .reduce((sum, f) => sum + f.size, 0)
-        + globalFiles
-            .filter(f => selectedFiles.has(f.path))
-            .reduce((sum, f) => sum + f.size, 0);
+    const { totalProjectSize, totalGlobalSize, selectedFilesArray, selectedSize } = useMemo(() => {
+        let nextTotalProjectSize = 0;
+        let nextTotalGlobalSize = 0;
+        let nextSelectedSize = 0;
+
+        for (const project of projects) {
+            nextTotalProjectSize += project.total_size;
+
+            for (const file of project.chat_files) {
+                if (selectedFiles.has(file.path)) {
+                    nextSelectedSize += file.size;
+                }
+            }
+        }
+
+        for (const file of globalFiles) {
+            nextTotalGlobalSize += file.size;
+
+            if (selectedFiles.has(file.path)) {
+                nextSelectedSize += file.size;
+            }
+        }
+
+        return {
+            totalProjectSize: nextTotalProjectSize,
+            totalGlobalSize: nextTotalGlobalSize,
+            selectedFilesArray: Array.from(selectedFiles),
+            selectedSize: nextSelectedSize,
+        };
+    }, [projects, globalFiles, selectedFiles]);
 
     // Format size helper
     const formatSize = (bytes: number): string => {
@@ -148,65 +184,68 @@ export function ChatHistoryView() {
             return;
         }
 
-        const confirmMessage = t('chat_history.confirm_delete', {
+        setPendingDelete({
+            kind: 'selected',
+            paths: selectedFilesArray,
             count: selectedFiles.size,
-            size: formatSize(selectedSize),
+            sizeDisplay: formatSize(selectedSize),
+            tab: activeTab,
         });
+    };
 
-        if (!confirm(confirmMessage)) {
+    const confirmDelete = async () => {
+        if (!pendingDelete) {
             return;
         }
 
+        const action = pendingDelete;
+        setPendingDelete(null);
+        setIsDeleting(true);
+        setError(null);
         try {
-            const result = await invoke<[number, number, string[]]>('delete_multiple_chat_files', {
-                paths: selectedFilesArray,
-            });
-            const [success, fail, errors] = result;
+            if (action.kind === 'selected') {
+                const result = await invoke<[number, number, string[]]>('delete_multiple_chat_files', {
+                    paths: action.paths,
+                });
+                const [success, fail, errors] = result;
 
-            if (success > 0) {
-                // Refresh data
-                if (activeTab === 'projects') {
+                if (success > 0) {
+                    if (action.tab === 'projects') {
+                        await handleScanProjects();
+                    } else {
+                        await handleScanGlobal();
+                    }
+                    setSelectedFiles(new Set());
+                }
+
+                if (fail > 0) {
+                    setError(t('chat_history.partial_failed', {
+                        count: fail,
+                        errors: errors.slice(0, 3).join('\n'),
+                    }));
+                }
+            } else {
+                await invoke<string>('delete_chat_file_cmd', { path: action.file.path });
+                if (action.tab === 'projects') {
                     await handleScanProjects();
                 } else {
                     await handleScanGlobal();
                 }
-                setSelectedFiles(new Set());
-            }
-
-            if (fail > 0) {
-                setError(t('chat_history.partial_failed', {
-                    count: fail,
-                    errors: errors.slice(0, 3).join('\n'),
-                }));
             }
         } catch (e) {
             setError(String(e));
+        } finally {
+            setIsDeleting(false);
         }
     };
 
     // Delete single file
-    const handleDeleteFile = async (file: ChatHistoryFile) => {
-        const confirmMessage = t('chat_history.confirm_delete_single', {
-            name: file.name,
-            size: file.size_display,
+    const handleDeleteFile = (file: ChatHistoryFile) => {
+        setPendingDelete({
+            kind: 'single',
+            file,
+            tab: activeTab,
         });
-
-        if (!confirm(confirmMessage)) {
-            return;
-        }
-
-        try {
-            await invoke<string>('delete_chat_file_cmd', { path: file.path });
-
-            // Refresh data
-            if (activeTab === 'projects') {
-                await handleScanProjects();
-            } else {
-                await handleScanGlobal();
-            }
-        } catch (e) {
-            setError(String(e));
-        }
     };
 
     // Get file type badge color
@@ -298,7 +337,7 @@ export function ChatHistoryView() {
                         <button
                             className="btn btn-primary"
                             onClick={handleScanProjects}
-                            disabled={isScanning}
+                            disabled={isScanning || isDeleting}
                         >
                             {isScanning ? t('chat_history.scanning') : t('chat_history.scan')}
                         </button>
@@ -323,6 +362,7 @@ export function ChatHistoryView() {
                                 <button
                                     className="btn btn-danger"
                                     onClick={handleDeleteSelected}
+                                    disabled={isDeleting}
                                 >
                                     {t('chat_history.delete_selected')}
                                 </button>
@@ -380,12 +420,12 @@ export function ChatHistoryView() {
                                         <table className="data-table">
                                             <thead>
                                                 <tr>
-                                                    <th style={{ width: '40px' }}></th>
+                                                    <th className="col-w-40px"></th>
                                                     <th>{t('chat_history.filename')}</th>
                                                     <th>{t('chat_history.ai_tool')}</th>
                                                     <th>{t('chat_history.type')}</th>
                                                     <th>{t('chat_history.size')}</th>
-                                                    <th style={{ width: '80px' }}></th>
+                                                    <th className="col-w-80px"></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -416,6 +456,7 @@ export function ChatHistoryView() {
                                                             <button
                                                                 className="btn btn-small btn-danger"
                                                                 onClick={() => handleDeleteFile(file)}
+                                                                disabled={isDeleting}
                                                             >
                                                                 {t('chat_history.delete')}
                                                             </button>
@@ -439,7 +480,7 @@ export function ChatHistoryView() {
                         <button
                             className="btn btn-primary"
                             onClick={handleScanGlobal}
-                            disabled={isScanning}
+                            disabled={isScanning || isDeleting}
                         >
                             {isScanning ? t('chat_history.scanning') : t('chat_history.scan_global')}
                         </button>
@@ -463,6 +504,7 @@ export function ChatHistoryView() {
                                     <button
                                         className="btn btn-danger"
                                         onClick={handleDeleteSelected}
+                                        disabled={isDeleting}
                                     >
                                         {t('chat_history.delete_selected')}
                                     </button>
@@ -476,12 +518,12 @@ export function ChatHistoryView() {
                         <table className="data-table">
                             <thead>
                                 <tr>
-                                    <th style={{ width: '40px' }}></th>
+                                    <th className="col-w-40px"></th>
                                     <th>{t('chat_history.filename')}</th>
                                     <th>{t('chat_history.ai_tool')}</th>
                                     <th>{t('chat_history.size')}</th>
                                     <th>{t('chat_history.path')}</th>
-                                    <th style={{ width: '80px' }}></th>
+                                    <th className="col-w-80px"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -506,6 +548,7 @@ export function ChatHistoryView() {
                                             <button
                                                 className="btn btn-small btn-danger"
                                                 onClick={() => handleDeleteFile(file)}
+                                                disabled={isDeleting}
                                             >
                                                 {t('chat_history.delete')}
                                             </button>
@@ -521,6 +564,27 @@ export function ChatHistoryView() {
                     )}
                 </>
             )}
+
+            <ConfirmDialog
+                open={pendingDelete !== null}
+                title={pendingDelete?.kind === 'single'
+                    ? t('chat_history.confirm_delete_single_title', { defaultValue: 'Delete Chat History' })
+                    : t('chat_history.confirm_delete_title', { defaultValue: 'Delete Chat History Files' })}
+                description={pendingDelete
+                    ? pendingDelete.kind === 'single'
+                        ? t('chat_history.confirm_delete_single', {
+                            name: pendingDelete.file.name,
+                            size: pendingDelete.file.size_display,
+                        })
+                        : t('chat_history.confirm_delete', {
+                            count: pendingDelete.count,
+                            size: pendingDelete.sizeDisplay,
+                        })
+                    : ''}
+                danger
+                onConfirm={confirmDelete}
+                onCancel={() => setPendingDelete(null)}
+            />
         </div>
     );
 }

@@ -6,7 +6,9 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use crate::utils::command::command_output_with_timeout;
+use crate::utils::command::{command_output_with_timeout, command_output_with_timeout_vec};
+#[cfg(target_os = "windows")]
+use std::fs;
 
 /// Represents an AI CLI tool
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -419,15 +421,6 @@ fn check_tool(mut tool: AiCliTool) -> AiCliTool {
 
 /// Run a command and extract version
 fn run_command_get_version(cmd: &str, args: &[&str]) -> Option<String> {
-    // On Windows, .cmd files (npm scripts) need to be run through cmd /c
-    #[cfg(target_os = "windows")]
-    let output = {
-        let full_cmd = format!("{} {}", cmd, args.join(" "));
-        let cmd_args = ["/C", full_cmd.as_str()];
-        command_output_with_timeout("cmd", &cmd_args, Duration::from_secs(6)).ok()?
-    };
-
-    #[cfg(not(target_os = "windows"))]
     let output = command_output_with_timeout(cmd, args, Duration::from_secs(6)).ok()?;
 
     if output.status.success() {
@@ -435,10 +428,9 @@ fn run_command_get_version(cmd: &str, args: &[&str]) -> Option<String> {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let combined = format!("{}{}", stdout, stderr);
 
-        // Extract version number
         let version = combined
             .lines()
-            .next()
+            .find(|line| !line.trim().is_empty())
             .map(|l| l.trim().to_string())
             .unwrap_or_default();
 
@@ -465,7 +457,7 @@ pub fn install_ai_tool(tool_id: &str) -> Result<String, String> {
         ));
     }
 
-    run_install_command(&tool.install_command)
+    execute_tool_action(tool_id, ToolAction::Install)
 }
 
 /// Update an AI CLI tool
@@ -483,7 +475,7 @@ pub fn update_ai_tool(tool_id: &str) -> Result<String, String> {
         ));
     }
 
-    run_install_command(&tool.update_command)
+    execute_tool_action(tool_id, ToolAction::Update)
 }
 
 /// Uninstall an AI CLI tool
@@ -501,7 +493,7 @@ pub fn uninstall_ai_tool(tool_id: &str) -> Result<String, String> {
         ));
     }
 
-    run_install_command(&tool.uninstall_command)
+    execute_tool_action(tool_id, ToolAction::Uninstall)
 }
 
 #[cfg(test)]
@@ -518,24 +510,259 @@ mod tests {
 }
 
 /// Run an installation/update/uninstall command (with 300s timeout)
-fn run_install_command(command: &str) -> Result<String, String> {
-    #[cfg(target_os = "windows")]
-    let output = command_output_with_timeout("cmd", &["/C", command], Duration::from_secs(300));
+#[derive(Clone, Copy)]
+enum ToolAction {
+    Install,
+    Update,
+    Uninstall,
+}
 
-    #[cfg(not(target_os = "windows"))]
-    let output = command_output_with_timeout("sh", &["-c", command], Duration::from_secs(300));
-
-    match output {
-        Ok(out) => {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            let stderr = String::from_utf8_lossy(&out.stderr);
-
-            if out.status.success() {
-                Ok(format!("Success!\n{}{}", stdout, stderr))
-            } else {
-                Err(format!("Command failed:\n{}{}", stdout, stderr))
+fn execute_tool_action(tool_id: &str, action: ToolAction) -> Result<String, String> {
+    match (tool_id, action) {
+        ("claude", ToolAction::Install) => {
+            #[cfg(target_os = "windows")]
+            {
+                run_owned_command(
+                    "powershell",
+                    &[
+                        "-ExecutionPolicy".to_string(),
+                        "ByPass".to_string(),
+                        "-c".to_string(),
+                        "irm https://claude.ai/install.ps1 | iex".to_string(),
+                    ],
+                )
+            }
+            #[cfg(target_os = "macos")]
+            {
+                run_command("brew", &["install", "--cask", "claude-code"])
+            }
+            #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+            {
+                run_shell_command("curl -fsSL https://claude.ai/install.sh | bash")
             }
         }
-        Err(e) => Err(format!("Failed to run command: {}", e)),
+        ("claude", ToolAction::Update) => run_command("claude", &["update"]),
+        ("claude", ToolAction::Uninstall) => {
+            #[cfg(target_os = "windows")]
+            {
+                uninstall_claude_windows()
+            }
+            #[cfg(target_os = "macos")]
+            {
+                run_shell_command(
+                    "brew uninstall --cask claude-code || (rm -f ~/.local/bin/claude && rm -rf ~/.local/share/claude)",
+                )
+            }
+            #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+            {
+                run_shell_command("rm -f ~/.local/bin/claude && rm -rf ~/.local/share/claude")
+            }
+        }
+        ("codex", ToolAction::Install) => run_command("npm", &["i", "-g", "@openai/codex"]),
+        ("codex", ToolAction::Update) => {
+            run_command("npm", &["install", "-g", "@openai/codex@latest"])
+        }
+        ("codex", ToolAction::Uninstall) => {
+            run_command("npm", &["uninstall", "-g", "@openai/codex"])
+        }
+        ("opencode", ToolAction::Install) => {
+            #[cfg(target_os = "windows")]
+            {
+                run_command("npm", &["install", "-g", "opencode-ai"])
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                run_shell_command("curl -fsSL https://opencode.ai/install | bash")
+            }
+        }
+        ("opencode", ToolAction::Update) => {
+            run_command("npm", &["install", "-g", "opencode-ai@latest"])
+        }
+        ("opencode", ToolAction::Uninstall) => {
+            run_command("npm", &["uninstall", "-g", "opencode-ai"])
+        }
+        ("gemini", ToolAction::Install) => {
+            run_command("npm", &["install", "-g", "@google/gemini-cli"])
+        }
+        ("gemini", ToolAction::Update) => {
+            run_command("npm", &["install", "-g", "@google/gemini-cli@latest"])
+        }
+        ("gemini", ToolAction::Uninstall) => {
+            run_command("npm", &["uninstall", "-g", "@google/gemini-cli"])
+        }
+        ("aider", ToolAction::Install) => {
+            #[cfg(target_os = "windows")]
+            {
+                run_owned_command(
+                    "powershell",
+                    &[
+                        "-ExecutionPolicy".to_string(),
+                        "ByPass".to_string(),
+                        "-c".to_string(),
+                        "irm https://aider.chat/install.ps1 | iex".to_string(),
+                    ],
+                )
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                run_shell_command("curl -LsSf https://aider.chat/install.sh | sh")
+            }
+        }
+        ("aider", ToolAction::Update) => run_command("aider", &["--upgrade"]),
+        ("aider", ToolAction::Uninstall) => run_first_success(&[
+            (
+                "uv",
+                vec![
+                    "tool".to_string(),
+                    "uninstall".to_string(),
+                    "aider-chat".to_string(),
+                ],
+            ),
+            (
+                "pipx",
+                vec!["uninstall".to_string(), "aider-chat".to_string()],
+            ),
+        ]),
+        ("continue", ToolAction::Install) => {
+            #[cfg(target_os = "windows")]
+            {
+                run_command("npm", &["install", "-g", "@continuedev/cli"])
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                run_shell_command(
+                    "curl -fsSL https://raw.githubusercontent.com/continuedev/continue/main/extensions/cli/scripts/install.sh | bash",
+                )
+            }
+        }
+        ("continue", ToolAction::Update) => {
+            run_command("npm", &["install", "-g", "@continuedev/cli@latest"])
+        }
+        ("continue", ToolAction::Uninstall) => {
+            run_command("npm", &["uninstall", "-g", "@continuedev/cli"])
+        }
+        ("cody", ToolAction::Install) => run_command("npm", &["install", "-g", "@sourcegraph/cody"]),
+        ("cody", ToolAction::Update) => {
+            run_command("npm", &["install", "-g", "@sourcegraph/cody@latest"])
+        }
+        ("cody", ToolAction::Uninstall) => {
+            run_command("npm", &["uninstall", "-g", "@sourcegraph/cody"])
+        }
+        ("kiro", ToolAction::Install) | ("kiro", ToolAction::Update) => {
+            #[cfg(target_os = "windows")]
+            {
+                Err("Kiro CLI 当前在 Windows 需要手动安装或通过 WSL 使用".to_string())
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                run_shell_command("curl -fsSL https://cli.kiro.dev/install | bash")
+            }
+        }
+        ("kiro", ToolAction::Uninstall) => Err("Kiro CLI 需要手动卸载".to_string()),
+        ("cursor", ToolAction::Install) => {
+            #[cfg(target_os = "windows")]
+            {
+                run_owned_command(
+                    "powershell",
+                    &[
+                        "-ExecutionPolicy".to_string(),
+                        "ByPass".to_string(),
+                        "-c".to_string(),
+                        "irm https://cursor.com/install | iex".to_string(),
+                    ],
+                )
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                run_shell_command("curl https://cursor.com/install -fsS | bash")
+            }
+        }
+        ("cursor", ToolAction::Update) => run_command("cursor-agent", &["update"]),
+        ("cursor", ToolAction::Uninstall) => Err("Cursor CLI 需要手动卸载".to_string()),
+        _ => Err(format!("Unsupported action for tool: {}", tool_id)),
     }
+}
+
+fn run_command(program: &str, args: &[&str]) -> Result<String, String> {
+    match command_output_with_timeout(program, args, Duration::from_secs(300)) {
+        Ok(output) => format_command_result(program, &args.join(" "), output),
+        Err(error) => Err(format!("Failed to run command: {}", error)),
+    }
+}
+
+fn run_owned_command(program: &str, args: &[String]) -> Result<String, String> {
+    match command_output_with_timeout_vec(program, args, Duration::from_secs(300)) {
+        Ok(output) => format_command_result(program, &args.join(" "), output),
+        Err(error) => Err(format!("Failed to run command: {}", error)),
+    }
+}
+
+fn run_shell_command(script: &str) -> Result<String, String> {
+    run_owned_command("sh", &["-c".to_string(), script.to_string()])
+}
+
+fn run_first_success(attempts: &[(&str, Vec<String>)]) -> Result<String, String> {
+    let mut last_error = None;
+
+    for (program, args) in attempts {
+        match run_owned_command(program, args) {
+            Ok(result) => return Ok(result),
+            Err(error) => last_error = Some(error),
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| "No command attempts were provided".to_string()))
+}
+
+fn format_command_result(program: &str, joined_args: &str, output: std::process::Output) -> Result<String, String> {
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let combined = format!("{}{}", stdout, stderr).trim().to_string();
+
+    if output.status.success() {
+        if combined.is_empty() {
+            Ok(format!("Success: {} {}", program, joined_args))
+        } else {
+            Ok(format!("Success!\n{}", combined))
+        }
+    } else if combined.is_empty() {
+        Err(format!("Command failed: {} {}", program, joined_args))
+    } else {
+        Err(format!("Command failed:\n{}", combined))
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn uninstall_claude_windows() -> Result<String, String> {
+    let user_profile =
+        env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\Default".to_string());
+    let claude_root = PathBuf::from(user_profile).join(".claude");
+    let claude_binary = claude_root.join("bin").join("claude.exe");
+    let mut removed = Vec::new();
+
+    remove_path_if_exists(&claude_binary, &mut removed)?;
+    remove_path_if_exists(&claude_root, &mut removed)?;
+
+    if removed.is_empty() {
+        Err("Claude Code 的默认安装目录未找到，无需卸载".to_string())
+    } else {
+        Ok(format!("Removed: {}", removed.join(", ")))
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn remove_path_if_exists(path: &PathBuf, removed: &mut Vec<String>) -> Result<(), String> {
+    if !path.exists() {
+        return Ok(());
+    }
+
+    let result = if path.is_dir() {
+        fs::remove_dir_all(path)
+    } else {
+        fs::remove_file(path)
+    };
+
+    result
+        .map(|_| removed.push(path.display().to_string()))
+        .map_err(|error| format!("Failed to remove {}: {}", path.display(), error))
 }

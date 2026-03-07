@@ -37,7 +37,7 @@
   --spacing-xl: 32px;
   
   /* === Typography === */
-  --font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family: 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
   --font-size-xs: 12px;
   --font-size-sm: 13px;
   --font-size-md: 14px;

@@ -61,7 +61,7 @@ export function Header() {
                     title={t('settings.language')}
                     aria-label={t('settings.language')}
                 >
-                    <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                    <span className="header-language-label">
                         {i18n.language === 'en' ? t('settings.language_zh') : 'EN'}
                     </span>
                 </button>

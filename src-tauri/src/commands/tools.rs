@@ -3,7 +3,7 @@
 use crate::detection::{scan_all_tools, ToolInfo};
 
 use crate::ai_cli;
-use crate::utils::command::command_output_with_timeout;
+use crate::utils::command::{command_output_with_timeout, command_output_with_timeout_vec};
 use std::time::Duration;
 
 /// Scan for all development tools
@@ -31,11 +31,11 @@ pub fn uninstall_tool(
         "pnpm" | "yarn" => run_command("npm", &["uninstall", "-g", &toolId]),
 
         // Python tools
-        "pipx" => run_command("python3", &["-m", "pip", "uninstall", "-y", "pipx"]),
+        "pipx" => uninstall_with_pip("pipx"),
         "poetry" => run_command("pipx", &["uninstall", "poetry"])
-            .or_else(|_| run_command("pip", &["uninstall", "-y", "poetry"])),
+            .or_else(|_| uninstall_with_pip("poetry")),
         "uv" => run_command("pipx", &["uninstall", "uv"])
-            .or_else(|_| run_command("pip", &["uninstall", "-y", "uv"])),
+            .or_else(|_| uninstall_with_pip("uv")),
         "pip" => Err("pip is part of Python and should not be uninstalled separately".to_string()),
 
         // Rust tools
@@ -71,7 +71,12 @@ pub fn uninstall_tool(
         }
 
         // AI CLI tools - defer to dedicated module (handles latest install methods)
-        "codex" | "claude" | "gemini" | "opencode" => ai_cli::uninstall_ai_tool(&toolId),
+        "codex" | "claude" | "gemini" | "opencode" | "aider" | "cody" => {
+            ai_cli::uninstall_ai_tool(&toolId)
+        }
+        "cursor" | "cursor_cli" => ai_cli::uninstall_ai_tool("cursor"),
+        "kiro" | "kiro_cli" => ai_cli::uninstall_ai_tool("kiro"),
+        "continue" | "continue_cli" => ai_cli::uninstall_ai_tool("continue"),
         // AI CLI tool (npm-based)
         "iflow" => run_command("npm", &["uninstall", "-g", "@iflow-ai/iflow-cli"]),
 
@@ -126,36 +131,118 @@ pub fn uninstall_tool(
 
 /// Run a command and return result (with 120s timeout)
 fn run_command(cmd: &str, args: &[&str]) -> Result<String, String> {
-    #[cfg(target_os = "windows")]
-    let output = {
-        let mut full = String::new();
-        full.push_str(cmd);
-        if !args.is_empty() {
-            full.push(' ');
-            full.push_str(&args.join(" "));
-        }
-        let cmd_args = ["/C", full.as_str()];
-        command_output_with_timeout("cmd", &cmd_args, Duration::from_secs(120))
-    };
-
-    #[cfg(not(target_os = "windows"))]
     let output = command_output_with_timeout(cmd, args, Duration::from_secs(120));
 
     match output {
         Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            let combined = format!("{}{}", stdout, stderr).trim().to_string();
+
             if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout).to_string();
                 Ok(format!(
                     "Successfully executed: {} {}\n{}",
                     cmd,
                     args.join(" "),
-                    stdout
+                    combined
                 ))
             } else {
-                let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-                Err(format!("Command failed: {}", stderr))
+                Err(format!("Command failed: {}", combined))
             }
         }
         Err(e) => Err(format!("Failed to execute command: {}", e)),
     }
+}
+
+fn run_owned_command(cmd: &str, args: &[String]) -> Result<String, String> {
+    match command_output_with_timeout_vec(cmd, args, Duration::from_secs(120)) {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            let combined = format!("{}{}", stdout, stderr).trim().to_string();
+
+            if output.status.success() {
+                Ok(format!(
+                    "Successfully executed: {} {}\n{}",
+                    cmd,
+                    args.join(" "),
+                    combined
+                ))
+            } else {
+                Err(format!("Command failed: {}", combined))
+            }
+        }
+        Err(e) => Err(format!("Failed to execute command: {}", e)),
+    }
+}
+
+fn uninstall_with_pip(package: &str) -> Result<String, String> {
+    let mut candidates: Vec<(&str, Vec<String>)> = Vec::new();
+
+    #[cfg(target_os = "windows")]
+    {
+        candidates.push((
+            "py",
+            vec![
+                "-m".to_string(),
+                "pip".to_string(),
+                "uninstall".to_string(),
+                "-y".to_string(),
+                package.to_string(),
+            ],
+        ));
+        candidates.push((
+            "python",
+            vec![
+                "-m".to_string(),
+                "pip".to_string(),
+                "uninstall".to_string(),
+                "-y".to_string(),
+                package.to_string(),
+            ],
+        ));
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        candidates.push((
+            "python3",
+            vec![
+                "-m".to_string(),
+                "pip".to_string(),
+                "uninstall".to_string(),
+                "-y".to_string(),
+                package.to_string(),
+            ],
+        ));
+        candidates.push((
+            "python",
+            vec![
+                "-m".to_string(),
+                "pip".to_string(),
+                "uninstall".to_string(),
+                "-y".to_string(),
+                package.to_string(),
+            ],
+        ));
+    }
+
+    candidates.push((
+        "pip",
+        vec![
+            "uninstall".to_string(),
+            "-y".to_string(),
+            package.to_string(),
+        ],
+    ));
+
+    let mut last_error = None;
+    for (cmd, args) in candidates {
+        match run_owned_command(cmd, &args) {
+            Ok(result) => return Ok(result),
+            Err(error) => last_error = Some(error),
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| format!("Failed to uninstall {}", package)))
 }

@@ -11,7 +11,7 @@
 
 **让您的开发环境始终保持闪亮如新 ✨**
 
-[下载安装](#-安装) • [功能特特性](#-功能特性) • [软件截图](#-软件截图) • [参与贡献](#-参与贡献) • [English](README.md)
+[下载安装](#-安装) • [功能特性](#-功能特性) • [软件截图](#-软件截图) • [本地开发](#️-本地开发) • [参与贡献](#-参与贡献) • [English](README.md)
 
 </div>
 
@@ -93,27 +93,35 @@
 
 ## 🛠️ 本地开发
 
-本项目使用 🧡 **Tauri 2.0**, **React**, 和 **Rust** 构建。
+本项目使用 🧡 **Tauri 2**, **React 19** 和 **Rust** 构建。
 
 <details>
 <summary>点击查看开发环境配置指南</summary>
 
 ### 前置要求
-- Node.js 20+
-- pnpm 8+
-- Rust 1.75+
+- Node.js 24 LTS+
+- pnpm 10.30.3+
+- Rust 1.94.0
 
 ### 启动步骤
 ```bash
 # 克隆仓库
 git clone https://github.com/cocojojo5213/dev-janitor.git
-cd dev-janitor/dev-janitor-v2
+cd dev-janitor
+
+# 通过 Corepack 启用 pnpm（推荐）
+corepack enable pnpm
 
 # 安装依赖
 pnpm install
 
 # 启动开发服务器
 pnpm tauri dev
+
+# 可选检查
+pnpm lint
+pnpm build
+cargo test
 ```
 
 </details>
@@ -127,8 +135,6 @@ pnpm tauri dev
 3. 提交您的更改 (`git commit -m 'Add some CoolFeature'`)
 4. 推送到分支 (`git push origin feature/CoolFeature`)
 5. 开启 Pull Request
-
-## 📄 许可证
 
 ## 📄 许可证
 

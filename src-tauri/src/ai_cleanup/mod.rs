@@ -276,6 +276,56 @@ fn is_root_path(path: &Path) -> bool {
     path.parent().is_none()
 }
 
+fn canonicalize_existing_path(path: &Path) -> Result<PathBuf, String> {
+    let metadata =
+        fs::symlink_metadata(path).map_err(|error| format!("Failed to inspect {}: {}", path.display(), error))?;
+    if metadata.file_type().is_symlink() {
+        return Err(format!("Refusing to delete symlink path: {}", path.display()));
+    }
+
+    path.canonicalize()
+        .map_err(|error| format!("Failed to resolve {}: {}", path.display(), error))
+}
+
+fn is_root_or_home_path(path: &Path) -> bool {
+    if is_root_path(path) {
+        return true;
+    }
+
+    user_home_dir()
+        .and_then(|home| home.canonicalize().ok())
+        .map(|home| home == path)
+        .unwrap_or(false)
+}
+
+fn validate_ai_junk_delete_target(path: &Path) -> Result<PathBuf, String> {
+    let canonical = canonicalize_existing_path(path)?;
+
+    if is_root_or_home_path(&canonical) {
+        return Err(format!("Refusing to delete unsafe path: {}", canonical.display()));
+    }
+
+    if is_whitelisted(&canonical) {
+        return Err(format!(
+            "Refusing to delete whitelisted path: {}",
+            canonical.display()
+        ));
+    }
+
+    let looks_like_junk = check_ai_tool_pattern(&canonical).is_some()
+        || check_temp_pattern(&canonical).is_some()
+        || check_anomalous(&canonical).is_some();
+
+    if looks_like_junk {
+        Ok(canonical)
+    } else {
+        Err(format!(
+            "Path is not a recognized AI junk target: {}",
+            canonical.display()
+        ))
+    }
+}
+
 fn scan_target(root: &Path, max_depth: usize) -> Vec<AiJunkFile> {
     let entries: Vec<_> = WalkDir::new(root)
         .max_depth(max_depth)
@@ -394,6 +444,8 @@ pub fn delete_ai_junk(path: &str) -> Result<String, String> {
     if !file_path.exists() {
         return Err(format!("File does not exist: {}", path));
     }
+
+    let file_path = validate_ai_junk_delete_target(&file_path)?;
 
     // Check for Windows reserved names
     #[cfg(target_os = "windows")]

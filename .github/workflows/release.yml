@@ -11,6 +11,9 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  NODE_VERSION: 24
+  PNPM_VERSION: 10.30.3
+  RUST_TOOLCHAIN: 1.94.0
 
 jobs:
   create-release:
@@ -19,11 +22,11 @@ jobs:
       release_id: ${{ steps.create-release.outputs.release_id }}
       upload_url: ${{ steps.create-release.outputs.upload_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
       
       - name: Create Release
         id: create-release
-        uses: actions/github-script@v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         with:
           script: |
             const { data } = await github.rest.repos.createRelease({
@@ -56,22 +59,25 @@ jobs:
     runs-on: ${{ matrix.platform }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
       
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: ${{ matrix.target }}
       
       - name: Install dependencies (Ubuntu)
@@ -81,10 +87,10 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       
       - name: Install frontend dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
       
       - name: Build Tauri App
-        uses: tauri-apps/tauri-action@v0.6.1
+        uses: tauri-apps/tauri-action@19b93bb55601e3e373a93cfb6eb4242e45f5af20
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Updater signing
@@ -94,6 +100,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
+          tagName: ${{ github.ref_name }}
           includeUpdaterJson: true
           args: --target ${{ matrix.target }}
 
@@ -171,7 +178,7 @@ jobs:
         env:
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
           ZIP_PATH: ${{ steps.create_portable.outputs.zip_path }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         with:
           script: |
             const fs = require('fs');
@@ -225,15 +232,15 @@ jobs:
     
     steps:
       - name: Publish Release
-        uses: actions/github-script@v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         env:
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
         with:
           script: |
-            github.rest.repos.updateRelease({
+            await github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              release_id: process.env.RELEASE_ID,
+              release_id: Number(process.env.RELEASE_ID),
               draft: false,
               prerelease: false
             })

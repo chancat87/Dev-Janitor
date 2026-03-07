@@ -13,8 +13,8 @@ export function SettingsView() {
     ];
 
     return (
-        <div className="view-container">
-            <div className="card" style={{ maxWidth: 600 }}>
+        <div className="view-container settings-view">
+            <div className="card settings-card">
                 {/* Theme */}
                 <div className="setting-item">
                     <label className="setting-label">{t('settings.theme')}</label>
@@ -63,41 +63,6 @@ export function SettingsView() {
                     />
                 </div>
             </div>
-
-            <style>{`
-        .view-container {
-          padding: 0;
-        }
-        .setting-item {
-          margin-bottom: var(--spacing-lg);
-        }
-        .setting-item:last-child {
-          margin-bottom: 0;
-        }
-        .setting-label {
-          display: block;
-          font-weight: 500;
-          margin-bottom: var(--spacing-sm);
-          color: var(--color-text-primary);
-        }
-        .setting-options {
-          display: flex;
-          gap: var(--spacing-sm);
-        }
-        .setting-input {
-          width: 100%;
-          padding: var(--spacing-sm) var(--spacing-md);
-          border: 1px solid var(--color-border);
-          border-radius: var(--border-radius-sm);
-          background: var(--color-bg-secondary);
-          color: var(--color-text-primary);
-          font-size: var(--font-size-sm);
-        }
-        .setting-input:focus {
-          outline: none;
-          border-color: var(--color-primary);
-        }
-      `}</style>
         </div>
     );
 }

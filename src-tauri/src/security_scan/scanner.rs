@@ -6,6 +6,7 @@
 use crate::services::{get_ports_in_use, PortInfo};
 use chrono::Local;
 use glob::Pattern;
+use rayon::prelude::*;
 use std::collections::HashSet;
 use std::env;
 use std::fs;
@@ -340,62 +341,73 @@ fn is_tool_running(tool: &AiToolSecurityRule) -> bool {
     false
 }
 
-/// Get all security findings
-pub fn get_security_findings() -> Vec<SecurityFinding> {
-    let ports_info = get_ports_in_use();
-    let rules = get_rules();
-    let mut all_findings = Vec::new();
+fn collect_findings_for_tool(
+    tool: &AiToolSecurityRule,
+    ports_info: &[PortInfo],
+) -> Vec<SecurityFinding> {
+    let mut findings = check_exposed_ports(tool, ports_info);
+    findings.extend(check_config_files(tool));
+    findings
+}
 
-    for tool in rules.iter() {
-        // Check ports
-        let port_findings = check_exposed_ports(tool, &ports_info);
-        all_findings.extend(port_findings);
+fn build_summary(findings: &[SecurityFinding]) -> SecuritySummary {
+    let mut summary = SecuritySummary {
+        total_findings: findings.len(),
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+    };
 
-        // Check configs
-        let config_findings = check_config_files(tool);
-        all_findings.extend(config_findings);
+    for finding in findings {
+        match finding.risk_level {
+            RiskLevel::Critical => summary.critical += 1,
+            RiskLevel::High => summary.high += 1,
+            RiskLevel::Medium => summary.medium += 1,
+            RiskLevel::Low => summary.low += 1,
+        }
     }
 
-    // Sort by risk level (Critical first)
-    all_findings.sort_by(|a, b| {
+    summary
+}
+
+fn get_security_findings_for_rules(
+    rules: &[AiToolSecurityRule],
+    ports_info: &[PortInfo],
+) -> Vec<SecurityFinding> {
+    let mut findings: Vec<SecurityFinding> = rules
+        .par_iter()
+        .flat_map(|tool| collect_findings_for_tool(tool, ports_info))
+        .collect();
+
+    findings.sort_by(|a, b| {
         let risk_order = |r: &RiskLevel| match r {
             RiskLevel::Critical => 0,
             RiskLevel::High => 1,
             RiskLevel::Medium => 2,
             RiskLevel::Low => 3,
         };
+
         risk_order(&a.risk_level).cmp(&risk_order(&b.risk_level))
     });
 
-    all_findings
+    findings
+}
+
+/// Get all security findings
+pub fn get_security_findings() -> Vec<SecurityFinding> {
+    let ports_info = get_ports_in_use();
+    let rules = get_rules();
+    get_security_findings_for_rules(rules.as_slice(), &ports_info)
 }
 
 /// Perform a complete security scan
 pub fn scan_ai_tool_security() -> SecurityScanResult {
-    let findings = get_security_findings();
     let rules = get_rules();
-
-    let summary = SecuritySummary {
-        total_findings: findings.len(),
-        critical: findings
-            .iter()
-            .filter(|f| f.risk_level == RiskLevel::Critical)
-            .count(),
-        high: findings
-            .iter()
-            .filter(|f| f.risk_level == RiskLevel::High)
-            .count(),
-        medium: findings
-            .iter()
-            .filter(|f| f.risk_level == RiskLevel::Medium)
-            .count(),
-        low: findings
-            .iter()
-            .filter(|f| f.risk_level == RiskLevel::Low)
-            .count(),
-    };
-
-    let tools_scanned: Vec<String> = rules.iter().map(|t| t.name.clone()).collect();
+    let ports_info = get_ports_in_use();
+    let findings = get_security_findings_for_rules(rules.as_slice(), &ports_info);
+    let summary = build_summary(&findings);
+    let tools_scanned: Vec<String> = rules.iter().map(|tool| tool.name.clone()).collect();
 
     SecurityScanResult {
         scan_time: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
@@ -411,30 +423,8 @@ pub fn scan_specific_tool(tool_id: &str) -> Option<SecurityScanResult> {
     let tool = rules.iter().find(|t| t.id == tool_id)?;
 
     let ports_info = get_ports_in_use();
-    let mut findings = Vec::new();
-
-    findings.extend(check_exposed_ports(tool, &ports_info));
-    findings.extend(check_config_files(tool));
-
-    let summary = SecuritySummary {
-        total_findings: findings.len(),
-        critical: findings
-            .iter()
-            .filter(|f| f.risk_level == RiskLevel::Critical)
-            .count(),
-        high: findings
-            .iter()
-            .filter(|f| f.risk_level == RiskLevel::High)
-            .count(),
-        medium: findings
-            .iter()
-            .filter(|f| f.risk_level == RiskLevel::Medium)
-            .count(),
-        low: findings
-            .iter()
-            .filter(|f| f.risk_level == RiskLevel::Low)
-            .count(),
-    };
+    let findings = collect_findings_for_tool(tool, &ports_info);
+    let summary = build_summary(&findings);
 
     Some(SecurityScanResult {
         scan_time: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
