@@ -1,4 +1,4 @@
-# Dev Janitor v2 🧹
+# Dev Janitor
 
 <div align="center">
 
@@ -7,118 +7,119 @@
 [![Build Status](https://github.com/cocojojo5213/dev-janitor/workflows/CI/badge.svg)](https://github.com/cocojojo5213/dev-janitor/actions)
 [![Release](https://img.shields.io/github/v/release/cocojojo5213/dev-janitor)](https://github.com/cocojojo5213/dev-janitor/releases)
 [![Downloads](https://img.shields.io/github/downloads/cocojojo5213/dev-janitor/total)](https://github.com/cocojojo5213/dev-janitor/releases)
-[![License](https://img.shields.io/github/license/cocojojo5213/dev-janitor)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
 
-**让您的开发环境始终保持闪亮如新 ✨**
+一个跨平台桌面应用，用于清理开发残留、管理本地开发工具，并检查常见的环境问题。
 
-[下载安装](#-安装) • [功能特性](#-功能特性) • [软件截图](#-软件截图) • [本地开发](#️-本地开发) • [参与贡献](#-参与贡献) • [English](README.md)
+[安装](#安装) • [功能](#功能) • [截图](#截图) • [开发](#开发) • [贡献](#参与贡献) • [English](README.md)
 
 </div>
 
 ---
 
-## 🚀 为什么选择 Dev Janitor?
+## 概览
 
-开发者热爱创造，但我们讨厌身后留下的混乱。`node_modules` 黑洞、构建产生的 `target` 文件夹、不再使用的 Docker 容器、AI 工具遗留的临时文件……它们正在吞噬您的磁盘空间，拖慢您的系统速度。
+Dev Janitor 用来处理开发过程中不断累积的本地残留文件和后台进程，例如包管理器缓存、构建输出、临时文件、AI 工具残留、端口占用，以及 Shell 配置漂移等问题。
 
-**Dev Janitor** 是您的私人机器人管家，它能智能识别并清理这些开发垃圾，为您瞬间回收数 GB 的空间，让您的机器运行如飞。
+## 功能
 
-## ✨ 功能特性
+### 清理
 
-### 🧹 智能清理
-- **深度扫描**: 使用智能算法发现隐藏在项目深处的垃圾文件。
-- **AI 残留清理**: 专门检测 AI 编程工具（如 Aider, Cursor, Copilot, OpenCode）产生的工件和缓存。
-- **聊天记录管理**: 按项目管理和清理 AI 编程助手的对话历史与调试文件。
+- 扫描项目目录中的常见开发残留，例如 `node_modules`、`target`、日志、缓存和临时文件。
+- 检测 Aider、Cursor、Copilot、OpenCode 等 AI 编程工具产生的残留文件。
+- 按项目查看和清理 AI 聊天记录与调试文件。
 
-### 🛠️ 工具管理
-- **一站式管理**: 统一管理 Node, Python, Rust, Go 等各种语言环境的全局工具。
-- **版本控制**: 轻松查看版本信息，一键更新过时的全局包。
-- **AI CLI 市场**: 支持一键安装和管理 Claude Code, Codex, OpenCode, Aider 等热门 AI 命令行工具。
+### 工具管理
 
-### 🔐 安全扫描 (v2.2 新增)
-- **CVE 检测**: 扫描已知漏洞，如 CVE-2026-22812 (OpenCode 远程代码执行)。
-- **端口暴露**: 检测 AI 工具暴露的端口（应仅绑定 localhost）。
-- **API 密钥泄露**: 发现配置文件中不安全存储的 API 密钥。
-- **MCP 安全**: 检查 Model Context Protocol 服务器的 SSRF 和凭证泄露问题。
-- **供应链攻击**: 检测 Cursor 项目中恶意的 `.vscode/tasks.json` 文件。
+- 查看 Node、Python、Rust、Go 等生态中的常用工具。
+- 检查版本并更新常见的全局包。
+- 在一个界面中管理 AI CLI 工具。
 
-### 📊 系统健康
-- **进程杀手**: 快速识别并终结占用大量资源的开发进程。
-- **端口扫描**: 一眼看穿是谁占用了 3000 或 8080 端口，并一键释放。
-- **环境医生**: 自动分析您的 PATH 环境变量和 Shell 配置文件，发现潜在错误和冲突。
+### 安全扫描
 
-## 📸 软件截图
+- 检查本地工具配置中的已知风险和易受攻击的设置。
+- 标记通常应只监听 `localhost` 的端口。
+- 检测常见配置文件中的 API 密钥泄露。
+- 检查 MCP 服务器配置中可能导致凭证泄露或 SSRF 的模式。
+
+### 系统工具
+
+- 查看长期运行的开发进程。
+- 查找某个端口当前被哪个进程占用。
+- 排查 PATH 与 Shell 配置中的常见问题。
+
+## 截图
 
 <div align="center">
   <img src="assets/screenshots/tools.png" alt="工具管理" width="800"/>
-  <p><em>一站式管理所有开发工具</em></p>
+  <p><em>统一查看和管理开发工具</em></p>
 </div>
 
 <br/>
 
 <div align="center">
   <img src="assets/screenshots/ai_cleanup.png" alt="AI 清理" width="800"/>
-  <p><em>一键扫描并清理 AI 工具残留文件</em></p>
+  <p><em>按项目查看并清理 AI 工具残留</em></p>
 </div>
 
 <br/>
 
 <div align="center">
   <img src="assets/screenshots/cache.png" alt="缓存清理" width="800"/>
-  <p><em>释放包管理器缓存占用的数 GB 空间</em></p>
+  <p><em>回收包管理器缓存占用的空间</em></p>
 </div>
 
 <br/>
 
 <div align="center">
   <img src="assets/screenshots/services.png" alt="服务管理" width="800"/>
-  <p><em>监控和管理开发进程与端口占用</em></p>
+  <p><em>检查开发进程和端口占用</em></p>
 </div>
 
-
-
-## 📥 安装
+## 安装
 
 ### Windows
-从 [Releases](https://github.com/cocojojo5213/dev-janitor/releases) 页面下载：
-- **安装版**: `.msi` 安装包（推荐）
-- **便携版**: `*_portable.zip` 解压即用，无需安装
 
-### MacOS
+从 [Releases](https://github.com/cocojojo5213/dev-janitor/releases) 页面下载：
+
+- 安装版：`.msi`
+- 便携版：`*_portable.zip`
+
+### macOS
+
 从 [Releases](https://github.com/cocojojo5213/dev-janitor/releases) 下载 `.dmg` 文件。
-> *注意: 因签名原因，首次运行可能需要 右键 > 打开 来绕过 Gatekeeper。*
+首次运行时，可能需要使用 `右键 > 打开` 通过 Gatekeeper。
 
 ### Linux
-我们提供 AppImage, .deb, 和 .rpm 格式。请前往 [Releases](https://github.com/cocojojo5213/dev-janitor/releases) 页面下载。
 
-## 🛠️ 本地开发
+AppImage、`.deb` 和 `.rpm` 包会发布在 [Releases](https://github.com/cocojojo5213/dev-janitor/releases) 页面。
 
-本项目使用 🧡 **Tauri 2**, **React 19** 和 **Rust** 构建。
+## 开发
+
+本项目基于 Tauri 2、React 19 和 Rust。
 
 <details>
-<summary>点击查看开发环境配置指南</summary>
+<summary>开发环境配置</summary>
 
 ### 前置要求
+
 - Node.js 24 LTS+
 - pnpm 10.30.3+
 - Rust 1.94.0
 
 ### 启动步骤
+
 ```bash
-# 克隆仓库
-git clone https://github.com/cocojojo5213/dev-janitor.git
-cd dev-janitor
-
-# 通过 Corepack 启用 pnpm（推荐）
+git clone https://github.com/cocojojo5213/Dev-Janitor.git
+cd Dev-Janitor
 corepack enable pnpm
-
-# 安装依赖
 pnpm install
-
-# 启动开发服务器
 pnpm tauri dev
+```
 
-# 可选检查
+### 检查命令
+
+```bash
 pnpm lint
 pnpm build
 cargo test
@@ -126,26 +127,32 @@ cargo test
 
 </details>
 
-## 🤝 参与贡献
+## 参与贡献
 
-我们非常欢迎您的贡献！在提交 PR 之前，请先阅读我们的 [贡献指南](CONTRIBUTING.md)。
+提交 Pull Request 之前，请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-1. Fork 本仓库
-2. 创建您的特性分支 (`git checkout -b feature/CoolFeature`)
-3. 提交您的更改 (`git commit -m 'Add some CoolFeature'`)
-4. 推送到分支 (`git push origin feature/CoolFeature`)
-5. 开启 Pull Request
+- 尽量让每个 Pull Request 聚焦在单一问题上。
+- 功能或行为变化时，请同步更新文档。
+- 安全问题请按 [SECURITY.md](SECURITY.md) 中的方式私下报告。
+- 参与协作时请遵守 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
 
-## 📄 许可证
+## 项目文档
 
-**MIT License** - 详见 [LICENSE](LICENSE)
+- [贡献指南](CONTRIBUTING.md)
+- [行为准则](CODE_OF_CONDUCT.md)
+- [安全策略](SECURITY.md)
+- [支持说明](SUPPORT.md)
 
-## 📧 联系
+## 许可证
 
-- 邮箱：cocojojo5213@gmail.com
+本项目采用 [MIT License](LICENSE)。
+
+## 联系方式
+
+邮箱：cocojojo5213@gmail.com
 
 ---
 
 <div align="center">
-  <sub>Built by <a href="https://github.com/cocojojo5213">cocojojo5213</a>
+  <sub>Built by <a href="https://github.com/cocojojo5213">cocojojo5213</a></sub>
 </div>

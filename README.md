@@ -1,4 +1,4 @@
-# Dev Janitor v2 🧹
+# Dev Janitor
 
 <div align="center">
 
@@ -7,117 +7,119 @@
 [![Build Status](https://github.com/cocojojo5213/dev-janitor/workflows/CI/badge.svg)](https://github.com/cocojojo5213/dev-janitor/actions)
 [![Release](https://img.shields.io/github/v/release/cocojojo5213/dev-janitor)](https://github.com/cocojojo5213/dev-janitor/releases)
 [![Downloads](https://img.shields.io/github/downloads/cocojojo5213/dev-janitor/total)](https://github.com/cocojojo5213/dev-janitor/releases)
-[![License](https://img.shields.io/github/license/cocojojo5213/dev-janitor)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
 
-**Keep Your Development Environment Sparkling Clean ✨**
+Cross-platform desktop application for cleaning development artifacts, managing local developer tools, and checking common environment issues.
 
-[Download](#-installation) • [Features](#-features) • [Screenshots](#-screenshots) • [Development](#-development) • [Contributing](#-contributing) • [简体中文](README.zh-CN.md)
+[Download](#installation) • [Features](#features) • [Screenshots](#screenshots) • [Development](#development) • [Contributing](#contributing) • [简体中文](README.zh-CN.md)
 
 </div>
 
 ---
 
-## 🚀 Why Dev Janitor?
+## Overview
 
-Developers love creating, but we hate the mess left behind. `node_modules`, `target` folders, unused docker containers, orphans from AI tools... they eat up your disk space and slow you down.
+Dev Janitor helps keep a local development machine under control. It focuses on the files, caches, services, and configuration drift that accumulate during everyday work.
 
-**Dev Janitor** is your personal robot assistant that intelligently identifies and cleans development junk, recovers gigabytes of space, and keeps your machine running like new.
+## Features
 
-## ✨ Features
+### Cleanup
 
-### 🧹 Intelligent Cleanup
-- **Deep Scan**: Uses smart heuristics to find junk files hidden in your projects.
-- **AI Leftovers**: Detects artifacts from AI coding tools (Aider, Cursor, Copilot, OpenCode).
-- **Chat History**: Manage and clean AI chat histories and debug files per project.
+- Scan project directories for common development artifacts such as `node_modules`, `target`, logs, caches, and temporary files.
+- Detect leftovers from AI coding tools such as Aider, Cursor, Copilot, and OpenCode.
+- Review and remove AI chat history and debug files on a per-project basis.
 
-### 🛠️ Tool Management
-- **One-Stop Shop**: Manage installed tools for Node, Python, Rust, Go, and more.
-- **Version Control**: Check versions and update global packages easily.
-- **AI CLI Hub**: Install and manage AI tools like Claude Code, Codex, OpenCode, and Aider.
+### Tool Management
 
-### 🔐 Security Scan (NEW in v2.2)
-- **CVE Detection**: Scan for known vulnerabilities like CVE-2026-22812 (OpenCode RCE).
-- **Port Exposure**: Detect AI tools with exposed ports that should be localhost-only.
-- **API Key Leaks**: Find API keys stored insecurely in config files.
-- **MCP Security**: Check Model Context Protocol servers for SSRF and credential leaks.
-- **Supply Chain**: Detect malicious `.vscode/tasks.json` in Cursor projects.
+- Inspect installed tools across Node, Python, Rust, Go, and related ecosystems.
+- Check versions and update common global packages.
+- Manage AI CLI tools from one interface.
 
-### 📊 System Health
-- **Process Killer**: Identify and stop resource-heavy development processes.
-- **Port Scanner**: Find which service is hogging port 3000 or 8080.
-- **Env Doctor**: Analyze your PATH and Shell config for errors and conflicts.
+### Security Scan
 
-## 📸 Screenshots
+- Check for risky local tool configurations and known vulnerable setups.
+- Flag ports that should usually listen on `localhost` only.
+- Detect API keys stored in common configuration files.
+- Inspect MCP server configurations for patterns that can lead to credential exposure or SSRF.
+
+### System Utilities
+
+- Inspect long-running development processes.
+- Find which process is using a specific port.
+- Review PATH and shell configuration issues.
+
+## Screenshots
 
 <div align="center">
   <img src="assets/screenshots/tools.png" alt="Tools View" width="800"/>
-  <p><em>Manage all your development tools in one place</em></p>
+  <p><em>Manage development tools in one place</em></p>
 </div>
 
 <br/>
 
 <div align="center">
   <img src="assets/screenshots/ai_cleanup.png" alt="AI Cleanup View" width="800"/>
-  <p><em>Scan and clean AI tool leftovers with a single click</em></p>
+  <p><em>Review and clean AI tool leftovers per project</em></p>
 </div>
 
 <br/>
 
 <div align="center">
   <img src="assets/screenshots/cache.png" alt="Cache View" width="800"/>
-  <p><em>Reclaim gigabytes of space from package manager caches</em></p>
+  <p><em>Reclaim space from package manager caches</em></p>
 </div>
 
 <br/>
 
 <div align="center">
   <img src="assets/screenshots/services.png" alt="Services View" width="800"/>
-  <p><em>Monitor and manage development processes and ports</em></p>
+  <p><em>Inspect development processes and port usage</em></p>
 </div>
 
-
-## 📥 Installation
+## Installation
 
 ### Windows
-Download the latest files from [Releases](https://github.com/cocojojo5213/dev-janitor/releases):
-- **Installer**: `.msi`
-- **Portable**: `*_portable.zip`
 
-### MacOS
+Download the latest files from [Releases](https://github.com/cocojojo5213/dev-janitor/releases):
+
+- Installer: `.msi`
+- Portable: `*_portable.zip`
+
+### macOS
+
 Download the `.dmg` from [Releases](https://github.com/cocojojo5213/dev-janitor/releases).
-> *Note: Open via Right Click > Open to bypass Gatekeeper.*
+The first launch may require `Right Click > Open` because of Gatekeeper.
 
 ### Linux
-We support AppImage, .deb, and .rpm. Check the [Releases](https://github.com/cocojojo5213/dev-janitor/releases) page.
 
-## 🛠️ Development
+AppImage, `.deb`, and `.rpm` packages are published on the [Releases](https://github.com/cocojojo5213/dev-janitor/releases) page.
 
-Built with ❤️ using **Tauri 2.0**, **React 19**, and **Rust**.
+## Development
+
+Dev Janitor is built with Tauri 2, React 19, and Rust.
 
 <details>
-<summary>Click to see development setup instructions</summary>
+<summary>Development setup</summary>
 
 ### Prerequisites
+
 - Node.js 24 LTS+
 - pnpm 10.30.3+
 - Rust 1.94.0
 
 ### Setup
+
 ```bash
-# Clone repo
 git clone https://github.com/cocojojo5213/Dev-Janitor.git
 cd Dev-Janitor
-
-# Enable pnpm via Corepack (recommended)
 corepack enable pnpm
-
-# Install
 pnpm install
-
-# Run dev
 pnpm tauri dev
+```
 
-# Optional checks
+### Validation
+
+```bash
 pnpm lint
 pnpm build
 cargo test
@@ -125,26 +127,32 @@ cargo test
 
 </details>
 
-## 🤝 Contributing
+## Contributing
 
-We welcome all contributions! Please read our [Contributing Guide](CONTRIBUTING.md) first.
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
-1. Fork the Project
-2. Create your Feature Branch
-3. Commit your Changes
-4. Push to the Branch
-5. Open a Pull Request
+- Keep pull requests focused.
+- Update documentation when behavior or setup changes.
+- Report security issues privately as described in [SECURITY.md](SECURITY.md).
+- Follow the expectations in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
-## 📄 License
+## Project Docs
 
-**MIT License** - See [LICENSE](LICENSE) for details.
+- [Contributing Guide](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security Policy](SECURITY.md)
+- [Support](SUPPORT.md)
 
-## 📧 Contact
+## License
 
-- Email: cocojojo5213@gmail.com
+This project is available under the [MIT License](LICENSE).
+
+## Contact
+
+Email: cocojojo5213@gmail.com
 
 ---
 
 <div align="center">
-  <sub>Built by <a href="https://github.com/cocojojo5213">cocojojo5213</a>
+  <sub>Built by <a href="https://github.com/cocojojo5213">cocojojo5213</a></sub>
 </div>

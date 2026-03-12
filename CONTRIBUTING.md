@@ -2,13 +2,14 @@
 
 Thanks for contributing to Dev Janitor.
 
-## Before you start
+## Before You Start
 
-- Open an issue or discussion first for large changes.
-- Keep changes focused. Avoid unrelated refactors in the same PR.
-- Use `pnpm` as the only JavaScript package manager for this repository.
+- Open an issue first for large changes.
+- Keep pull requests focused. Avoid unrelated refactors in the same PR.
+- Use `pnpm` as the JavaScript package manager for this repository.
+- Review [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before participating.
 
-## Local setup
+## Local Setup
 
 ```bash
 git clone https://github.com/cocojojo5213/Dev-Janitor.git
@@ -26,7 +27,7 @@ pnpm tauri dev
 
 ## Validation
 
-Run the relevant checks before opening a PR:
+Run the relevant checks before opening a pull request:
 
 ```bash
 pnpm lint
@@ -37,9 +38,14 @@ cargo clippy -- -D warnings -A clippy::permissions_set_readonly_false -A dead_co
 
 If you change cross-platform command execution or Tauri backend behavior, also verify Windows behavior when possible.
 
-## Pull requests
+## Pull Requests
 
 - Describe the problem and the root-cause fix.
 - Include screenshots for UI changes.
 - Mention any platform-specific tradeoffs, especially for Windows.
 - Update `README.md` / `README.zh-CN.md` when setup, behavior, or supported platforms change.
+- Use the pull request template and note which checks you ran.
+
+## Security Reports
+
+Do not open public issues for vulnerabilities. Report them as described in [SECURITY.md](SECURITY.md).

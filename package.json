@@ -1,9 +1,23 @@
 {
   "name": "dev-janitor-v2",
+  "description": "Cross-platform desktop application for cleaning development artifacts and managing local developer tools.",
   "private": true,
+  "author": "cocojojo5213",
   "license": "MIT",
   "version": "2.3.5",
   "packageManager": "pnpm@10.30.3",
+  "homepage": "https://github.com/cocojojo5213/Dev-Janitor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cocojojo5213/Dev-Janitor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cocojojo5213/Dev-Janitor/issues"
+  },
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=10.30.3"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,11 +1,13 @@
 [package]
 name = "dev-janitor-v2"
 version = "2.3.5"
-description = "Developer environment cleanup and management tool"
-authors = ["Dev Janitor Team"]
+description = "Cross-platform desktop application for cleaning development artifacts and managing local developer tools"
+authors = ["cocojojo5213"]
 edition = "2021"
+rust-version = "1.94"
 license = "MIT"
 repository = "https://github.com/cocojojo5213/Dev-Janitor"
+homepage = "https://github.com/cocojojo5213/Dev-Janitor"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
