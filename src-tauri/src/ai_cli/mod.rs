@@ -6,6 +6,7 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use crate::ai_tools::{ai_tools, find_ai_tool, normalize_ai_tool_id, AiToolMetadata};
 use crate::utils::command::{command_output_with_timeout, command_output_with_timeout_vec};
 #[cfg(target_os = "windows")]
 use std::fs;
@@ -33,244 +34,148 @@ pub struct AiConfigFile {
     pub exists: bool,
 }
 
-/// Get all supported AI CLI tools with their status
-pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
-    let (claude_install_command, claude_uninstall_command) = if cfg!(target_os = "windows") {
-        let user_profile =
-            std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\Default".to_string());
-        (
-            "powershell -ExecutionPolicy ByPass -c \"irm https://claude.ai/install.ps1 | iex\""
-                .to_string(),
-            format!(
-                "del \"{}\\.claude\\bin\\claude.exe\" & rmdir /s /q \"{}\\.claude\"",
-                user_profile, user_profile
-            ),
-        )
-    } else if cfg!(target_os = "macos") {
-        (
-            "brew install --cask claude-code".to_string(),
-            "brew uninstall --cask claude-code || (rm -f ~/.local/bin/claude && rm -rf ~/.local/share/claude)".to_string(),
-        )
-    } else {
-        (
-            "curl -fsSL https://claude.ai/install.sh | bash".to_string(),
-            "rm -f ~/.local/bin/claude && rm -rf ~/.local/share/claude".to_string(),
-        )
-    };
+struct ToolLifecycleCommands {
+    install: String,
+    update: String,
+    uninstall: String,
+}
 
-    vec![
-        check_tool(AiCliTool {
-            id: "claude".to_string(),
-            name: "Claude Code".to_string(),
-            description: "Anthropic's Claude AI coding assistant".to_string(),
-            installed: false,
-            version: None,
-            install_command: claude_install_command,
-            update_command: "claude update".to_string(),
-            uninstall_command: claude_uninstall_command,
-            docs_url: "https://docs.anthropic.com/en/docs/claude-code/getting-started".to_string(),
-            config_paths: find_config_files("claude"),
-        }),
-        check_tool(AiCliTool {
-            id: "codex".to_string(),
-            name: "OpenAI Codex CLI".to_string(),
-            description: "OpenAI's Codex coding assistant (Rust-based)".to_string(),
-            installed: false,
-            version: None,
-            install_command: "npm i -g @openai/codex".to_string(),
-            update_command: "npm install -g @openai/codex@latest".to_string(),
-            uninstall_command: "npm uninstall -g @openai/codex".to_string(),
-            docs_url: "https://developers.openai.com/codex/cli".to_string(),
-            config_paths: find_config_files("codex"),
-        }),
-        check_tool(AiCliTool {
-            id: "opencode".to_string(),
-            name: "OpenCode".to_string(),
-            description: "Terminal-based AI coding assistant with multi-provider support"
-                .to_string(),
-            installed: false,
-            version: None,
-            install_command: if cfg!(target_os = "windows") {
+fn lifecycle_commands(tool_id: &str) -> ToolLifecycleCommands {
+    match tool_id {
+        "claude" => ToolLifecycleCommands {
+            install: if cfg!(target_os = "windows") {
+                "powershell -ExecutionPolicy ByPass -c \"irm https://claude.ai/install.ps1 | iex\""
+                    .to_string()
+            } else if cfg!(target_os = "macos") {
+                "brew install --cask claude-code".to_string()
+            } else {
+                "curl -fsSL https://claude.ai/install.sh | bash".to_string()
+            },
+            update: "claude update".to_string(),
+            uninstall: if cfg!(target_os = "windows") {
+                "Remove ~/.local/bin/claude.exe and ~/.local/share/claude (native install)"
+                    .to_string()
+            } else if cfg!(target_os = "macos") {
+                "brew uninstall --cask claude-code || (rm -f ~/.local/bin/claude && rm -rf ~/.local/share/claude)".to_string()
+            } else {
+                "rm -f ~/.local/bin/claude && rm -rf ~/.local/share/claude".to_string()
+            },
+        },
+        "codex" => ToolLifecycleCommands {
+            install: "npm i -g @openai/codex".to_string(),
+            update: "npm install -g @openai/codex@latest".to_string(),
+            uninstall: "npm uninstall -g @openai/codex".to_string(),
+        },
+        "opencode" => ToolLifecycleCommands {
+            install: if cfg!(target_os = "windows") {
                 "npm install -g opencode-ai".to_string()
             } else {
                 "curl -fsSL https://opencode.ai/install | bash".to_string()
             },
-            update_command: "npm install -g opencode-ai@latest".to_string(),
-            uninstall_command: "npm uninstall -g opencode-ai".to_string(),
-            docs_url: "https://opencode.ai/docs".to_string(),
-            config_paths: find_config_files("opencode"),
-        }),
-        check_tool(AiCliTool {
-            id: "gemini".to_string(),
-            name: "Gemini CLI".to_string(),
-            description: "Google's Gemini AI coding assistant".to_string(),
-            installed: false,
-            version: None,
-            install_command: "npm install -g @google/gemini-cli".to_string(),
-            update_command: "npm install -g @google/gemini-cli@latest".to_string(),
-            uninstall_command: "npm uninstall -g @google/gemini-cli".to_string(),
-            docs_url: "https://google-gemini.github.io/gemini-cli/".to_string(),
-            config_paths: find_config_files("gemini"),
-        }),
-        check_tool(AiCliTool {
-            id: "aider".to_string(),
-            name: "Aider".to_string(),
-            description: "AI pair programming in your terminal".to_string(),
-            installed: false,
-            version: None,
-            install_command: if cfg!(target_os = "windows") {
+            update: "npm install -g opencode-ai@latest".to_string(),
+            uninstall: "npm uninstall -g opencode-ai".to_string(),
+        },
+        "gemini" => ToolLifecycleCommands {
+            install: "npm install -g @google/gemini-cli".to_string(),
+            update: "npm install -g @google/gemini-cli@latest".to_string(),
+            uninstall: "npm uninstall -g @google/gemini-cli".to_string(),
+        },
+        "aider" => ToolLifecycleCommands {
+            install: if cfg!(target_os = "windows") {
                 "powershell -ExecutionPolicy ByPass -c \"irm https://aider.chat/install.ps1 | iex\""
                     .to_string()
             } else {
                 "curl -LsSf https://aider.chat/install.sh | sh".to_string()
             },
-            update_command: "aider --upgrade".to_string(),
-            uninstall_command: "uv tool uninstall aider-chat || pipx uninstall aider-chat"
-                .to_string(),
-            docs_url: "https://aider.chat/docs/install".to_string(),
-            config_paths: find_config_files("aider"),
-        }),
-        check_tool(AiCliTool {
-            id: "continue".to_string(),
-            name: "Continue".to_string(),
-            description: "Open-source AI code assistant".to_string(),
-            installed: false,
-            version: None,
-            install_command: if cfg!(target_os = "windows") {
+            update: "aider --upgrade".to_string(),
+            uninstall: "uv tool uninstall aider-chat || pipx uninstall aider-chat".to_string(),
+        },
+        "continue" => ToolLifecycleCommands {
+            install: if cfg!(target_os = "windows") {
                 "npm install -g @continuedev/cli".to_string()
             } else {
                 "curl -fsSL https://raw.githubusercontent.com/continuedev/continue/main/extensions/cli/scripts/install.sh | bash".to_string()
             },
-            update_command: "npm install -g @continuedev/cli@latest".to_string(),
-            uninstall_command: "npm uninstall -g @continuedev/cli".to_string(),
-            docs_url: "https://docs.continue.dev/cli/quickstart".to_string(),
-            config_paths: find_config_files("continue"),
-        }),
-        check_tool(AiCliTool {
-            id: "cody".to_string(),
-            name: "Sourcegraph Cody".to_string(),
-            description: "Sourcegraph's AI coding assistant".to_string(),
-            installed: false,
-            version: None,
-            install_command: "npm install -g @sourcegraph/cody".to_string(),
-            update_command: "npm install -g @sourcegraph/cody@latest".to_string(),
-            uninstall_command: "npm uninstall -g @sourcegraph/cody".to_string(),
-            docs_url: "https://sourcegraph.com/docs/cody/clients/install-cli".to_string(),
-            config_paths: find_config_files("cody"),
-        }),
-        check_tool(AiCliTool {
-            id: "kiro".to_string(),
-            name: "Kiro CLI".to_string(),
-            description: "AWS Kiro AI coding agent (successor to Amazon Q Developer CLI)"
-                .to_string(),
-            installed: false,
-            version: None,
-            install_command: if cfg!(target_os = "windows") {
-                "Download Kiro from https://kiro.dev/downloads/ . Kiro CLI currently supports macOS and Linux; use WSL if needed.".to_string()
-            } else {
-                "curl -fsSL https://cli.kiro.dev/install | bash".to_string()
-            },
-            update_command: if cfg!(target_os = "windows") {
-                "Manual update required".to_string()
-            } else {
-                "curl -fsSL https://cli.kiro.dev/install | bash".to_string()
-            },
-            uninstall_command: "Manual uninstall required".to_string(),
-            docs_url: "https://kiro.dev/docs/cli/installation/".to_string(),
-            config_paths: find_config_files("kiro"),
-        }),
-        check_tool(AiCliTool {
-            id: "cursor".to_string(),
-            name: "Cursor CLI".to_string(),
-            description: "Cursor AI editor command line interface".to_string(),
-            installed: false,
-            version: None,
-            install_command: if cfg!(target_os = "windows") {
+            update: "npm install -g @continuedev/cli@latest".to_string(),
+            uninstall: "npm uninstall -g @continuedev/cli".to_string(),
+        },
+        "cody" => ToolLifecycleCommands {
+            install: "npm install -g @sourcegraph/cody".to_string(),
+            update: "npm install -g @sourcegraph/cody@latest".to_string(),
+            uninstall: "npm uninstall -g @sourcegraph/cody".to_string(),
+        },
+        "cursor" => ToolLifecycleCommands {
+            install: if cfg!(target_os = "windows") {
                 "powershell -ExecutionPolicy ByPass -c \"irm https://cursor.com/install | iex\""
                     .to_string()
             } else {
-                "curl https://cursor.com/install -fsS | bash".to_string()
+                "curl -fsS https://cursor.com/install | bash".to_string()
             },
-            update_command: "cursor-agent update".to_string(),
-            uninstall_command: "Manual uninstall required".to_string(),
-            docs_url: "https://docs.cursor.com/en/cli/installation".to_string(),
-            config_paths: find_config_files("cursor"),
-        }),
-    ]
+            update: "cursor-agent upgrade".to_string(),
+            uninstall: "Manual uninstall required".to_string(),
+        },
+        "kiro" => ToolLifecycleCommands {
+            install: if cfg!(target_os = "windows") {
+                "powershell -ExecutionPolicy ByPass -c \"irm https://kiro.dev/install.ps1 | iex\""
+                    .to_string()
+            } else {
+                "curl -fsSL https://kiro.dev/install | bash".to_string()
+            },
+            update: "kiro-cli update --non-interactive".to_string(),
+            uninstall: "kiro-cli uninstall".to_string(),
+        },
+        "iflow" => ToolLifecycleCommands {
+            install: "npm install -g @iflow-ai/iflow-cli".to_string(),
+            update: "npm install -g @iflow-ai/iflow-cli@latest".to_string(),
+            uninstall: "npm uninstall -g @iflow-ai/iflow-cli".to_string(),
+        },
+        _ => ToolLifecycleCommands {
+            install: "Unsupported".to_string(),
+            update: "Unsupported".to_string(),
+            uninstall: "Unsupported".to_string(),
+        },
+    }
+}
+
+/// Get all supported AI CLI tools with their status
+pub fn get_ai_cli_tools() -> Vec<AiCliTool> {
+    ai_tools()
+        .iter()
+        .map(|metadata| {
+            let commands = lifecycle_commands(metadata.id);
+            check_tool(AiCliTool {
+                id: metadata.id.to_string(),
+                name: metadata.name.to_string(),
+                description: metadata.description.to_string(),
+                installed: false,
+                version: None,
+                install_command: commands.install,
+                update_command: commands.update,
+                uninstall_command: commands.uninstall,
+                docs_url: metadata.docs_url.to_string(),
+                config_paths: find_config_files(metadata.id),
+            })
+        })
+        .collect()
 }
 
 /// Configuration discovery patterns for AI CLI tools
 /// Uses dynamic scanning instead of hardcoded file names to adapt to frequent config format changes
-struct ConfigDiscovery {
+struct ConfigDiscovery<'a> {
     /// Directories to scan for config files (relative to home)
-    directories: Vec<&'static str>,
+    directories: &'a [&'static str],
     /// Single files to check (relative to home) - for tools using dotfiles
-    single_files: Vec<&'static str>,
+    single_files: &'a [&'static str],
     /// File extensions to consider as config files when scanning directories
-    config_extensions: Vec<&'static str>,
+    config_extensions: &'a [&'static str],
 }
 
-impl ConfigDiscovery {
-    fn for_tool(tool_id: &str) -> Self {
-        match tool_id {
-            "claude" => ConfigDiscovery {
-                directories: vec![".claude"],
-                single_files: vec![".claude.json", ".claude/bin"],
-                config_extensions: vec!["json", "toml", "yaml", "yml"],
-            },
-            "codex" => ConfigDiscovery {
-                directories: vec![".codex"],
-                single_files: vec![".codexrc"],
-                config_extensions: vec!["json", "toml", "yaml", "yml"],
-            },
-            "opencode" => ConfigDiscovery {
-                directories: vec![".opencode", ".config/opencode"],
-                single_files: vec![
-                    ".opencoderc",
-                    ".config/opencode/opencode.json",
-                    ".config/opencode/opencode.jsonc",
-                ],
-                config_extensions: vec!["json", "jsonc", "toml", "yaml", "yml"],
-            },
-            "gemini" => ConfigDiscovery {
-                directories: vec![".gemini"],
-                single_files: vec![".geminirc"],
-                config_extensions: vec!["json", "toml", "yaml", "yml"],
-            },
-            "aider" => ConfigDiscovery {
-                directories: vec![".aider"],
-                single_files: vec![
-                    ".aider.conf.yml",
-                    ".aider.model.settings.yml",
-                    ".aider.model.metadata.json",
-                ],
-                config_extensions: vec!["json", "toml", "yaml", "yml"],
-            },
-            "continue" => ConfigDiscovery {
-                directories: vec![".continue"],
-                single_files: vec![],
-                config_extensions: vec!["json", "yaml", "yml"],
-            },
-            "cody" => ConfigDiscovery {
-                directories: vec![".sourcegraph"],
-                single_files: vec![],
-                config_extensions: vec!["json"],
-            },
-            "kiro" => ConfigDiscovery {
-                directories: vec![".kiro"],
-                single_files: vec![],
-                config_extensions: vec!["json", "toml", "yaml", "yml"],
-            },
-            "cursor" => ConfigDiscovery {
-                directories: vec![".cursor"],
-                single_files: vec![".cursorignore", ".cursorrules"],
-                config_extensions: vec!["json", "yaml", "yml"],
-            },
-            _ => ConfigDiscovery {
-                directories: vec![],
-                single_files: vec![],
-                config_extensions: vec![],
-            },
+impl<'a> From<&'a AiToolMetadata> for ConfigDiscovery<'a> {
+    fn from(metadata: &'a AiToolMetadata) -> Self {
+        Self {
+            directories: metadata.config_directories,
+            single_files: metadata.config_files,
+            config_extensions: metadata.config_extensions,
         }
     }
 }
@@ -283,7 +188,11 @@ fn find_config_files(tool_id: &str) -> Vec<AiConfigFile> {
     let app_data = env::var("APPDATA").unwrap_or_default();
     let local_app_data = env::var("LOCALAPPDATA").unwrap_or_default();
 
-    let discovery = ConfigDiscovery::for_tool(tool_id);
+    let Some(metadata) = find_ai_tool(tool_id) else {
+        return Vec::new();
+    };
+    let discovery = ConfigDiscovery::from(metadata);
+    let display_name = metadata.name;
     let mut configs = Vec::new();
     let mut seen_paths = std::collections::HashSet::new();
 
@@ -299,14 +208,14 @@ fn find_config_files(tool_id: &str) -> Vec<AiConfigFile> {
         }
 
         // Scan directories for config files
-        for dir_name in &discovery.directories {
+        for dir_name in discovery.directories {
             let dir_path = PathBuf::from(base).join(dir_name);
             if dir_path.is_dir() {
                 // Add the directory itself
                 let dir_str = dir_path.to_string_lossy().to_string();
                 if seen_paths.insert(dir_str.clone()) {
                     configs.push(AiConfigFile {
-                        name: format!("{} Directory{}", capitalize_tool_id(tool_id), suffix),
+                        name: format!("{} Directory{}", display_name, suffix),
                         path: dir_str,
                         exists: true,
                     });
@@ -344,7 +253,7 @@ fn find_config_files(tool_id: &str) -> Vec<AiConfigFile> {
         }
 
         // Check single files
-        for file_name in &discovery.single_files {
+        for file_name in discovery.single_files {
             let file_path = PathBuf::from(base).join(file_name);
             let path_str = file_path.to_string_lossy().to_string();
             if seen_paths.insert(path_str.clone()) {
@@ -367,15 +276,6 @@ fn find_config_files(tool_id: &str) -> Vec<AiConfigFile> {
     configs
 }
 
-/// Capitalize tool ID for display
-fn capitalize_tool_id(tool_id: &str) -> String {
-    let mut chars = tool_id.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-    }
-}
-
 fn is_manual_action(command: &str) -> bool {
     let normalized = command.trim().to_ascii_lowercase();
     normalized.starts_with("download")
@@ -387,63 +287,66 @@ fn is_manual_action(command: &str) -> bool {
 
 /// Check if a tool is installed and get its version
 fn check_tool(mut tool: AiCliTool) -> AiCliTool {
-    let (cmd, args) = match tool.id.as_str() {
-        "claude" => ("claude", vec!["--version"]),
-        "codex" => ("codex", vec!["--version"]),
-        "opencode" => ("opencode", vec!["--version"]),
-        "gemini" => ("gemini", vec!["--version"]),
-        "aider" => ("aider", vec!["--version"]),
-        "continue" => ("cn", vec!["--version"]),
-        "cody" => ("cody", vec!["--version"]),
-        "kiro" => ("kiro-cli", vec!["--version"]),
-        "cursor" => ("cursor-agent", vec!["--version"]),
-        _ => return tool,
-    };
-
-    let version = match tool.id.as_str() {
-        "continue" => run_command_get_version(cmd, &args)
-            .or_else(|| run_command_get_version("continue", &["--version"])),
-        "cursor" => run_command_get_version(cmd, &args)
-            .or_else(|| run_command_get_version("cursor", &["--version"])),
-        "cody" => run_command_get_version(cmd, &args)
-            .or_else(|| run_command_get_version("cody-agent", &["--version"])),
-        "kiro" => run_command_get_version(cmd, &args),
-        _ => run_command_get_version(cmd, &args),
-    };
-
-    if let Some(version) = version {
-        tool.installed = true;
-        tool.version = Some(version);
+    let attempts = version_probe_attempts(&tool.id);
+    for (cmd, args) in attempts {
+        if let Some(output) = run_command_capture(cmd, args) {
+            tool.installed = true;
+            tool.version = extract_semver_like(&output);
+            break;
+        }
     }
 
     tool
 }
 
-/// Run a command and extract version
-fn run_command_get_version(cmd: &str, args: &[&str]) -> Option<String> {
+fn version_probe_attempts(tool_id: &str) -> Vec<(&'static str, &'static [&'static str])> {
+    match tool_id {
+        "continue" => vec![("cn", &["--version"]), ("continue", &["--version"])],
+        "cursor" => vec![("cursor-agent", &["--version"]), ("cursor", &["--version"])],
+        "cody" => vec![
+            ("cody", &["--version"]),
+            ("cody", &["help"]),
+            ("cody-agent", &["help"]),
+        ],
+        "kiro" => vec![("kiro-cli", &["version"]), ("kiro", &["version"])],
+        "iflow" => vec![("iflow", &["--version"])],
+        other => find_ai_tool(other)
+            .map(|tool| {
+                tool.commands
+                    .iter()
+                    .map(|cmd| (*cmd, tool.version_args))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default(),
+    }
+}
+
+fn run_command_capture(cmd: &str, args: &[&str]) -> Option<String> {
     let output = command_output_with_timeout(cmd, args, Duration::from_secs(6)).ok()?;
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        let combined = format!("{}{}", stdout, stderr);
-
-        let version = combined
-            .lines()
-            .find(|line| !line.trim().is_empty())
-            .map(|l| l.trim().to_string())
-            .unwrap_or_default();
-
-        if !version.is_empty() {
-            return Some(version);
+        let combined = format!("{}{}", stdout, stderr).trim().to_string();
+        if !combined.is_empty() {
+            return Some(combined);
         }
     }
 
     None
 }
 
+fn extract_semver_like(output: &str) -> Option<String> {
+    let re = regex::Regex::new(r"(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z\.-]+)?)").ok()?;
+    re.captures(output)
+        .and_then(|captures| captures.get(1))
+        .map(|version| version.as_str().to_string())
+}
+
 /// Install an AI CLI tool
 pub fn install_ai_tool(tool_id: &str) -> Result<String, String> {
+    let tool_id =
+        normalize_ai_tool_id(tool_id).ok_or_else(|| format!("Tool not found: {}", tool_id))?;
     let tools = get_ai_cli_tools();
     let tool = tools
         .iter()
@@ -462,6 +365,8 @@ pub fn install_ai_tool(tool_id: &str) -> Result<String, String> {
 
 /// Update an AI CLI tool
 pub fn update_ai_tool(tool_id: &str) -> Result<String, String> {
+    let tool_id =
+        normalize_ai_tool_id(tool_id).ok_or_else(|| format!("Tool not found: {}", tool_id))?;
     let tools = get_ai_cli_tools();
     let tool = tools
         .iter()
@@ -480,6 +385,8 @@ pub fn update_ai_tool(tool_id: &str) -> Result<String, String> {
 
 /// Uninstall an AI CLI tool
 pub fn uninstall_ai_tool(tool_id: &str) -> Result<String, String> {
+    let tool_id =
+        normalize_ai_tool_id(tool_id).ok_or_else(|| format!("Tool not found: {}", tool_id))?;
     let tools = get_ai_cli_tools();
     let tool = tools
         .iter()
@@ -506,6 +413,15 @@ mod tests {
         assert!(is_manual_action("Manual uninstall required"));
         assert!(is_manual_action("Unsupported on this platform"));
         assert!(!is_manual_action("npm install -g @openai/codex"));
+    }
+
+    #[test]
+    fn exposes_new_tool_commands() {
+        let iflow = lifecycle_commands("iflow");
+        assert!(iflow.install.contains("@iflow-ai/iflow-cli"));
+
+        let kiro = lifecycle_commands("kiro");
+        assert!(kiro.update.contains("kiro-cli update"));
     }
 }
 
@@ -641,24 +557,47 @@ fn execute_tool_action(tool_id: &str, action: ToolAction) -> Result<String, Stri
         ("continue", ToolAction::Uninstall) => {
             run_command("npm", &["uninstall", "-g", "@continuedev/cli"])
         }
-        ("cody", ToolAction::Install) => run_command("npm", &["install", "-g", "@sourcegraph/cody"]),
+        ("cody", ToolAction::Install) => {
+            run_command("npm", &["install", "-g", "@sourcegraph/cody"])
+        }
         ("cody", ToolAction::Update) => {
             run_command("npm", &["install", "-g", "@sourcegraph/cody@latest"])
         }
         ("cody", ToolAction::Uninstall) => {
             run_command("npm", &["uninstall", "-g", "@sourcegraph/cody"])
         }
-        ("kiro", ToolAction::Install) | ("kiro", ToolAction::Update) => {
+        ("kiro", ToolAction::Install) => {
             #[cfg(target_os = "windows")]
             {
-                Err("Kiro CLI 当前在 Windows 需要手动安装或通过 WSL 使用".to_string())
+                run_owned_command(
+                    "powershell",
+                    &[
+                        "-ExecutionPolicy".to_string(),
+                        "ByPass".to_string(),
+                        "-c".to_string(),
+                        "irm https://kiro.dev/install.ps1 | iex".to_string(),
+                    ],
+                )
             }
             #[cfg(not(target_os = "windows"))]
             {
-                run_shell_command("curl -fsSL https://cli.kiro.dev/install | bash")
+                run_shell_command("curl -fsSL https://kiro.dev/install | bash")
             }
         }
-        ("kiro", ToolAction::Uninstall) => Err("Kiro CLI 需要手动卸载".to_string()),
+        ("kiro", ToolAction::Update) => run_first_success(&[
+            (
+                "kiro-cli",
+                vec!["update".to_string(), "--non-interactive".to_string()],
+            ),
+            (
+                "kiro",
+                vec!["update".to_string(), "--non-interactive".to_string()],
+            ),
+        ]),
+        ("kiro", ToolAction::Uninstall) => run_first_success(&[
+            ("kiro-cli", vec!["uninstall".to_string()]),
+            ("kiro", vec!["uninstall".to_string()]),
+        ]),
         ("cursor", ToolAction::Install) => {
             #[cfg(target_os = "windows")]
             {
@@ -674,11 +613,23 @@ fn execute_tool_action(tool_id: &str, action: ToolAction) -> Result<String, Stri
             }
             #[cfg(not(target_os = "windows"))]
             {
-                run_shell_command("curl https://cursor.com/install -fsS | bash")
+                run_shell_command("curl -fsS https://cursor.com/install | bash")
             }
         }
-        ("cursor", ToolAction::Update) => run_command("cursor-agent", &["update"]),
+        ("cursor", ToolAction::Update) => run_first_success(&[
+            ("cursor-agent", vec!["upgrade".to_string()]),
+            ("cursor-agent", vec!["update".to_string()]),
+        ]),
         ("cursor", ToolAction::Uninstall) => Err("Cursor CLI 需要手动卸载".to_string()),
+        ("iflow", ToolAction::Install) => {
+            run_command("npm", &["install", "-g", "@iflow-ai/iflow-cli"])
+        }
+        ("iflow", ToolAction::Update) => {
+            run_command("npm", &["install", "-g", "@iflow-ai/iflow-cli@latest"])
+        }
+        ("iflow", ToolAction::Uninstall) => {
+            run_command("npm", &["uninstall", "-g", "@iflow-ai/iflow-cli"])
+        }
         _ => Err(format!("Unsupported action for tool: {}", tool_id)),
     }
 }
@@ -714,7 +665,11 @@ fn run_first_success(attempts: &[(&str, Vec<String>)]) -> Result<String, String>
     Err(last_error.unwrap_or_else(|| "No command attempts were provided".to_string()))
 }
 
-fn format_command_result(program: &str, joined_args: &str, output: std::process::Output) -> Result<String, String> {
+fn format_command_result(
+    program: &str,
+    joined_args: &str,
+    output: std::process::Output,
+) -> Result<String, String> {
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     let combined = format!("{}{}", stdout, stderr).trim().to_string();
@@ -734,14 +689,18 @@ fn format_command_result(program: &str, joined_args: &str, output: std::process:
 
 #[cfg(target_os = "windows")]
 fn uninstall_claude_windows() -> Result<String, String> {
-    let user_profile =
-        env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\Default".to_string());
-    let claude_root = PathBuf::from(user_profile).join(".claude");
-    let claude_binary = claude_root.join("bin").join("claude.exe");
+    let user_profile = env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\Default".to_string());
+    let home = PathBuf::from(user_profile);
+    let claude_binary = home.join(".local").join("bin").join("claude.exe");
+    let claude_share = home.join(".local").join("share").join("claude");
+    let claude_config = home.join(".claude");
+    let legacy_config = home.join(".claude.json");
     let mut removed = Vec::new();
 
     remove_path_if_exists(&claude_binary, &mut removed)?;
-    remove_path_if_exists(&claude_root, &mut removed)?;
+    remove_path_if_exists(&claude_share, &mut removed)?;
+    remove_path_if_exists(&claude_config, &mut removed)?;
+    remove_path_if_exists(&legacy_config, &mut removed)?;
 
     if removed.is_empty() {
         Err("Claude Code 的默认安装目录未找到，无需卸载".to_string())

@@ -204,11 +204,8 @@ mod tests {
         );
 
         #[cfg(not(target_os = "windows"))]
-        let result = command_output_with_timeout(
-            "sh",
-            &["-c", "sleep 2"],
-            Duration::from_millis(100),
-        );
+        let result =
+            command_output_with_timeout("sh", &["-c", "sleep 2"], Duration::from_millis(100));
 
         assert!(result.is_err());
         assert_eq!(
@@ -249,7 +246,10 @@ mod tests {
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(output.status.success(), "stdout: {stdout}\nstderr: {stderr}");
+        assert!(
+            output.status.success(),
+            "stdout: {stdout}\nstderr: {stderr}"
+        );
         assert!(stdout.contains("OK"));
 
         let _ = fs::remove_file(&script_path);

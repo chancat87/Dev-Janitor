@@ -5,6 +5,7 @@
 
 mod ai_cleanup;
 mod ai_cli;
+mod ai_tools;
 mod cache;
 mod chat_history;
 mod commands;

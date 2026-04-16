@@ -95,6 +95,13 @@ const DEV_PROCESS_PATTERNS: &[(&str, &str)] = &[
     ("gemini", "AI Tool"),
     ("copilot", "AI Tool"),
     ("aider", "AI Tool"),
+    ("opencode", "AI Tool"),
+    ("continue", "AI Tool"),
+    ("cursor-agent", "AI Tool"),
+    ("kiro", "AI Tool"),
+    ("kiro-cli", "AI Tool"),
+    ("iflow", "AI Tool"),
+    ("cody", "AI Tool"),
     // Version Control
     ("git", "Version Control"),
     ("gh", "Version Control"),

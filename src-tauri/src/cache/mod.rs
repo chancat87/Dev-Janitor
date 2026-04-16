@@ -181,10 +181,13 @@ fn user_home_dir() -> Option<PathBuf> {
 }
 
 fn canonicalize_existing_path(path: &Path) -> Result<PathBuf, String> {
-    let metadata =
-        fs::symlink_metadata(path).map_err(|error| format!("Failed to inspect {}: {}", path.display(), error))?;
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|error| format!("Failed to inspect {}: {}", path.display(), error))?;
     if metadata.file_type().is_symlink() {
-        return Err(format!("Refusing to clean symlink path: {}", path.display()));
+        return Err(format!(
+            "Refusing to clean symlink path: {}",
+            path.display()
+        ));
     }
 
     path.canonicalize()
@@ -215,7 +218,11 @@ fn is_known_project_cache(path: &Path) -> bool {
         && path
             .file_name()
             .and_then(|name| name.to_str())
-            .map(|name| PROJECT_CACHE_PATTERNS.iter().any(|(pattern, _)| name == *pattern))
+            .map(|name| {
+                PROJECT_CACHE_PATTERNS
+                    .iter()
+                    .any(|(pattern, _)| name == *pattern)
+            })
             .unwrap_or(false)
 }
 
@@ -223,7 +230,10 @@ fn validate_cache_cleanup_target(path: &Path) -> Result<PathBuf, String> {
     let canonical = canonicalize_existing_path(path)?;
 
     if is_root_or_home_path(&canonical) {
-        return Err(format!("Refusing to clean unsafe path: {}", canonical.display()));
+        return Err(format!(
+            "Refusing to clean unsafe path: {}",
+            canonical.display()
+        ));
     }
 
     if is_known_package_manager_cache(&canonical) || is_known_project_cache(&canonical) {

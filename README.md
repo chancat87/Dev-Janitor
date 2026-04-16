@@ -26,14 +26,14 @@ Dev Janitor helps keep a local development machine under control. It focuses on 
 ### Cleanup
 
 - Scan project directories for common development artifacts such as `node_modules`, `target`, logs, caches, and temporary files.
-- Detect leftovers from AI coding tools such as Aider, Cursor, Copilot, and OpenCode.
-- Review and remove AI chat history and debug files on a per-project basis.
+- Detect ephemeral leftovers from AI coding tools without flagging active project config files such as `.codex/config.toml` or `.claude/settings.json` as junk.
+- Review and remove AI chat history, cache, and debug files on a per-project basis.
 
 ### Tool Management
 
 - Inspect installed tools across Node, Python, Rust, Go, and related ecosystems.
 - Check versions and update common global packages.
-- Manage AI CLI tools from one interface.
+- Manage current AI CLI tools such as Codex, Claude Code, Cursor, Gemini CLI, Aider, Continue, Kiro, iFlow, and OpenCode from one interface.
 
 ### Security Scan
 

@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use crate::ai_tools::ai_tools;
 use crate::utils::command::command_output_with_timeout;
 
 /// Represents a detected tool version
@@ -40,7 +41,7 @@ struct ToolRule {
 
 /// Get all tool detection rules
 fn get_tool_rules() -> Vec<ToolRule> {
-    vec![
+    let mut rules = vec![
         // === Runtimes ===
         ToolRule {
             id: "node",
@@ -311,88 +312,18 @@ fn get_tool_rules() -> Vec<ToolRule> {
             version_args: &["--version"],
             version_regex: Some(r"podman version (\d+\.\d+\.\d+)"),
         },
-        // === AI CLI Tools ===
-        ToolRule {
-            id: "codex",
-            name: "OpenAI Codex CLI",
-            category: "ai_cli",
-            commands: &["codex"],
-            version_args: &["--version"],
-            version_regex: Some(r"(\d+\.\d+\.\d+)"),
-        },
-        ToolRule {
-            id: "claude",
-            name: "Claude Code",
-            category: "ai_cli",
-            commands: &["claude"],
-            version_args: &["--version"],
-            version_regex: Some(r"(\d+\.\d+\.\d+)"),
-        },
-        ToolRule {
-            id: "gemini",
-            name: "Gemini CLI",
-            category: "ai_cli",
-            commands: &["gemini"],
-            version_args: &["--version"],
-            version_regex: Some(r"(\d+\.\d+\.\d+)"),
-        },
-        ToolRule {
-            id: "opencode",
-            name: "OpenCode",
-            category: "ai_cli",
-            commands: &["opencode"],
-            version_args: &["--version"],
-            version_regex: Some(r"(\d+\.\d+\.\d+)"),
-        },
-        ToolRule {
-            id: "aider",
-            name: "Aider",
-            category: "ai_cli",
-            commands: &["aider"],
-            version_args: &["--version"],
-            version_regex: Some(r"(\d+\.\d+\.\d+)"),
-        },
-        ToolRule {
-            id: "cody",
-            name: "Sourcegraph Cody",
-            category: "ai_cli",
-            commands: &["cody", "cody-agent"],
-            version_args: &["--version"],
-            version_regex: Some(r"(\d+\.\d+\.\d+)"),
-        },
-        ToolRule {
-            id: "cursor",
-            name: "Cursor CLI",
-            category: "ai_cli",
-            commands: &["cursor-agent", "cursor"],
-            version_args: &["--version"],
-            version_regex: Some(r"(\d+\.\d+\.\d+)"),
-        },
-        ToolRule {
-            id: "kiro",
-            name: "Kiro CLI",
-            category: "ai_cli",
-            commands: &["kiro-cli"],
-            version_args: &["--version"],
-            version_regex: Some(r"(\d+\.\d+\.\d+)"),
-        },
-        ToolRule {
-            id: "continue",
-            name: "Continue CLI",
-            category: "ai_cli",
-            commands: &["cn", "continue"],
-            version_args: &["--version"],
-            version_regex: Some(r"(\d+\.\d+\.\d+)"),
-        },
-        ToolRule {
-            id: "iflow",
-            name: "iFlow CLI",
-            category: "ai_cli",
-            commands: &["iflow"],
-            version_args: &["--version"],
-            version_regex: Some(r"(\d+\.\d+\.\d+)"),
-        },
-    ]
+    ];
+
+    rules.extend(ai_tools().iter().map(|tool| ToolRule {
+        id: tool.id,
+        name: tool.name,
+        category: "ai_cli",
+        commands: tool.commands,
+        version_args: tool.version_args,
+        version_regex: tool.version_regex,
+    }));
+
+    rules
 }
 
 /// Execute a command and capture output
@@ -618,6 +549,9 @@ mod tests {
         assert_eq!(cursor.commands, ["cursor-agent", "cursor"]);
 
         let kiro = rules.iter().find(|rule| rule.id == "kiro").unwrap();
-        assert_eq!(kiro.commands, ["kiro-cli"]);
+        assert_eq!(kiro.commands, ["kiro-cli", "kiro"]);
+
+        let iflow = rules.iter().find(|rule| rule.id == "iflow").unwrap();
+        assert_eq!(iflow.commands, ["iflow"]);
     }
 }

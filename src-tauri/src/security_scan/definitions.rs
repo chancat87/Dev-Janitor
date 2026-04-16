@@ -227,7 +227,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                     name: "API Keys in Config".into(),
                     description: "API keys stored in opencode config".into(),
                     check: ConfigCheckType::FileContains {
-                        path_pattern: "**/opencode.json".into(),
+                        path_pattern: "**/opencode.json*".into(),
                         pattern: "sk-".into(),
                     },
                     risk_level: RiskLevel::High,
@@ -283,7 +283,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
             id: "claude-code".into(),
             name: "Claude Code".into(),
             description: "Anthropic's official AI coding CLI".into(),
-            docs_url: "https://docs.anthropic.com/en/docs/claude-code/overview".into(),
+            docs_url: "https://code.claude.com/docs/en/setup".into(),
             process_names: vec!["claude".into(), "claude-code".into()],
             ports: vec![
                 PortRule {
@@ -315,7 +315,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                     name: "OpenAI API Key in config".into(),
                     description: "API key stored in codex config".into(),
                     check: ConfigCheckType::FileContains {
-                        path_pattern: "**/codex/config.*".into(),
+                        path_pattern: "**/.codex/config.toml".into(),
                         pattern: "sk-".into(),
                     },
                     risk_level: RiskLevel::Medium,
@@ -324,7 +324,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
             ],
             config_paths: vec![
                 ".codex/".into(),
-                ".config/codex/".into(),
+                ".codex/config.toml".into(),
             ],
         },
 
@@ -335,7 +335,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
             id: "continue".into(),
             name: "Continue".into(),
             description: "Open-source AI code assistant (VS Code extension)".into(),
-            docs_url: "https://continue.dev".into(),
+            docs_url: "https://docs.continue.dev/cli/quickstart".into(),
             process_names: vec!["continue".into()],
             ports: vec![
                 PortRule {
@@ -349,6 +349,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
             configs: vec![],
             config_paths: vec![
                 ".continue/".into(),
+                ".continue/config.yaml".into(),
             ],
         },
 
@@ -385,6 +386,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
             ],
             config_paths: vec![
                 ".cursor/".into(),
+                ".cursor/cli-config.json".into(),
                 ".vscode/".into(),
             ],
         },
@@ -472,7 +474,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
                     name: "API Keys in Config".into(),
                     description: "Google API keys stored in config".into(),
                     check: ConfigCheckType::FileContains {
-                        path_pattern: "**/settings.json".into(),
+                        path_pattern: "**/.gemini/settings.json".into(),
                         pattern: "AIza".into(),
                     },
                     risk_level: RiskLevel::Medium,
@@ -481,7 +483,7 @@ pub fn get_ai_tool_rules() -> Vec<AiToolSecurityRule> {
             ],
             config_paths: vec![
                 ".gemini/".into(),
-                ".config/gemini-cli/".into(),
+                ".gemini/settings.json".into(),
             ],
         },
     ]

@@ -29,34 +29,18 @@ pub enum ScanMode {
 
 /// AI tool related patterns
 const AI_TOOL_PATTERNS: &[(&str, &str)] = &[
-    // Aider
-    (".aider", "Aider AI assistant cache"),
+    // Aider ephemeral files
     (".aider.chat.history.md", "Aider chat history"),
     (".aider.input.history", "Aider input history"),
-    (".aider.tags.cache.v3", "Aider tags cache"),
-    // Claude
-    (".claude", "Claude AI cache directory"),
-    (".claude.json", "Claude configuration"),
-    (".claude.json.backup", "Claude config backup"),
+    (".aider.tags.cache", "Aider tags cache"),
+    // Claude output artifacts
     ("claude_output", "Claude output directory"),
-    // Cursor
-    (".cursor", "Cursor AI cache"),
-    (".cursorignore", "Cursor ignore file"),
-    (".cursorrules", "Cursor rules file"),
     // Copilot
     (".copilot", "GitHub Copilot cache"),
     // Codeium
     (".codeium", "Codeium AI cache"),
     // Tabnine
     (".tabnine", "Tabnine AI cache"),
-    // Codex
-    (".codex", "OpenAI Codex cache"),
-    // Continue
-    (".continue", "Continue AI cache"),
-    // OpenCode
-    (".opencode", "OpenCode AI cache"),
-    // Gemini
-    (".gemini", "Gemini CLI cache"),
     // Windsurf
     (".windsurf", "Windsurf AI cache"),
     // Amazon Q / CodeWhisperer
@@ -277,10 +261,13 @@ fn is_root_path(path: &Path) -> bool {
 }
 
 fn canonicalize_existing_path(path: &Path) -> Result<PathBuf, String> {
-    let metadata =
-        fs::symlink_metadata(path).map_err(|error| format!("Failed to inspect {}: {}", path.display(), error))?;
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|error| format!("Failed to inspect {}: {}", path.display(), error))?;
     if metadata.file_type().is_symlink() {
-        return Err(format!("Refusing to delete symlink path: {}", path.display()));
+        return Err(format!(
+            "Refusing to delete symlink path: {}",
+            path.display()
+        ));
     }
 
     path.canonicalize()
@@ -302,7 +289,10 @@ fn validate_ai_junk_delete_target(path: &Path) -> Result<PathBuf, String> {
     let canonical = canonicalize_existing_path(path)?;
 
     if is_root_or_home_path(&canonical) {
-        return Err(format!("Refusing to delete unsafe path: {}", canonical.display()));
+        return Err(format!(
+            "Refusing to delete unsafe path: {}",
+            canonical.display()
+        ));
     }
 
     if is_whitelisted(&canonical) {
@@ -535,6 +525,54 @@ mod tests {
         assert!(
             !results.iter().any(|f| f.path.contains(".kiro")),
             ".kiro project metadata should not be treated as AI junk"
+        );
+
+        fs::remove_dir_all(project).unwrap();
+    }
+
+    #[test]
+    fn ignores_active_ai_project_configs() {
+        let project = temp_project("configs");
+        fs::write(project.join("package.json"), "{}\n").unwrap();
+        fs::create_dir_all(project.join(".claude")).unwrap();
+        fs::write(project.join(".claude/settings.json"), "{}\n").unwrap();
+        fs::create_dir_all(project.join(".codex")).unwrap();
+        fs::write(project.join(".codex/config.toml"), "model = \"gpt-5.4\"\n").unwrap();
+        fs::create_dir_all(project.join(".cursor")).unwrap();
+        fs::write(project.join(".cursor/cli-config.json"), "{}\n").unwrap();
+        fs::create_dir_all(project.join(".continue")).unwrap();
+        fs::write(project.join(".continue/config.yaml"), "name: test\n").unwrap();
+        fs::create_dir_all(project.join(".opencode/commands")).unwrap();
+        fs::write(project.join(".opencode/commands/fix.md"), "# command\n").unwrap();
+        fs::create_dir_all(project.join(".gemini")).unwrap();
+        fs::write(project.join(".gemini/settings.json"), "{}\n").unwrap();
+
+        let results = scan_ai_junk(project.to_str().unwrap(), 4);
+        let result_paths: Vec<_> = results.iter().map(|file| file.path.as_str()).collect();
+
+        assert!(
+            !result_paths.iter().any(|path| path.contains(".claude")),
+            ".claude project settings should not be treated as AI junk"
+        );
+        assert!(
+            !result_paths.iter().any(|path| path.contains(".codex")),
+            ".codex project settings should not be treated as AI junk"
+        );
+        assert!(
+            !result_paths.iter().any(|path| path.contains(".cursor")),
+            ".cursor project settings should not be treated as AI junk"
+        );
+        assert!(
+            !result_paths.iter().any(|path| path.contains(".continue")),
+            ".continue project settings should not be treated as AI junk"
+        );
+        assert!(
+            !result_paths.iter().any(|path| path.contains(".opencode")),
+            ".opencode project settings should not be treated as AI junk"
+        );
+        assert!(
+            !result_paths.iter().any(|path| path.contains(".gemini")),
+            ".gemini project settings should not be treated as AI junk"
         );
 
         fs::remove_dir_all(project).unwrap();

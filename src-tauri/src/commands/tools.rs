@@ -1,5 +1,6 @@
 //! Tauri commands for tool detection and management
 
+use crate::ai_tools::normalize_ai_tool_id;
 use crate::detection::{scan_all_tools, ToolInfo};
 
 use crate::ai_cli;
@@ -32,10 +33,10 @@ pub fn uninstall_tool(
 
         // Python tools
         "pipx" => uninstall_with_pip("pipx"),
-        "poetry" => run_command("pipx", &["uninstall", "poetry"])
-            .or_else(|_| uninstall_with_pip("poetry")),
-        "uv" => run_command("pipx", &["uninstall", "uv"])
-            .or_else(|_| uninstall_with_pip("uv")),
+        "poetry" => {
+            run_command("pipx", &["uninstall", "poetry"]).or_else(|_| uninstall_with_pip("poetry"))
+        }
+        "uv" => run_command("pipx", &["uninstall", "uv"]).or_else(|_| uninstall_with_pip("uv")),
         "pip" => Err("pip is part of Python and should not be uninstalled separately".to_string()),
 
         // Rust tools
@@ -71,14 +72,7 @@ pub fn uninstall_tool(
         }
 
         // AI CLI tools - defer to dedicated module (handles latest install methods)
-        "codex" | "claude" | "gemini" | "opencode" | "aider" | "cody" => {
-            ai_cli::uninstall_ai_tool(&toolId)
-        }
-        "cursor" | "cursor_cli" => ai_cli::uninstall_ai_tool("cursor"),
-        "kiro" | "kiro_cli" => ai_cli::uninstall_ai_tool("kiro"),
-        "continue" | "continue_cli" => ai_cli::uninstall_ai_tool("continue"),
-        // AI CLI tool (npm-based)
-        "iflow" => run_command("npm", &["uninstall", "-g", "@iflow-ai/iflow-cli"]),
+        id if normalize_ai_tool_id(id).is_some() => ai_cli::uninstall_ai_tool(&toolId),
 
         // System-level tools - provide instructions
         "node" | "python" | "java" | "go" | "ruby" | "php" | "dotnet" | "deno" | "bun" => {

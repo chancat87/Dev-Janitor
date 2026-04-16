@@ -65,34 +65,7 @@ fn get_chat_history_patterns() -> Vec<ChatHistoryPattern> {
         // Claude Code
         ChatHistoryPattern {
             tool: "Claude Code",
-            patterns: vec![
-                ".claude",       // Claude project directory
-                "claude_output", // Claude output files
-            ],
-            file_type: "chat_history",
-        },
-        // OpenAI Codex
-        ChatHistoryPattern {
-            tool: "OpenAI Codex",
-            patterns: vec![
-                ".codex", // Codex directory
-            ],
-            file_type: "chat_history",
-        },
-        // OpenCode
-        ChatHistoryPattern {
-            tool: "OpenCode",
-            patterns: vec![
-                ".opencode", // OpenCode directory
-            ],
-            file_type: "chat_history",
-        },
-        // Gemini CLI
-        ChatHistoryPattern {
-            tool: "Gemini CLI",
-            patterns: vec![
-                ".gemini", // Gemini directory
-            ],
+            patterns: vec!["claude_output"],
             file_type: "chat_history",
         },
         // Aider
@@ -102,33 +75,6 @@ fn get_chat_history_patterns() -> Vec<ChatHistoryPattern> {
                 ".aider.chat.history.md", // Aider chat history
                 ".aider.input.history",   // Aider input history
                 ".aider.tags.cache.v3",   // Aider tags cache
-                ".aider",                 // Aider directory
-            ],
-            file_type: "chat_history",
-        },
-        // Cursor
-        ChatHistoryPattern {
-            tool: "Cursor",
-            patterns: vec![
-                ".cursor",       // Cursor directory
-                ".cursorignore", // Cursor ignore file
-                ".cursorrules",  // Cursor rules
-            ],
-            file_type: "chat_history",
-        },
-        // Continue
-        ChatHistoryPattern {
-            tool: "Continue",
-            patterns: vec![
-                ".continue", // Continue directory
-            ],
-            file_type: "chat_history",
-        },
-        // Cody (Sourcegraph)
-        ChatHistoryPattern {
-            tool: "Cody",
-            patterns: vec![
-                ".sourcegraph", // Cody directory
             ],
             file_type: "chat_history",
         },
@@ -278,10 +224,13 @@ fn is_root_path(path: &Path) -> bool {
 }
 
 fn canonicalize_existing_path(path: &Path) -> Result<PathBuf, String> {
-    let metadata =
-        fs::symlink_metadata(path).map_err(|error| format!("Failed to inspect {}: {}", path.display(), error))?;
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|error| format!("Failed to inspect {}: {}", path.display(), error))?;
     if metadata.file_type().is_symlink() {
-        return Err(format!("Refusing to delete symlink path: {}", path.display()));
+        return Err(format!(
+            "Refusing to delete symlink path: {}",
+            path.display()
+        ));
     }
 
     path.canonicalize()
@@ -303,7 +252,10 @@ fn validate_chat_history_delete_target(path: &Path) -> Result<PathBuf, String> {
     let canonical = canonicalize_existing_path(path)?;
 
     if is_root_or_home_path(&canonical) {
-        return Err(format!("Refusing to delete unsafe path: {}", canonical.display()));
+        return Err(format!(
+            "Refusing to delete unsafe path: {}",
+            canonical.display()
+        ));
     }
 
     if check_chat_history_pattern(&canonical).is_some() {
@@ -579,6 +531,8 @@ pub fn scan_global_chat_history() -> Vec<ChatHistoryFile> {
         (".codeium", "Codeium"),
         (".windsurf", "Windsurf"),
         (".amazonq", "Amazon Q"),
+        (".kiro", "Kiro CLI"),
+        (".iflow", "iFlow CLI"),
     ];
 
     for (dir_name, tool) in &global_patterns {
@@ -631,6 +585,32 @@ mod tests {
         assert!(
             results.is_empty(),
             ".kiro project metadata should not be treated as chat history"
+        );
+
+        fs::remove_dir_all(project).unwrap();
+    }
+
+    #[test]
+    fn ignores_active_ai_project_configs() {
+        let project = temp_project("configs");
+        fs::write(project.join("package.json"), "{}\n").unwrap();
+        fs::create_dir_all(project.join(".claude")).unwrap();
+        fs::write(project.join(".claude/settings.json"), "{}\n").unwrap();
+        fs::create_dir_all(project.join(".codex")).unwrap();
+        fs::write(project.join(".codex/config.toml"), "model = \"gpt-5.4\"\n").unwrap();
+        fs::create_dir_all(project.join(".cursor")).unwrap();
+        fs::write(project.join(".cursor/cli-config.json"), "{}\n").unwrap();
+        fs::create_dir_all(project.join(".continue")).unwrap();
+        fs::write(project.join(".continue/config.yaml"), "name: test\n").unwrap();
+        fs::create_dir_all(project.join(".opencode/commands")).unwrap();
+        fs::write(project.join(".opencode/commands/fix.md"), "# command\n").unwrap();
+        fs::create_dir_all(project.join(".gemini")).unwrap();
+        fs::write(project.join(".gemini/settings.json"), "{}\n").unwrap();
+
+        let results = scan_chat_history(project.to_str().unwrap(), 4);
+        assert!(
+            results.is_empty(),
+            "active AI project configuration should not be treated as chat history"
         );
 
         fs::remove_dir_all(project).unwrap();
