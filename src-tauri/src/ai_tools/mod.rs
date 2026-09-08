@@ -374,7 +374,7 @@ static AI_TOOLS: &[AiToolMetadata] = &[
         id: "pi",
         name: "Pi Coding Agent",
         description: "Minimal terminal coding agent with extensible models and tools",
-        docs_url: "https://badlogic-pi-mono.mintlify.app/installation",
+        docs_url: "https://github.com/earendil-works/pi",
         commands: &["pi"],
         version_args: &["--version"],
         version_regex: Some(r"(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z\.-]+)?)"),

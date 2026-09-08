@@ -8,7 +8,8 @@ This document records the repository release line, GitHub tag state, and Actions
 - Published at: `2026-07-21T08:37:12Z`
 - Release URL: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v2.5.0
 - Published asset count: 22
-- Current app version in this checkout: `2.5.0` (published)
+- Current app version in this checkout: `2.5.1`（待 tag 发布）
+- 本次补丁说明：[工具与包更新](UPDATES.md)，包含命令修正、错误反馈与超时处理修复。
 - Current toolchain baseline: Node.js 24, pnpm 11.15.1, Rust 1.97.1
 
 The repository had historical draft releases left by failed or repeated release runs. Those stale drafts were deleted on 2026-06-05. During the `v2.4.2` publish, the first tag run created an empty draft release before a Windows CI test failure was fixed; that draft was deleted before the tag was moved to the fixed commit and the final release was published.

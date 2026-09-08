@@ -63,6 +63,7 @@ impl PackageManager for CargoManager {
                         latest: None, // Cargo doesn't easily provide latest version
                         manager: "cargo".to_string(),
                         is_outdated: false,
+                        update_checked: false,
                         description: None,
                     });
                 }
@@ -73,17 +74,11 @@ impl PackageManager for CargoManager {
     }
 
     fn update_package(&self, name: &str) -> Result<String, String> {
-        match run_cargo_command(&["install", name, "--force"]) {
-            Some(output) => Ok(format!("Updated {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to update {}", name)),
-        }
+        super::run_package_action("cargo", &["install", name, "--locked"], name)
     }
 
     fn uninstall_package(&self, name: &str) -> Result<String, String> {
-        match run_cargo_command(&["uninstall", name]) {
-            Some(output) => Ok(format!("Uninstalled {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to uninstall {}", name)),
-        }
+        super::run_package_action("cargo", &["uninstall", name], name)
     }
 }
 
@@ -94,7 +89,7 @@ fn run_cargo_command(args: &[&str]) -> Option<String> {
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
     // Cargo often outputs to stderr
-    if output.status.success() || !stderr.is_empty() {
+    if output.status.success() {
         Some(format!("{}{}", stdout, stderr))
     } else {
         None

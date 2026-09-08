@@ -68,7 +68,7 @@ fn lifecycle_commands(tool_id: &str) -> ToolLifecycleCommands {
         },
         "codex" => ToolLifecycleCommands {
             install: "npm i -g @openai/codex".to_string(),
-            update: "codex update || npm install -g @openai/codex@latest".to_string(),
+            update: "npm install -g @openai/codex@latest".to_string(),
             uninstall: "npm uninstall -g @openai/codex".to_string(),
         },
         "opencode" => ToolLifecycleCommands {
@@ -237,9 +237,12 @@ fn lifecycle_commands(tool_id: &str) -> ToolLifecycleCommands {
             uninstall: "Manual uninstall from Qoder CLI docs".to_string(),
         },
         "pi" => ToolLifecycleCommands {
-            install: "npm install -g @mariozechner/pi-coding-agent".to_string(),
-            update: "npm update -g @mariozechner/pi-coding-agent".to_string(),
-            uninstall: "npm uninstall -g @mariozechner/pi-coding-agent".to_string(),
+            install: "npm install -g --ignore-scripts @earendil-works/pi-coding-agent".to_string(),
+            update: "npm install -g --ignore-scripts @earendil-works/pi-coding-agent@latest"
+                .to_string(),
+            uninstall:
+                "npm uninstall -g @earendil-works/pi-coding-agent @mariozechner/pi-coding-agent"
+                    .to_string(),
         },
         "amazonq" => ToolLifecycleCommands {
             install: "Visit the Kiro migration guide".to_string(),
@@ -534,6 +537,13 @@ pub fn uninstall_ai_tool(tool_id: &str) -> Result<String, String> {
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
+    #[test]
+    fn failed_download_pipeline_is_not_success() {
+        assert!(run_shell_command("false | sh").is_err());
+        assert!(run_shell_command("printf 'exit 0' | sh").is_ok());
+    }
+
     #[test]
     fn recognizes_manual_actions() {
         assert!(is_manual_action("Download from vendor site"));
@@ -619,8 +629,15 @@ mod tests {
         assert!(is_manual_action(&qoder.uninstall));
 
         let pi = lifecycle_commands("pi");
-        assert!(pi.install.contains("@mariozechner/pi-coding-agent"));
-        assert!(pi.update.starts_with("npm update -g"));
+        assert!(pi.install.contains("@earendil-works/pi-coding-agent"));
+        assert!(pi.install.contains("--ignore-scripts"));
+        assert!(pi
+            .update
+            .ends_with("@earendil-works/pi-coding-agent@latest"));
+        assert_eq!(
+            lifecycle_commands("codex").update,
+            "npm install -g @openai/codex@latest"
+        );
     }
 
     #[test]
@@ -707,17 +724,9 @@ fn execute_tool_action(tool_id: &str, action: ToolAction) -> Result<String, Stri
             }
         }
         ("codex", ToolAction::Install) => run_command("npm", &["i", "-g", "@openai/codex"]),
-        ("codex", ToolAction::Update) => run_first_success(&[
-            ("codex", vec!["update".to_string()]),
-            (
-                "npm",
-                vec![
-                    "install".to_string(),
-                    "-g".to_string(),
-                    "@openai/codex@latest".to_string(),
-                ],
-            ),
-        ]),
+        ("codex", ToolAction::Update) => {
+            run_command("npm", &["install", "-g", "@openai/codex@latest"])
+        }
         ("codex", ToolAction::Uninstall) => {
             run_command("npm", &["uninstall", "-g", "@openai/codex"])
         }
@@ -1087,15 +1096,33 @@ fn execute_tool_action(tool_id: &str, action: ToolAction) -> Result<String, Stri
         ("qoder", ToolAction::Uninstall) => {
             Err("Qoder CLI requires manual uninstallation".to_string())
         }
-        ("pi", ToolAction::Install) => {
-            run_command("npm", &["install", "-g", "@mariozechner/pi-coding-agent"])
-        }
-        ("pi", ToolAction::Update) => {
-            run_command("npm", &["update", "-g", "@mariozechner/pi-coding-agent"])
-        }
-        ("pi", ToolAction::Uninstall) => {
-            run_command("npm", &["uninstall", "-g", "@mariozechner/pi-coding-agent"])
-        }
+        ("pi", ToolAction::Install) => run_command(
+            "npm",
+            &[
+                "install",
+                "-g",
+                "--ignore-scripts",
+                "@earendil-works/pi-coding-agent",
+            ],
+        ),
+        ("pi", ToolAction::Update) => run_command(
+            "npm",
+            &[
+                "install",
+                "-g",
+                "--ignore-scripts",
+                "@earendil-works/pi-coding-agent@latest",
+            ],
+        ),
+        ("pi", ToolAction::Uninstall) => run_command(
+            "npm",
+            &[
+                "uninstall",
+                "-g",
+                "@earendil-works/pi-coding-agent",
+                "@mariozechner/pi-coding-agent",
+            ],
+        ),
         ("amazonq", ToolAction::Update) => run_command("q", &["update"]),
         _ => Err(format!("Unsupported action for tool: {}", tool_id)),
     }
@@ -1116,7 +1143,16 @@ fn run_owned_command(program: &str, args: &[String]) -> Result<String, String> {
 }
 
 fn run_shell_command(script: &str) -> Result<String, String> {
-    run_owned_command("sh", &["-c".to_string(), script.to_string()])
+    // 下载失败必须传播，不能由管道末尾的空脚本执行掩盖。
+    run_owned_command(
+        "bash",
+        &[
+            "-o".to_string(),
+            "pipefail".to_string(),
+            "-c".to_string(),
+            script.to_string(),
+        ],
+    )
 }
 
 fn run_first_success(attempts: &[(&str, Vec<String>)]) -> Result<String, String> {

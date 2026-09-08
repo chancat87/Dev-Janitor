@@ -1,7 +1,7 @@
 {
     "app": {
         "name": "开发清道夫",
-        "version": "v2.5.0"
+        "version": "v2.5.1"
     },
     "nav": {
         "tools": "工具",
@@ -57,6 +57,7 @@
         "manager": "管理器",
         "outdated": "有更新",
         "up_to_date": "最新",
+        "not_checked": "未检查更新",
         "confirm_uninstall": "确定要卸载 {{name}} 吗？",
         "success_update": "已更新 {{name}}",
         "success_uninstall": "已卸载 {{name}}",

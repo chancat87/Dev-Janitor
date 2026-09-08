@@ -70,6 +70,7 @@ impl PackageManager for ComposerManager {
                     latest: None,
                     manager: "composer".to_string(),
                     is_outdated: false,
+                    update_checked: false,
                     description: pkg.description,
                 });
             }
@@ -79,17 +80,19 @@ impl PackageManager for ComposerManager {
     }
 
     fn update_package(&self, name: &str) -> Result<String, String> {
-        match run_composer_command(&["global", "update", name]) {
-            Some(output) => Ok(format!("Updated {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to update {}", name)),
-        }
+        super::run_package_action(
+            "composer",
+            &["global", "update", "--no-interaction", name],
+            name,
+        )
     }
 
     fn uninstall_package(&self, name: &str) -> Result<String, String> {
-        match run_composer_command(&["global", "remove", name]) {
-            Some(output) => Ok(format!("Uninstalled {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to uninstall {}", name)),
-        }
+        super::run_package_action(
+            "composer",
+            &["global", "remove", "--no-interaction", name],
+            name,
+        )
     }
 }
 

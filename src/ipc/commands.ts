@@ -45,6 +45,7 @@ export interface PackageInfo {
     latest: string | null;
     manager: string;
     is_outdated: boolean;
+    update_checked: boolean;
     description: string | null;
 }
 

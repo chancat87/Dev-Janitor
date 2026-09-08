@@ -1,7 +1,7 @@
 {
     "app": {
         "name": "Dev Janitor",
-        "version": "v2.5.0"
+        "version": "v2.5.1"
     },
     "nav": {
         "tools": "Tools",
@@ -57,6 +57,7 @@
         "manager": "Manager",
         "outdated": "Outdated",
         "up_to_date": "Up to date",
+        "not_checked": "Not checked",
         "confirm_uninstall": "Are you sure you want to uninstall {{name}}?",
         "success_update": "Updated {{name}}",
         "success_uninstall": "Uninstalled {{name}}",

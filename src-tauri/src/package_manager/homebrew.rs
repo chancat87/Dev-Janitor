@@ -43,8 +43,10 @@ impl PackageManager for HomebrewManager {
             None => return packages,
         };
 
-        let outdated_output = run_brew_command(&["outdated", "--formula"]).unwrap_or_default();
+        let outdated_output = run_brew_command(&["outdated", "--formula"]);
         let outdated_names: std::collections::HashSet<String> = outdated_output
+            .as_deref()
+            .unwrap_or_default()
             .lines()
             .map(|l| l.split_whitespace().next().unwrap_or("").to_string())
             .collect();
@@ -62,6 +64,7 @@ impl PackageManager for HomebrewManager {
                     latest: None,
                     manager: "homebrew".to_string(),
                     is_outdated,
+                    update_checked: outdated_output.is_some(),
                     description: None,
                 });
             }
@@ -71,17 +74,11 @@ impl PackageManager for HomebrewManager {
     }
 
     fn update_package(&self, name: &str) -> Result<String, String> {
-        match run_brew_command(&["upgrade", name]) {
-            Some(output) => Ok(format!("Updated {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to update {}", name)),
-        }
+        super::run_package_action("brew", &["upgrade", name], name)
     }
 
     fn uninstall_package(&self, name: &str) -> Result<String, String> {
-        match run_brew_command(&["uninstall", name]) {
-            Some(output) => Ok(format!("Uninstalled {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to uninstall {}", name)),
-        }
+        super::run_package_action("brew", &["uninstall", name], name)
     }
 }
 

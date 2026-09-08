@@ -21,6 +21,7 @@ pub struct PackageInfo {
     pub latest: Option<String>,
     pub manager: String,
     pub is_outdated: bool,
+    pub update_checked: bool,
     pub description: Option<String>,
 }
 
@@ -43,6 +44,68 @@ pub trait PackageManager {
 
     /// Uninstall a package
     fn uninstall_package(&self, name: &str) -> Result<String, String>;
+}
+
+/// 变更操作保留错误输出，并给下载和编译留出足够时间。
+fn run_package_action(program: &str, args: &[&str], name: &str) -> Result<String, String> {
+    validate_package_name(name)?;
+    let output = crate::utils::command::command_output_with_timeout(
+        program,
+        args,
+        std::time::Duration::from_secs(900),
+    )
+    .map_err(|error| format!("{program}: {error}"))?;
+    package_action_result(program, output)
+}
+
+fn package_action_result(program: &str, output: std::process::Output) -> Result<String, String> {
+    let message = format!(
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    if output.status.success() {
+        Ok(message.trim().to_string())
+    } else {
+        Err(format!(
+            "{program} failed ({}):\n{}",
+            output.status,
+            message.trim()
+        ))
+    }
+}
+
+fn validate_package_name(name: &str) -> Result<(), String> {
+    // 仅接受包名，避免选项、URL、路径和 shell 展开被当成包操作。
+    let valid_part = |part: &str| {
+        part.starts_with(|ch: char| ch.is_ascii_alphanumeric())
+            && part
+                .chars()
+                .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.'))
+    };
+    let unscoped = name.strip_prefix('@').unwrap_or(name);
+    let base = if !name.starts_with('@') {
+        if let Some((base, version)) = unscoped.rsplit_once('@') {
+            if version.is_empty() || !version.chars().all(|ch| ch.is_ascii_digit() || ch == '.') {
+                return Err(format!("Invalid package name: {name}"));
+            }
+            base
+        } else {
+            unscoped
+        }
+    } else {
+        unscoped
+    };
+    let parts: Vec<_> = base.split('/').collect();
+    let valid = !name.is_empty()
+        && parts.len() <= 2
+        && (!name.starts_with('@') || parts.len() == 2)
+        && parts.iter().all(|part| valid_part(part));
+    if valid {
+        Ok(())
+    } else {
+        Err(format!("Invalid package name: {name}"))
+    }
 }
 
 type PackageScanFn = fn() -> Vec<PackageInfo>;
@@ -104,4 +167,52 @@ pub fn scan_all_packages() -> Vec<PackageInfo> {
     });
 
     all_packages
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_options_and_package_specs() {
+        for name in [
+            "",
+            "--all",
+            "-y",
+            "@scope",
+            "../tool",
+            "a/b/c",
+            "tool@next",
+            "https://example.com",
+            "a;id",
+            "%PATH%",
+            "a b",
+        ] {
+            assert!(validate_package_name(name).is_err(), "{name}");
+        }
+        for name in [
+            "@openai/codex",
+            "vendor/package",
+            "python_tool",
+            "foo-bar",
+            "openssl@3",
+        ] {
+            assert!(validate_package_name(name).is_ok(), "{name}");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn stderr_does_not_turn_failed_actions_into_success() {
+        use std::os::unix::process::ExitStatusExt;
+        let result = package_action_result(
+            "cargo",
+            std::process::Output {
+                status: std::process::ExitStatus::from_raw(101 << 8),
+                stdout: Vec::new(),
+                stderr: b"compilation failed".to_vec(),
+            },
+        );
+        assert!(result.unwrap_err().contains("compilation failed"));
+    }
 }

@@ -20,6 +20,12 @@ struct NodePackageCommand {
 }
 
 impl NodePackageCommand {
+    fn run_action(&self, args: &[&str], name: &str) -> Result<String, String> {
+        let mut full_args: Vec<&str> = self.prefix_args.iter().map(String::as_str).collect();
+        full_args.extend_from_slice(args);
+        super::run_package_action(&self.program, &full_args, name)
+    }
+
     fn new(program: &str, prefix_args: &[&str]) -> Self {
         Self {
             program: program.to_string(),
@@ -78,17 +84,18 @@ impl PackageManager for PnpmManager {
             None => return Vec::new(),
         };
 
-        let outdated_output = run_pnpm_command(&self.command, &["outdated", "-g", "--format=json"])
-            .unwrap_or_default();
-        let outdated: HashMap<String, PnpmOutdatedPackage> =
-            serde_json::from_str(&outdated_output).unwrap_or_default();
+        let outdated = run_pnpm_command(&self.command, &["outdated", "-g", "--format=json"])
+            .and_then(|output| {
+                serde_json::from_str::<HashMap<String, PnpmOutdatedPackage>>(&output).ok()
+            });
 
         parse_pnpm_list(&output)
             .into_iter()
             .filter(|pkg| pkg.name != "pnpm")
             .map(|pkg| {
                 let latest = outdated
-                    .get(&pkg.name)
+                    .as_ref()
+                    .and_then(|entries| entries.get(&pkg.name))
                     .and_then(|entry| entry.latest.clone());
                 PackageInfo {
                     name: pkg.name,
@@ -96,6 +103,7 @@ impl PackageManager for PnpmManager {
                     latest: latest.clone(),
                     manager: "pnpm".to_string(),
                     is_outdated: latest.is_some(),
+                    update_checked: outdated.is_some(),
                     description: pkg.path,
                 }
             })
@@ -103,17 +111,12 @@ impl PackageManager for PnpmManager {
     }
 
     fn update_package(&self, name: &str) -> Result<String, String> {
-        match run_pnpm_command(&self.command, &["update", "-g", name]) {
-            Some(output) => Ok(format!("Updated {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to update {}", name)),
-        }
+        self.command
+            .run_action(&["update", "-g", "--latest", name], name)
     }
 
     fn uninstall_package(&self, name: &str) -> Result<String, String> {
-        match run_pnpm_command(&self.command, &["remove", "-g", name]) {
-            Some(output) => Ok(format!("Uninstalled {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to uninstall {}", name)),
-        }
+        self.command.run_action(&["remove", "-g", name], name)
     }
 }
 
@@ -191,7 +194,9 @@ fn run_pnpm_command(command: &NodePackageCommand, args: &[&str]) -> Option<Strin
         command_output_with_timeout_vec(&command.program, &full_args, Duration::from_secs(30))
             .ok()?;
 
-    if output.status.success() || args.contains(&"outdated") {
+    if output.status.success()
+        || (args.first() == Some(&"outdated") && output.status.code() == Some(1))
+    {
         Some(String::from_utf8_lossy(&output.stdout).to_string())
     } else {
         None

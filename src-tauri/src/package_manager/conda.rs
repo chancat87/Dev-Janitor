@@ -69,6 +69,7 @@ impl PackageManager for CondaManager {
                 latest: None,
                 manager: "conda".to_string(),
                 is_outdated: false,
+                update_checked: false,
                 description: pkg.channel,
             });
         }
@@ -77,17 +78,11 @@ impl PackageManager for CondaManager {
     }
 
     fn update_package(&self, name: &str) -> Result<String, String> {
-        match run_conda_command(&["update", "-y", name]) {
-            Some(output) => Ok(format!("Updated {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to update {}", name)),
-        }
+        super::run_package_action("conda", &["update", "-y", name], name)
     }
 
     fn uninstall_package(&self, name: &str) -> Result<String, String> {
-        match run_conda_command(&["remove", "-y", name]) {
-            Some(output) => Ok(format!("Uninstalled {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to uninstall {}", name)),
-        }
+        super::run_package_action("conda", &["remove", "-y", name], name)
     }
 }
 

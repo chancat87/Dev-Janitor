@@ -33,7 +33,8 @@ Dev Janitor 用来处理开发过程中不断累积的本地残留文件和后�
 ### 工具管理
 
 - 查看 Node、Python、Rust、Go 等生态中的常用工具。
-- 检查版本并更新常见的全局包。
+- 检查版本并更新常见的全局包，区分“最新”和“未检查更新”，保留命令失败的具体原因。
+- 提供 [AI Agent CLI 与包管理器更新命令说明](docs/UPDATES.md)，涵盖 Pi 新包名、npm/pnpm 跨主版本更新及各安装渠道限制。
 - 在一个界面中管理 25 个 AI CLI 工具，包括 Codex、Claude Code、Kiro、Factory Droid、Mistral Vibe、Qoder CLI、Pi、OpenCode、Gemini CLI 和 GitHub Copilot CLI 等。
 - 优先使用厂商官方的原生安装与自更新流程；旧版 Amazon Q 安装会引导迁移到 Kiro CLI。
 

@@ -87,6 +87,8 @@ export function PackagesView() {
 
     const managerDisplayNames = useMemo<Record<string, string>>(() => ({
         npm: t('packages.managers.npm'),
+        pnpm: 'pnpm',
+        yarn: 'Yarn Classic',
         pip: t('packages.managers.pip'),
         cargo: t('packages.managers.cargo'),
         composer: t('packages.managers.composer'),
@@ -144,7 +146,7 @@ export function PackagesView() {
                         </p>
                     )}
                 </div>
-                <button className="btn btn-primary" onClick={handleScan} disabled={isScanning}>
+                <button className="btn btn-primary" onClick={handleScan} disabled={isScanning || operatingPackage !== null}>
                     {isScanning ? (
                         <>
                             <span className="spinner spinner-sm" />
@@ -239,17 +241,19 @@ export function PackagesView() {
                                                 <td>
                                                     {pkg.is_outdated ? (
                                                         <span className="badge badge-warning">{t('packages.outdated')}</span>
-                                                    ) : (
+                                                    ) : pkg.update_checked ? (
                                                         <span className="badge badge-success">{t('packages.up_to_date')}</span>
+                                                    ) : (
+                                                        <span className="badge">{t('packages.not_checked')}</span>
                                                     )}
                                                 </td>
                                                 <td>
                                                     <div className="action-buttons">
-                                                        {pkg.is_outdated && (
+                                                        {(pkg.is_outdated || !pkg.update_checked) && (
                                                             <button
                                                                 className="btn btn-primary btn-small"
                                                                 onClick={() => handleUpdate(pkg.manager, pkg.name)}
-                                                                disabled={operatingPackage !== null}
+                                                                disabled={isScanning || operatingPackage !== null}
                                                             >
                                                                 {operatingPackage === `update-${pkg.manager}-${pkg.name}` ? (
                                                                     <span className="spinner spinner-xs" />
@@ -261,7 +265,7 @@ export function PackagesView() {
                                                         <button
                                                             className="btn btn-secondary btn-small"
                                                             onClick={() => handleUninstall(pkg.manager, pkg.name)}
-                                                            disabled={operatingPackage !== null}
+                                                            disabled={isScanning || operatingPackage !== null}
                                                         >
                                                             {operatingPackage === `uninstall-${pkg.manager}-${pkg.name}` ? (
                                                                 <span className="spinner spinner-xs" />

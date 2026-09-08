@@ -34,16 +34,29 @@ pub fn command_output_with_timeout_vec(
     let stderr_handle = child.stderr.take().map(spawn_reader);
 
     let start = Instant::now();
+    let mut exit_status = None;
     let status = loop {
-        if let Some(status) = child.try_wait()? {
-            break status;
+        if exit_status.is_none() {
+            exit_status = child.try_wait()?;
+        }
+        if let Some(status) = exit_status {
+            if stdout_handle
+                .as_ref()
+                .is_none_or(|reader| reader.is_finished())
+                && stderr_handle
+                    .as_ref()
+                    .is_none_or(|reader| reader.is_finished())
+            {
+                break status;
+            }
         }
 
         if start.elapsed() >= timeout {
-            let _ = child.kill();
+            terminate_process_tree(&mut child);
             let _ = child.wait();
-            let _ = join_reader(stdout_handle);
-            let _ = join_reader(stderr_handle);
+            // 逃离进程树的后代也不能让超时路径阻塞在读取线程上。
+            drop(stdout_handle);
+            drop(stderr_handle);
             return Err(io::Error::new(
                 io::ErrorKind::TimedOut,
                 format!(
@@ -66,6 +79,26 @@ pub fn command_output_with_timeout_vec(
         stdout,
         stderr,
     })
+}
+
+fn terminate_process_tree(child: &mut Child) {
+    #[cfg(unix)]
+    {
+        // 子进程拥有独立进程组，终止继承输出管道的后代，避免读取线程永久等待。
+        unsafe {
+            libc::kill(-(child.id() as i32), libc::SIGKILL);
+        }
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let _ = command_no_window("taskkill")
+            .args(["/PID", &child.id().to_string(), "/T", "/F"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+    let _ = child.kill();
 }
 
 fn spawn_reader<R>(mut reader: R) -> JoinHandle<Vec<u8>>
@@ -101,7 +134,13 @@ fn spawn_command(program: &str, args: &[&str]) -> io::Result<Child> {
         }
     }
 
-    command_no_window(program)
+    let mut command = command_no_window(program);
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+    }
+    command
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -204,14 +243,37 @@ mod tests {
         );
 
         #[cfg(not(target_os = "windows"))]
-        let result =
-            command_output_with_timeout("sh", &["-c", "sleep 2"], Duration::from_millis(100));
+        let start = Instant::now();
+        #[cfg(not(target_os = "windows"))]
+        let result = command_output_with_timeout(
+            "sh",
+            &["-c", "sleep 3 & wait"],
+            Duration::from_millis(100),
+        );
+        #[cfg(not(target_os = "windows"))]
+        assert!(
+            start.elapsed() < Duration::from_secs(2),
+            "超时后仍等待后代进程"
+        );
 
         assert!(result.is_err());
         assert_eq!(
             result.expect_err("command should time out").kind(),
             io::ErrorKind::TimedOut
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn times_out_when_exited_parent_leaves_output_pipes_open() {
+        let start = Instant::now();
+        let result = command_output_with_timeout(
+            "sh",
+            &["-c", "sleep 3 & exit 0"],
+            Duration::from_millis(100),
+        );
+        assert_eq!(result.unwrap_err().kind(), io::ErrorKind::TimedOut);
+        assert!(start.elapsed() < Duration::from_secs(2));
     }
 
     #[cfg(target_os = "windows")]

@@ -19,6 +19,12 @@ struct YarnCommand {
 }
 
 impl YarnCommand {
+    fn run_action(&self, args: &[&str], name: &str) -> Result<String, String> {
+        let mut full_args: Vec<&str> = self.prefix_args.iter().map(String::as_str).collect();
+        full_args.extend_from_slice(args);
+        super::run_package_action(&self.program, &full_args, name)
+    }
+
     fn new(program: &str, prefix_args: &[&str]) -> Self {
         Self {
             program: program.to_string(),
@@ -43,6 +49,10 @@ impl YarnManager {
 
         for command in candidates {
             if let Some(output) = run_yarn_command(&command, &["--version"]) {
+                // Yarn 2+ 已移除 global 命令，不能按 Classic 的方式管理。
+                if !output.trim().starts_with("1.") {
+                    return None;
+                }
                 return Some(Self {
                     version: output.trim().to_string(),
                     command,
@@ -82,23 +92,27 @@ impl PackageManager for YarnManager {
                 latest: None,
                 manager: "yarn".to_string(),
                 is_outdated: false,
+                update_checked: false,
                 description: None,
             })
             .collect()
     }
 
     fn update_package(&self, name: &str) -> Result<String, String> {
-        match run_yarn_command(&self.command, &["global", "add", &format!("{name}@latest")]) {
-            Some(output) => Ok(format!("Updated {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to update {}", name)),
-        }
+        self.command.run_action(
+            &[
+                "global",
+                "add",
+                "--non-interactive",
+                &format!("{name}@latest"),
+            ],
+            name,
+        )
     }
 
     fn uninstall_package(&self, name: &str) -> Result<String, String> {
-        match run_yarn_command(&self.command, &["global", "remove", name]) {
-            Some(output) => Ok(format!("Uninstalled {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to uninstall {}", name)),
-        }
+        self.command
+            .run_action(&["global", "remove", "--non-interactive", name], name)
     }
 }
 

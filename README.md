@@ -33,7 +33,8 @@ Dev Janitor helps keep a local development machine under control. It focuses on 
 ### Tool Management
 
 - Inspect installed tools across Node, Python, Rust, Go, and related ecosystems.
-- Check versions and update common global packages.
+- 检查和更新常见全局包，区分已确认最新与未检查更新的状态，并保留失败原因。
+- [更新命令说明](docs/UPDATES.md) 列出 AI Agent CLI、Pi 扩展包和包管理器命令及安装渠道限制。
 - Manage 25 AI CLI tools from one interface, including Codex, Claude Code, Kiro, Factory Droid, Mistral Vibe, Qoder CLI, Pi, OpenCode, Gemini CLI, and GitHub Copilot CLI.
 - Follow official native install and self-update flows where available; legacy Amazon Q installations are guided through migration to Kiro CLI.
 

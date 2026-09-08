@@ -18,6 +18,12 @@ struct PipCommand {
 }
 
 impl PipCommand {
+    fn run_action(&self, args: &[&str], name: &str) -> Result<String, String> {
+        let mut full_args: Vec<&str> = self.prefix_args.iter().map(String::as_str).collect();
+        full_args.extend_from_slice(args);
+        super::run_package_action(&self.program, &full_args, name)
+    }
+
     fn new(program: &str, prefix_args: &[&str]) -> Self {
         Self {
             program: program.to_string(),
@@ -30,13 +36,6 @@ impl PipCommand {
 struct PipPackage {
     name: String,
     version: String,
-}
-
-#[derive(Deserialize)]
-struct PipOutdatedPackage {
-    name: String,
-    version: String,
-    latest_version: String,
 }
 
 impl PipManager {
@@ -105,36 +104,20 @@ impl PackageManager for PipManager {
             Err(_) => return packages,
         };
 
-        // Skip outdated check for now - it requires network and is very slow
-        // TODO: Move to async background task
-        // let outdated_output =
-        //     run_pip_command(&self.command, &["list", "--outdated", "--format=json"])
-        //         .unwrap_or_default();
-        // let outdated: Vec<PipOutdatedPackage> =
-        //     serde_json::from_str(&outdated_output).unwrap_or_default();
-
-        let outdated_map: std::collections::HashMap<String, String> =
-            std::collections::HashMap::new();
-
+        // 扫描仅枚举本地包，未联网检查的状态由界面明确显示。
         for pkg in list {
             // Skip common system packages
             if pkg.name == "pip" || pkg.name == "setuptools" || pkg.name == "wheel" {
                 continue;
             }
 
-            let name_lower = pkg.name.to_lowercase();
-            let (is_outdated, latest) = if let Some(latest) = outdated_map.get(&name_lower) {
-                (true, Some(latest.clone()))
-            } else {
-                (false, None)
-            };
-
             packages.push(PackageInfo {
                 name: pkg.name,
                 version: pkg.version,
-                latest,
+                latest: None,
                 manager: "pip".to_string(),
-                is_outdated,
+                is_outdated: false,
+                update_checked: false,
                 description: None,
             });
         }
@@ -143,17 +126,13 @@ impl PackageManager for PipManager {
     }
 
     fn update_package(&self, name: &str) -> Result<String, String> {
-        match run_pip_command(&self.command, &["install", "--upgrade", name]) {
-            Some(output) => Ok(format!("Updated {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to update {}", name)),
-        }
+        self.command
+            .run_action(&["install", "--upgrade", "--no-input", name], name)
     }
 
     fn uninstall_package(&self, name: &str) -> Result<String, String> {
-        match run_pip_command(&self.command, &["uninstall", "-y", name]) {
-            Some(output) => Ok(format!("Uninstalled {} successfully:\n{}", name, output)),
-            None => Err(format!("Failed to uninstall {}", name)),
-        }
+        self.command
+            .run_action(&["uninstall", "-y", "--no-input", name], name)
     }
 }
 

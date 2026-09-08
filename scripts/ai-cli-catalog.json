@@ -22,10 +22,10 @@
     { "id": "cline", "docsUrl": "https://cline.bot", "registry": { "type": "npm", "name": "cline" } },
     { "id": "amp", "docsUrl": "https://ampcode.com/manual" },
     { "id": "crush", "docsUrl": "https://charm.sh/crush", "registry": { "type": "npm", "name": "@charmland/crush" } },
-    { "id": "droid", "docsUrl": "https://docs.factory.ai/reference/cli-reference", "registry": { "type": "npm", "name": "droid" } },
+    { "id": "droid", "docsUrl": "https://docs.factory.ai/reference/cli-reference" },
     { "id": "vibe", "docsUrl": "https://docs.mistral.ai/vibe/code/cli/install-setup", "registry": { "type": "pypi", "name": "mistral-vibe" } },
     { "id": "qoder", "docsUrl": "https://docs.qoder.com/en/cli/quick-start" },
-    { "id": "pi", "docsUrl": "https://badlogic-pi-mono.mintlify.app/installation", "registry": { "type": "npm", "name": "@mariozechner/pi-coding-agent" } },
+    { "id": "pi", "docsUrl": "https://github.com/earendil-works/pi", "registry": { "type": "npm", "name": "@earendil-works/pi-coding-agent" } },
     { "id": "amazonq", "docsUrl": "https://kiro.dev/docs/cli/migrating-from-q/" }
   ]
 }
