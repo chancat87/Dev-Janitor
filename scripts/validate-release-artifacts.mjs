@@ -71,6 +71,12 @@ if (!existsSync(artifactDir)) {
   fail(`artifact path is not a directory: ${artifactDir}`);
 }
 
+// 新版 tauri-action 在 macOS 更新包名称中包含版本号，兼容历史发布。
+function macArchiveName(arch) {
+  const versioned = `Dev.Janitor_${version}_${arch}.app.tar.gz`;
+  return existsSync(filePath(versioned)) ? versioned : `Dev.Janitor_${arch}.app.tar.gz`;
+}
+
 const expectedArtifacts = [
   `Dev-Janitor_${version}_x64_portable.zip`,
   `Dev.Janitor-${version}-1.x86_64.rpm`,
@@ -89,10 +95,10 @@ const expectedArtifacts = [
   `Dev.Janitor_${version}_x64_ja-JP.msi.sig`,
   `Dev.Janitor_${version}_x64_zh-CN.msi`,
   `Dev.Janitor_${version}_x64_zh-CN.msi.sig`,
-  'Dev.Janitor_aarch64.app.tar.gz',
-  'Dev.Janitor_aarch64.app.tar.gz.sig',
-  'Dev.Janitor_x64.app.tar.gz',
-  'Dev.Janitor_x64.app.tar.gz.sig',
+  ...['aarch64', 'x64'].flatMap((arch) => {
+    const name = macArchiveName(arch);
+    return [name, `${name}.sig`];
+  }),
   'latest.json',
 ];
 
@@ -123,8 +129,8 @@ const missingSignatures = [
   `Dev.Janitor_${version}_x64_en-US.msi`,
   `Dev.Janitor_${version}_x64_ja-JP.msi`,
   `Dev.Janitor_${version}_x64_zh-CN.msi`,
-  'Dev.Janitor_aarch64.app.tar.gz',
-  'Dev.Janitor_x64.app.tar.gz',
+  macArchiveName('aarch64'),
+  macArchiveName('x64'),
 ]
   .filter((name) => !hasNonEmptyFile(`${name}.sig`));
 

@@ -4,11 +4,11 @@ This document records the repository release line, GitHub tag state, and Actions
 
 ## Current Release State
 
-- Latest published release: `v2.5.0`
-- Published at: `2026-07-21T08:37:12Z`
-- Release URL: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v2.5.0
+- Latest published release: `v2.5.1`
+- Published at: `2026-09-08T05:42:04Z`
+- Release URL: https://github.com/cocojojo5213/Dev-Janitor/releases/tag/v2.5.1
 - Published asset count: 22
-- Current app version in this checkout: `2.5.1`（待 tag 发布）
+- Current app version in this checkout: `2.5.1`（已发布）
 - 本次补丁说明：[工具与包更新](UPDATES.md)，包含命令修正、错误反馈与超时处理修复。
 - Current toolchain baseline: Node.js 24, pnpm 11.15.1, Rust 1.97.1
 
@@ -180,6 +180,15 @@ PY
 unzip -l "$artifact_dir/Dev-Janitor_2.4.3_x64_portable.zip"
 dpkg-deb -I "$artifact_dir/"*.deb
 ```
+
+## v2.5.1 发布验证
+
+- 主分支 CI `34190866472` 全部通过；Release `34191022742` 的预检查、四个平台构建和公开发布全部成功。
+- tag `v2.5.1` 指向应用提交 `53371aa`；本机核心与完整桌面测试均为 39 项通过，Linux 桌面 Clippy、前端构建和 Windows 核心交叉编译通过。
+- 下载全部 22 个附件到 `/tmp/dev-janitor-v2.5.1`，产物校验通过；确认 11 个自动更新平台入口、签名文件、安装包和便携包齐全。
+- 验证 Windows ZIP 完整性、macOS 更新包 gzip 完整性，以及 Debian 包名、版本和 amd64 架构。
+- 新版 tauri-action 使用带版本号的 macOS 更新包名称；校验脚本已兼容新旧名称。
+- 发布后发现 latest.json 使用 GitHub API 附件 URL，已转换为各附件的公开下载 URL 并重新上传；再次下载校验通过。后续主分支发布步骤会在公开 Release 前完成转换，tag 和应用二进制保持不变。
 
 ## v2.5.0 Artifact Validation
 
